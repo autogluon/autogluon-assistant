@@ -7,7 +7,10 @@ on:
 jobs:
   pypi_release:
     runs-on: ubuntu-latest
+<<<<<<< HEAD
     environment: pypi
+=======
+>>>>>>> 6302a5b (chore: add PyPI release workflows and project metadata)
     if: github.repository == 'autogluon/autogluon-assistant'
     permissions:
       contents: read

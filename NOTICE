@@ -1,2 +1,6 @@
 ML Assistant for Competitive Machine Learning
+<<<<<<< HEAD
 Copyright 2024 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+=======
+Copyright 2022 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+>>>>>>> 6302a5b (chore: add PyPI release workflows and project metadata)
