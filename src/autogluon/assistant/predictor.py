@@ -17,13 +17,14 @@ logger = logging.getLogger(__name__)
 
 
 def rmsle_func(y_true, y_pred, **kwargs):
+    y_pred = np.clip(y_pred, a_min=0.0, a_max=None)
     return np.sqrt(mean_squared_log_error(y_true, y_pred, **kwargs))
 
 
 root_mean_square_logarithmic_error = make_scorer(
     "root_mean_square_logarithmic_error",
     rmsle_func,
-    optimum=1,
+    optimum=0,
     greater_is_better=False,
 )
 
