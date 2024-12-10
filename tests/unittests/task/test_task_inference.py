@@ -4,9 +4,9 @@ import pandas as pd
 import pytest
 from hydra import compose, initialize
 
+from autogluon.assistant.constants import OUTPUT, TEST, TRAIN
 from autogluon.assistant.llm import LLMFactory
 from autogluon.assistant.task import TabularPredictionTask
-from autogluon.assistant.constants import TRAIN, TEST, OUTPUT
 from autogluon.assistant.task_inference.task_inference import LabelColumnInference
 
 _config_path = "../../../src/autogluon/assistant/configs"
