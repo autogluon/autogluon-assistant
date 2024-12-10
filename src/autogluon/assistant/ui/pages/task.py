@@ -167,7 +167,11 @@ def show_output_download_button(data, file_name):
 
 def show_cancel_task_button():
     try:
-        if st.button("⏹️&nbsp;&nbsp;Stop Task", on_click=toggle_cancel_state):
+        if st.button(
+            "⏹️&nbsp;&nbsp;Stop Task",
+            on_click=toggle_cancel_state,
+            key="cancel_task",
+        ):
             p = st.session_state.process
             print("Stopping the task ...")
             p.terminate()
@@ -278,7 +282,12 @@ def run_button():
     """
     Create and handle the "Run" button for starting the AutoGluon task.
     """
-    if st.button(label="🔘&nbsp;&nbsp;Run!", on_click=toggle_running_state, disabled=st.session_state.task_running):
+    if st.button(
+        label="🔘&nbsp;&nbsp;Run!",
+        key="run_task",
+        on_click=toggle_running_state,
+        disabled=st.session_state.task_running,
+    ):
         if st.session_state.selected_dataset == "Sample Dataset":
             if st.session_state.sample_dataset_dir is not None:
                 sample_data_dir = st.session_state.sample_dataset_dir
