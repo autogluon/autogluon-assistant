@@ -4,13 +4,14 @@ import pandas as pd
 import pytest
 from hydra import compose, initialize
 
+from autogluon.assistant.constants import OUTPUT, TEST, TRAIN
 from autogluon.assistant.llm import LLMFactory
-from autogluon.assistant.task import DatasetType, TabularPredictionTask
-from autogluon.assistant.transformer.task_inference import LabelColumnInferenceTransformer
+from autogluon.assistant.task import TabularPredictionTask
+from autogluon.assistant.task_inference.task_inference import LabelColumnInference
 
-_config_path = "../../../config"
+_config_path = "../../../src/autogluon/assistant/configs"
 with initialize(version_base=None, config_path=_config_path):
-    config = compose(config_name="config")
+    config = compose(config_name="default")
 _llm = LLMFactory.get_chat_model(config.llm)
 
 
@@ -79,12 +80,12 @@ def test_label_column_inference(toy_multiclass_data):
         cache_data=False,
     )
 
-    task.dataset_mapping[DatasetType.TRAIN] = train
-    task.dataset_mapping[DatasetType.TEST] = test
-    task.dataset_mapping[DatasetType.OUTPUT] = sample_submission
+    task.dataset_mapping[TRAIN] = train
+    task.dataset_mapping[TEST] = test
+    task.dataset_mapping[OUTPUT] = sample_submission
 
     # this won't guarantee a test for fallback logic since LLM will work most probably
-    transformer = LabelColumnInferenceTransformer(_llm)
+    transformer = LabelColumnInference(_llm)
     task = transformer.transform(task)
     assert task.metadata["label_column"] == "OutcomeType", "The label column should be 'OutcomeType'."
 
