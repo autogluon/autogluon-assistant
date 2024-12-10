@@ -1,5 +1,6 @@
 import logging
 import re
+from copy import deepcopy
 from importlib.resources import files
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -182,3 +183,9 @@ def get_feature_transformers_config(config: OmegaConf) -> Optional[List[Dict[str
 
     # Return None if no valid configurations were found
     return transformers_config if transformers_config else None
+
+
+def unpack_omega_config(config):
+    temp_config = deepcopy(config)
+    dict_config = OmegaConf.to_container(temp_config, resolve=True)
+    return dict_config

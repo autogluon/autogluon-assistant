@@ -12,6 +12,7 @@ from sklearn.metrics import mean_squared_log_error
 
 from .constants import BINARY, CLASSIFICATION_PROBA_EVAL_METRIC, MULTICLASS
 from .task import TabularPredictionTask
+from .utils import unpack_omega_config
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ class AutogluonTabularPredictor(Predictor):
             "label": task.label_column,
             "problem_type": task.problem_type,
             "eval_metric": eval_metric,
-            **self.config.predictor_init_kwargs,
+            **unpack_omega_config(self.config.predictor_init_kwargs),
         }
         predictor_fit_kwargs = self.config.predictor_fit_kwargs.copy()
         predictor_fit_kwargs.pop("time_limit", None)
@@ -90,7 +91,7 @@ class AutogluonTabularPredictor(Predictor):
         }
         self.save_dataset_details(task)
         self.predictor = TabularPredictor(**predictor_init_kwargs).fit(
-            task.train_data, **predictor_fit_kwargs, time_limit=time_limit
+            task.train_data, **unpack_omega_config(predictor_fit_kwargs), time_limit=time_limit
         )
 
         self.metadata["leaderboard"] = self.predictor.leaderboard().to_dict()
