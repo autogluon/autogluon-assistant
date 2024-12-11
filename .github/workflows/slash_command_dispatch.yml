@@ -54,7 +54,7 @@ jobs:
           static-args: |
             repository=${{ github.repository }}
             comment-id=${{ github.event.comment.id }}
-            pr-sha=${{ steps.sha.outputs.result }}
+            pr-sha=${{ github.even.pull_request.head.sha }}
             branch_or_pr_number=PR-${{ steps.pr_number.outputs.result }}
             fork_info=${{ steps.pr_info.outputs.FORK_NAME }}|${{ steps.pr_info.outputs.FORK_BRANCH }}
       - name: Edit comment with error message
