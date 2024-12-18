@@ -19,7 +19,9 @@ logger = logging.getLogger(__name__)
 
 
 class AssistantChatOpenAI(ChatOpenAI, BaseModel):
-
+    """
+    AssistantChatOpenAI is a subclass of ChatOpenAI that traces the input and output of the model.
+    """
 
     history_: List[Dict[str, Any]] = Field(default_factory=list)
     input_: int = Field(default=0)
@@ -59,7 +61,7 @@ class AssistantChatOpenAI(ChatOpenAI, BaseModel):
 
 class AssistantAzureChatOpenAI(AzureChatOpenAI, BaseModel):
     """
-    Mixin class for common functionalities between ChatOpenAI and AzureChatOpenAI.
+    AssistantAzureChatOpenAI is a subclass of AzureChatOpenAI that traces the input and output of the model.
     """
 
     history_: List[Dict[str, Any]] = Field(default_factory=list)
