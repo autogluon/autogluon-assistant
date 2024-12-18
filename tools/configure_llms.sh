@@ -22,6 +22,9 @@ tmp_AWS_DEFAULT_REGION=""
 tmp_AWS_ACCESS_KEY_ID=""
 tmp_AWS_SECRET_ACCESS_KEY=""
 tmp_OPENAI_API_KEY=""
+tmp_OPENAI_API_VERSION=""
+tmp_AZURE_OPENAI_API_KEY=""
+tmp_AZURE_OPENAI_ENDPOINT=""
 
 # Function to print colored messages
 print_color() {
@@ -70,6 +73,9 @@ read_existing_config() {
                     "AWS_ACCESS_KEY_ID") tmp_AWS_ACCESS_KEY_ID="$value" ;;
                     "AWS_SECRET_ACCESS_KEY") tmp_AWS_SECRET_ACCESS_KEY="$value" ;;
                     "OPENAI_API_KEY") tmp_OPENAI_API_KEY="$value" ;;
+                    "OPENAI_API_VERSION") tmp_OPENAI_API_VERSION="$value" ;;
+                    "AZURE_OPENAI_API_KEY") tmp_AZURE_OPENAI_API_KEY="$value" ;;
+                    "AZURE_OPENAI_ENDPOINT") tmp_AZURE_OPENAI_ENDPOINT="$value" ;;
                 esac
             fi
         done < "$CONFIG_FILE"
@@ -88,9 +94,14 @@ save_configuration() {
         tmp_AWS_DEFAULT_REGION="$AWS_DEFAULT_REGION"
         tmp_AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
         tmp_AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
-    else
-        # Update OpenAI variable
+    elif [ "$provider" = "openai" ]; then
+        # Update OpenAI variables
         tmp_OPENAI_API_KEY="$OPENAI_API_KEY"
+        tmp_OPENAI_API_VERSION="$OPENAI_API_VERSION"
+    elif [ "$provider" = "azure" ]; then
+        # Update Azure variables
+        tmp_AZURE_OPENAI_API_KEY="$AZURE_OPENAI_API_KEY"
+        tmp_AZURE_OPENAI_ENDPOINT="$AZURE_OPENAI_ENDPOINT"
     fi
     
     # Save all configurations
@@ -102,6 +113,12 @@ save_configuration() {
     
     if [ -n "$tmp_OPENAI_API_KEY" ]; then
         echo "OPENAI_API_KEY=$tmp_OPENAI_API_KEY" >> "$CONFIG_FILE"
+        echo "OPENAI_API_VERSION=$tmp_OPENAI_API_VERSION" >> "$CONFIG_FILE"
+    fi
+
+    if [ -n "$tmp_AZURE_OPENAI_API_KEY" ]; then
+        echo "AZURE_OPENAI_API_KEY=$tmp_AZURE_OPENAI_API_KEY" >> "$CONFIG_FILE"
+        echo "AZURE_OPENAI_ENDPOINT=$tmp_AZURE_OPENAI_ENDPOINT" >> "$CONFIG_FILE"
     fi
     
     # Export all variables
@@ -113,6 +130,12 @@ save_configuration() {
     
     if [ -n "$tmp_OPENAI_API_KEY" ]; then
         export OPENAI_API_KEY="$tmp_OPENAI_API_KEY"
+        export OPENAI_API_VERSION="$tmp_OPENAI_API_VERSION"
+    fi
+
+    if [ -n "$tmp_AZURE_OPENAI_API_KEY" ]; then
+        export AZURE_OPENAI_API_KEY="$tmp_AZURE_OPENAI_API_KEY"
+        export AZURE_OPENAI_ENDPOINT="$tmp_AZURE_OPENAI_ENDPOINT"
     fi
     
     # Set proper permissions
@@ -130,163 +153,3 @@ check_existing_config() {
         print_color "$GREEN" "Backup created at ${CONFIG_FILE}.backup"
     fi
 }
-
-# Function to display current configuration file
-display_config() {
-    if [ ! -f "$CONFIG_FILE" ]; then
-        print_color "$YELLOW" "No configuration file found at $CONFIG_FILE"
-        return
-    fi
-    
-    read_existing_config
-    
-    print_header "Current Configuration File"
-    
-    print_color "$GREEN" "AWS Bedrock Configuration:"
-    if [ -n "$tmp_AWS_ACCESS_KEY_ID" ]; then
-        echo "AWS_DEFAULT_REGION=${tmp_AWS_DEFAULT_REGION}"
-        echo "AWS_ACCESS_KEY_ID=${tmp_AWS_ACCESS_KEY_ID}"
-        echo "AWS_SECRET_ACCESS_KEY=********"
-    else
-        print_color "$YELLOW" "Bedrock is not configured"
-    fi
-    
-    echo
-    print_color "$GREEN" "OpenAI Configuration:"
-    if [ -n "$tmp_OPENAI_API_KEY" ]; then
-        echo "OPENAI_API_KEY=${tmp_OPENAI_API_KEY}"
-    else
-        print_color "$YELLOW" "OpenAI is not configured"
-    fi
-    echo
-}
-
-# Function to display current environment variables
-display_env_vars() {
-    print_header "Current Environment Variables"
-    
-    print_color "$GREEN" "AWS Bedrock Environment Variables:"
-    echo "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-(not set)}"
-    echo "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-(not set)}"
-    if [ -n "$AWS_SECRET_ACCESS_KEY" ]; then
-        echo "AWS_SECRET_ACCESS_KEY=********"
-    else
-        echo "AWS_SECRET_ACCESS_KEY=(not set)"
-    fi
-    
-    echo
-    print_color "$GREEN" "OpenAI Environment Variables:"
-    echo "OPENAI_API_KEY=${OPENAI_API_KEY:-(not set)}"
-    echo
-
-    # Compare configuration with environment variables
-    if [ -f "$CONFIG_FILE" ]; then
-        read_existing_config
-        
-        local has_mismatch=false
-        if [ -n "$tmp_AWS_DEFAULT_REGION" ] && [ "$tmp_AWS_DEFAULT_REGION" != "$AWS_DEFAULT_REGION" ]; then
-            has_mismatch=true
-        fi
-        if [ -n "$tmp_AWS_ACCESS_KEY_ID" ] && [ "$tmp_AWS_ACCESS_KEY_ID" != "$AWS_ACCESS_KEY_ID" ]; then
-            has_mismatch=true
-        fi
-        if [ -n "$tmp_AWS_SECRET_ACCESS_KEY" ] && [ "$tmp_AWS_SECRET_ACCESS_KEY" != "$AWS_SECRET_ACCESS_KEY" ]; then
-            has_mismatch=true
-        fi
-        if [ -n "$tmp_OPENAI_API_KEY" ] && [ "$tmp_OPENAI_API_KEY" != "$OPENAI_API_KEY" ]; then
-            has_mismatch=true
-        fi
-        
-        if [ "$has_mismatch" = true ]; then
-            print_color "$YELLOW" "Warning: Some environment variables don't match the configuration file."
-            print_color "$YELLOW" "Run 'source $CONFIG_FILE' to sync them."
-        fi
-    fi
-}
-
-# Function to configure providers
-configure_provider() {
-    print_color "$GREEN" "Select your LLM provider to configure:"
-    echo "1) AWS Bedrock"
-    echo "2) OpenAI"
-    echo -n "Enter your choice (1/2): "
-    read provider_choice
-    
-    case $provider_choice in
-        1)
-            print_color "$BLUE" "\nConfiguring AWS Bedrock..."
-            
-            while true; do
-                echo -n "Enter your AWS region (e.g., us-east-1): "
-                read AWS_DEFAULT_REGION
-                if validate_aws_region "$AWS_DEFAULT_REGION"; then
-                    break
-                fi
-                print_color "$RED" "Invalid AWS region. Please enter a valid region."
-            done
-            
-            echo -n "Enter your AWS Access Key ID: "
-            read AWS_ACCESS_KEY_ID
-            echo -n "Enter your AWS Secret Access Key: "
-            read -s AWS_SECRET_ACCESS_KEY
-            echo
-            
-            save_configuration "bedrock"
-            ;;
-            
-        2)
-            print_color "$BLUE" "\nConfiguring OpenAI..."
-            
-            while true; do
-                echo -n "Enter your OpenAI API Key (starts with sk-): "
-                read OPENAI_API_KEY
-                if validate_openai_api_key "$OPENAI_API_KEY"; then
-                    break
-                fi
-                print_color "$RED" "Invalid OpenAI API Key format. Please try again."
-            done
-            
-            print_color "$RED" "Note: Free-tier OpenAI accounts may be subject to rate limits."
-            print_color "$RED" "We recommend using a paid OpenAI API key for seamless functionality."
-            
-            save_configuration "openai"
-            ;;
-            
-        *)
-            print_color "$RED" "Invalid choice. Exiting."
-            return 1
-            ;;
-    esac
-    
-    print_color "$GREEN" "\nConfiguration complete!"
-    display_config
-}
-
-# Main script
-clear
-print_color "$BLUE" "=== AGA LLM Configuration Tool ==="
-echo
-print_color "$GREEN" "Select an option:"
-echo "1) Configure LLM providers"
-echo "2) View current configuration file"
-echo "3) View current environment variables"
-echo -n "Enter your choice (1/2/3): "
-read main_choice
-
-case $main_choice in
-    1)
-        check_existing_config
-        read_existing_config
-        configure_provider
-        ;;
-    2)
-        display_config
-        ;;
-    3)
-        display_env_vars
-        ;;
-    *)
-        print_color "$RED" "Invalid choice. Exiting."
-        return 1
-        ;;
-esac
