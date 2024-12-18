@@ -8,7 +8,12 @@ from typing import Any, Dict, Optional, Union
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
-from autogluon.assistant.llm import AssistantChatBedrock, AssistantChatOpenAI, LLMFactory
+from autogluon.assistant.llm import (
+    AssistantChatBedrock,
+    AssistantChatOpenAI,
+    AssistantAzureChatOpenAI,
+    LLMFactory,
+)
 
 from .predictor import AutogluonTabularPredictor
 from .task import TabularPredictionTask
@@ -31,7 +36,9 @@ logger = logging.getLogger(__name__)
 def timeout(seconds: int, error_message: Optional[str] = None):
     if sys.platform == "win32":
         # Windows implementation using threading
-        timer = threading.Timer(seconds, lambda: (_ for _ in ()).throw(TimeoutError(error_message)))
+        timer = threading.Timer(
+            seconds, lambda: (_ for _ in ()).throw(TimeoutError(error_message))
+        )
         timer.start()
         try:
             yield
@@ -55,7 +62,9 @@ class TabularPredictionAssistant:
 
     def __init__(self, config: DictConfig) -> None:
         self.config = config
-        self.llm: Union[AssistantChatOpenAI, AssistantChatBedrock] = LLMFactory.get_chat_model(config.llm)
+        self.llm: Union[
+            AssistantChatOpenAI, AssistantAzureChatOpenAI, AssistantChatBedrock
+        ] = LLMFactory.get_chat_model(config.llm)
         self.predictor = AutogluonTabularPredictor(config.autogluon)
         self.feature_transformers_config = get_feature_transformers_config(config)
 
@@ -95,13 +104,19 @@ class TabularPredictionAssistant:
                 ):
                     task = preprocessor.transform(task)
             except Exception as e:
-                self.handle_exception(f"Task inference preprocessing: {preprocessor_class}", e)
+                self.handle_exception(
+                    f"Task inference preprocessing: {preprocessor_class}", e
+                )
 
         bold_start = "\033[1m"
         bold_end = "\033[0m"
 
-        logger.info(f"{bold_start}Total number of prompt tokens:{bold_end} {self.llm.input_}")
-        logger.info(f"{bold_start}Total number of completion tokens:{bold_end} {self.llm.output_}")
+        logger.info(
+            f"{bold_start}Total number of prompt tokens:{bold_end} {self.llm.input_}"
+        )
+        logger.info(
+            f"{bold_start}Total number of completion tokens:{bold_end} {self.llm.output_}"
+        )
         logger.info("Task understanding complete!")
         return task
 
@@ -111,7 +126,9 @@ class TabularPredictionAssistant:
         task = self.inference_task(task)
         if self.feature_transformers_config:
             logger.info("Automatic feature generation starts...")
-            fe_transformers = [instantiate(ft_config) for ft_config in self.feature_transformers_config]
+            fe_transformers = [
+                instantiate(ft_config) for ft_config in self.feature_transformers_config
+            ]
             for fe_transformer in fe_transformers:
                 try:
                     with timeout(
@@ -120,7 +137,9 @@ class TabularPredictionAssistant:
                     ):
                         task = fe_transformer.fit_transform(task)
                 except Exception as e:
-                    self.handle_exception(f"Task preprocessing: {fe_transformer.name}", e)
+                    self.handle_exception(
+                        f"Task preprocessing: {fe_transformer.name}", e
+                    )
             logger.info("Automatic feature generation complete!")
         else:
             logger.info("Automatic feature generation is disabled. ")
