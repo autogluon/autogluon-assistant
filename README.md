@@ -76,6 +76,14 @@ You can sign up for an OpenAI account [here](https://platform.openai.com/) and m
 Important: Free-tier OpenAI accounts may be subject to rate limits, which could affect AG-A's performance. We recommend using a paid OpenAI API key for seamless functionality.
 
 
+#### Azure OpenAI Setup
+To use Azure OpenAI, you'll need to set the following Azure OpenAI values, as environment variables:
+```bash
+export AZURE_OPENAI_API_KEY=<...>
+export OPENAI_API_VERSION=<...>
+export AZURE_OPENAI_ENDPOINT=<...>
+```
+
 ## Usage
 
 We support two ways of using AutoGluon Assistant: WebUI and CLI.
