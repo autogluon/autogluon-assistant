@@ -2,7 +2,8 @@ import os
 
 import pandas as pd
 import streamlit as st
-from utils import get_user_data_dir
+
+from autogluon.assistant.ui.utils import get_user_data_dir
 
 
 def save_description_file(description):

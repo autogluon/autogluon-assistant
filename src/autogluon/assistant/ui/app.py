@@ -1,3 +1,4 @@
+import os
 from copy import deepcopy
 
 import streamlit as st
@@ -33,7 +34,11 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-with open("style.css") as f:
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+css_file_path = os.path.join(current_dir, "style.css")
+
+with open(css_file_path) as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
