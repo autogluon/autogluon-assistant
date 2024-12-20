@@ -2,7 +2,8 @@ import re
 import time
 
 import streamlit as st
-from constants import (
+
+from autogluon.assistant.ui.constants import (
     IGNORED_MESSAGES,
     STAGE_COMPLETE_SIGNAL,
     STAGE_MESSAGES,

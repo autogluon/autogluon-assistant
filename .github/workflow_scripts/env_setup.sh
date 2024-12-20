@@ -37,3 +37,18 @@ function install_all_pip {
     python -m pip install --upgrade pip
     python -m pip install -e ".[dev]"
 }
+
+function install_ui_test {
+    python3 -m pip install --upgrade pip
+    python3 -m pip install --upgrade -e ".[dev]"
+    python3 -m pip install pytest
+    python3 -m pip install pytest-cov
+}
+
+function install_coverage_test {
+    python3 -m pip install --upgrade pip
+    python3 -m pip install --upgrade -e ".[dev]"
+    python3 -m pip install pytest
+    python3 -m pip install pytest-cov
+    python3 -m pip install coverage-threshold
+}
