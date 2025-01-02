@@ -317,8 +317,16 @@ class TabularPredictionTask:
         elif isinstance(dataset, TabularDataset):
             return dataset
         else:
-            filename = dataset.name
-            if filename.split(".")[-1] == ".json":
-                raise TypeError(f"File {filename} has unsupported type: json")
+            if isinstance(dataset, Path):
+                filepath = dataset
+            else:
+                filepath = Path(dataset)
 
-            return TabularDataset(str(dataset))
+            # Check if the file is an Excel file
+            if filepath.suffix in [".xlsx", ".xls"]:
+                df = pd.read_excel(filepath, engine="calamine")
+                return TabularDataset(df)
+            elif filepath.suffix == ".json":
+                raise TypeError(f"File {filepath.name} has unsupported type: json")
+            else:
+                return TabularDataset(str(filepath))
