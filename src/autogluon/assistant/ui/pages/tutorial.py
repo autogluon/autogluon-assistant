@@ -1,6 +1,12 @@
 import base64
+import os
 
 import streamlit as st
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+static_dir = os.path.join(parent_dir, "static")
+bin_file = os.path.join(static_dir, "background.png")
 
 
 def get_base64_of_bin_file(bin_file):
@@ -43,7 +49,7 @@ def set_png_as_page_bg(png_file):
 
 
 def main():
-    set_png_as_page_bg("./static/background.png")
+    set_png_as_page_bg(bin_file)
     st.markdown(
         """
     <div class="main-container" id="get-started">

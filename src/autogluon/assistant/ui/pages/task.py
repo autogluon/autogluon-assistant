@@ -8,19 +8,9 @@ import pandas as pd
 import psutil
 import requests
 import streamlit as st
-from file_uploader import description_file_uploader, file_uploader, save_description_file
-from log_processor import messages, show_logs
 from streamlit_extras.add_vertical_space import add_vertical_space
-from utils import (
-    generate_model_file,
-    generate_output_file,
-    generate_output_filename,
-    get_user_data_dir,
-    get_user_session_id,
-    save_all_files,
-)
 
-from autogluon.assistant.ui.constants import (
+from autogluon.assistant.constants import (
     BASE_DATA_DIR,
     CAPTIONS,
     DATASET_OPTIONS,
@@ -36,6 +26,16 @@ from autogluon.assistant.ui.constants import (
     S3_URL,
     TIME_LIMIT_MAPPING,
     TIME_LIMIT_OPTIONS,
+)
+from autogluon.assistant.ui.file_uploader import description_file_uploader, file_uploader, save_description_file
+from autogluon.assistant.ui.log_processor import messages, show_logs
+from autogluon.assistant.ui.utils import (
+    generate_model_file,
+    generate_output_file,
+    generate_output_filename,
+    get_user_data_dir,
+    get_user_session_id,
+    save_all_files,
 )
 
 os.makedirs(BASE_DATA_DIR, exist_ok=True)
@@ -167,7 +167,11 @@ def show_output_download_button(data, file_name):
 
 def show_cancel_task_button():
     try:
-        if st.button("⏹️&nbsp;&nbsp;Stop Task", on_click=toggle_cancel_state):
+        if st.button(
+            "⏹️&nbsp;&nbsp;Stop Task",
+            on_click=toggle_cancel_state,
+            key="cancel_task",
+        ):
             p = st.session_state.process
             print("Stopping the task ...")
             p.terminate()
@@ -278,7 +282,12 @@ def run_button():
     """
     Create and handle the "Run" button for starting the AutoGluon task.
     """
-    if st.button(label="🔘&nbsp;&nbsp;Run!", on_click=toggle_running_state, disabled=st.session_state.task_running):
+    if st.button(
+        label="🔘&nbsp;&nbsp;Run!",
+        key="run_task",
+        on_click=toggle_running_state,
+        disabled=st.session_state.task_running,
+    ):
         if st.session_state.selected_dataset == "Sample Dataset":
             if st.session_state.sample_dataset_dir is not None:
                 sample_data_dir = st.session_state.sample_dataset_dir

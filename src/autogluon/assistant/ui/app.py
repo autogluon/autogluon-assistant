@@ -1,9 +1,10 @@
+import os
 from copy import deepcopy
 
 import streamlit as st
 import streamlit.components.v1 as components
 
-from autogluon.assistant.ui.constants import DEFAULT_SESSION_VALUES, LOGO_PATH
+from autogluon.assistant.constants import DEFAULT_SESSION_VALUES, LOGO_PATH
 from autogluon.assistant.ui.pages.demo import main as demo
 from autogluon.assistant.ui.pages.feature import main as feature
 from autogluon.assistant.ui.pages.nav_bar import nav_bar
@@ -33,7 +34,11 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-with open("style.css") as f:
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+css_file_path = os.path.join(current_dir, "style.css")
+
+with open(css_file_path) as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
