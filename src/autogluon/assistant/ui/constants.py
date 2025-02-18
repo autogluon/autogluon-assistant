@@ -35,17 +35,17 @@ TIME_LIMIT_OPTIONS = ["3 mins", "10 mins", "30 mins", "1 hr", "2 hrs", "4 hrs"]
 # LLM configurations
 LLM_MAPPING = {
     "Claude 3.5 with Amazon Bedrock": "anthropic.claude-3-5-sonnet-20241022-v2:0",
-    "GPT 4o with OpenAI": "gpt-4o-2024-08-06",
-    "GPT 4o with Azure": "gpt-4o-2024-08-06",
+    "GPT 4o": "gpt-4o-2024-08-06",
+    "GPT 4o (Azure)": "gpt-4o-2024-08-06",
 }
 
-LLM_OPTIONS = ["Claude 3.5 with Amazon Bedrock", "GPT 4o with OpenAI", "GPT 4o with Azure"]
+LLM_OPTIONS = ["Claude 3.5 with Amazon Bedrock", "GPT 4o", "GPT 4o (Azure)"]
 
 # Provider configuration
 PROVIDER_MAPPING = {
-    "Claude 3.5 with Amazon Bedrock": "bedrock",
-    "GPT 4o with OpenAI": "openai",
-    "GPT 4o with Azure": "azure",
+    "Claude 3.5 with Amazon Bedrock": "bedrock", 
+    "GPT 4o": "openai",
+    "GPT 4o (Azure)": "azure",
 }
 
 INITIAL_STAGE = {
