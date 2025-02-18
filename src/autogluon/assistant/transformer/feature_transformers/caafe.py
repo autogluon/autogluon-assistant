@@ -29,8 +29,7 @@ class CAAFETransformer(BaseFeatureTransformer):
         num_iterations: int = 2,
         optimization_metric: str = "roc",
         eval_model: str = "lightgbm",
-        # TODO: Remove hardcoding AWS region
-        region_name: str = "us-west-2",
+        region_name: str = os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
         **kwargs,
     ) -> None:
         # Set up credentials if using OpenAI
