@@ -126,7 +126,7 @@ LLM_OPTIONS = ["Claude 3.5 with Amazon Bedrock", "GPT 4o", "GPT 4o (Azure)"]
 
 # Provider configuration
 PROVIDER_MAPPING = {
-    "Claude 3.5 with Amazon Bedrock": "bedrock", 
+    "Claude 3.5 with Amazon Bedrock": "bedrock",
     "GPT 4o": "openai",
     "GPT 4o (Azure)": "azure",
 }
