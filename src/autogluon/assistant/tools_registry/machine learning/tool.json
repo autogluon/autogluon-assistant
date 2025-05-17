@@ -1,0 +1,10 @@
+{
+  "name": "machine learning",
+  "version": "0.1.0",
+  "description": "You should select this as a general reference of machine learning or deep learning algorithms in case other tools are not helpful.",
+  "features": [],
+  "requirements": [],
+  "prompt_template": [
+    "In the bash script, install all necessary packages."
+  ]
+}

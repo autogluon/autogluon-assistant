@@ -1,4 +1,0 @@
-caafe@git+https://github.com/anirudhdagar/CAAFE.git@main
-gensim>=4.3
-sentence-transformers>=3.1.0
-openfe>=0.0.12,<0.1

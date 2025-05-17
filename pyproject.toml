@@ -5,33 +5,36 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "autogluon.assistant"
 version = "0.1.1"
-description = "ML Assistant for Competitive Machine Learning"
+description = "Multi Agent System for Multimodal ML Automation"
 authors = [
     {name = "AutoGluon Community"}
 ]
 readme = "README.md"
 requires-python = ">=3.8,<3.12"
 dependencies = [
-    "autogluon.tabular[all]>=1.1,<2.0",
-    "importlib-resources>=6.4.5,<7.0",
-    "langchain>=0.3.3,<0.4",
-    "langchain_openai>=0.2.2,<0.3",
-    "langchain_aws>=0.2.2,<0.3",
-    "pydantic>=2.9.2,<3.0",
+    "langgraph",
+    "autogluon",
+    "autogluon.tabular[skex]",
+    "FlagEmbedding",
+    "faiss-cpu",
+    "importlib-resources>=6.4.5",
+    "langchain>=0.3.3",
+    "langchain_openai>=0.2.2",
+    "langchain_aws>=0.2.2",
+    "pydantic>=2.9.2",
     "hydra-core>=1.3",
-    # TODO: remove matplotlib later, as it is not used in AGA
-    # but needed for seamless pip install of autogluon.tabular[all]
     "matplotlib>=3.9.2",
     "typer>=0.12.5",
     "rich>=13.8.1",
-    "s3fs>=2024.9.0",
+    "s3fs>=2025.3.2",
+    "fsspec>=2025.3.2",
     "joblib>=1.4.2",
     "python-calamine",
-    "tenacity>=8.2.2,<10.0",
+    "tenacity>=8.2.2",
     "pandas>=2.2",
-    "streamlit>=1.37,<1.41",
-    "streamlit-aggrid>=1.0.2,<1.1",
-    "streamlit-extras>=0.4,<0.6",
+    "streamlit>=1.37",
+    "streamlit-aggrid>=1.0.2",
+    "streamlit-extras>=0.4",
     "psutil>=5.9.8",
 ]
 
@@ -47,10 +50,6 @@ dev = [
 [project.urls]
 "Homepage" = "https://github.com/autogluon/autogluon-assistant"
 
-[project.scripts]
-autogluon-assistant = "autogluon.assistant:main"
-aga = "autogluon.assistant:main"
-
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["autogluon.assistant*"]
@@ -59,8 +58,6 @@ namespaces = true
 [tool.setuptools.package-data]
 "autogluon.assistant" = [
     "configs/*.yaml",
-    "ui/**/*",
-    "ui/.streamlit/config.toml"  # Explicitly include the Streamlit config file
 ]
 
 [tool.pytest.ini_options]

@@ -1,0 +1,19 @@
+{
+  "name": "autogluon.tabular",
+  "version": "1.2.0",
+  "description": "AutoGluon Tabular is an open-source AutoML framework that automates the training and tuning of machine learning models for tabular data, handling tasks from preprocessing to model ensembling with minimal code required.",
+  "features": [
+    "Works best when there are only tabular data (categorical and numerical).",
+    "Does not work very well on nlp tasks.",
+    "Does not work with image data."
+  ],
+  "requirements": [],
+  "prompt_template": [
+    "Use Autogluon Tabular with the following parameters:",
+    "- time_limit: 1800 seconds",
+    "- presets: \\\"medium_quality\\\"",
+    "- tuning_data: only use validation if there is a validation dataset.",
+    "- problem_type: binary, multiclass, or regression.",
+    "IMPORTANT: To handle multi-label classification/regression with AutoGluon, split the problem by training a separate model for each label column (whether binary or multiclass) using the same feature set (EXCLUDE other label columns!) but different target columns, then combine predictions from all models to form the complete multi-label output for new data."
+  ]
+}
