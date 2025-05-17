@@ -61,15 +61,6 @@ def light_config():
 
 
 def test_titanic_prediction(titanic_data_path, light_config):
-    # Convert config to string overrides
-    config_overrides = [
-        f"llm.provider={light_config.llm.provider}",
-        f"llm.model={light_config.llm.model}",
-        f"autogluon.predictor_fit_kwargs.presets={light_config.autogluon.predictor_fit_kwargs.presets}",
-        f"time_limit={light_config.time_limit}",
-        "feature_transformers.enabled_models=null",
-    ]
-
     output_dir = titanic_data_path
     run_agent(
         input_data_folder=titanic_data_path,

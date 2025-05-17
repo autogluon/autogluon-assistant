@@ -2,12 +2,12 @@ import logging
 import os
 from collections import defaultdict
 
+# Import the file reader utility
+from ..reader import LLMFileReader
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
-
-# Import the file reader utility
-from ..reader import LLMFileReader
 
 
 def get_all_files(folder_path):
