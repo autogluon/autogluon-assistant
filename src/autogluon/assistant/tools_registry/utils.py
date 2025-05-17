@@ -86,10 +86,7 @@ def _split_large_section(section: str, max_chunk_size: int) -> List[str]:
                     current_size = 0
                 else:
                     # If adding code block would exceed size, start new chunk
-                    if (
-                        current_size + len(code_block) > max_chunk_size
-                        and current_chunk
-                    ):
+                    if current_size + len(code_block) > max_chunk_size and current_chunk:
                         chunks.append("\n".join(current_chunk))
                         current_chunk = []
                         current_size = 0

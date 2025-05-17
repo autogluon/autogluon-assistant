@@ -119,9 +119,7 @@ Explanation: [detailed explanation of why this tool is the best choice, includin
     # Validate selected tool exists in registry
     if not registry.get_tool(selected_tool):
         logger.warning(f"Selected tool '{selected_tool}' not found in registry")
-        raise ValueError(
-            f"Selected tool '{selected_tool}' is not available in the tools registry"
-        )
+        raise ValueError(f"Selected tool '{selected_tool}' is not available in the tools registry")
 
     return selected_tool, explanation
 
@@ -149,9 +147,7 @@ def _format_tools_info(tools_info: Dict) -> str:
     return formatted_info
 
 
-def generate_task_description(
-    data_prompt: str, description_files: List[str], description_analysis: str, llm
-) -> str:
+def generate_task_description(data_prompt: str, description_files: List[str], description_analysis: str, llm) -> str:
     """
     Step 2: Read content of identified files and generate task description.
 
@@ -177,9 +173,7 @@ def generate_task_description(
                 continue
 
         description_context = (
-            "\n".join(file_contents)
-            if file_contents
-            else "No description file contents could be read."
+            "\n".join(file_contents) if file_contents else "No description file contents could be read."
         )
 
         task_prompt = f"""
@@ -207,9 +201,7 @@ Do not add assumptions or infer unstated information.
         return f"Error generating task description: {str(e)}"
 
 
-def wrap_task_description(
-    task_description: str, output_folder: str, tool_name: str, registry
-) -> str:
+def wrap_task_description(task_description: str, output_folder: str, tool_name: str, registry) -> str:
     """
     Wraps the task description with standard instructions and tool-specific requirements.
 
@@ -292,17 +284,11 @@ def generate_task_prompt(data_prompt: str, output_folder: str, llm_config) -> st
         llm_config, session_name=f"task_generator_{timestamp}"
     )
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    llm_tool_selection = ChatLLMFactory.get_chat_model(
-        llm_config, session_name=f"tool_selector_{timestamp}"
-    )
+    llm_tool_selection = ChatLLMFactory.get_chat_model(llm_config, session_name=f"tool_selector_{timestamp}")
 
     # Step 1: Find description files (just identifies files, doesn't read content)
-    description_files, description_analysis = find_description_files(
-        data_prompt, llm_find_description_files
-    )
-    logger.info(
-        f"Found {len(description_files)} potential description files: {description_files}"
-    )
+    description_files, description_analysis = find_description_files(data_prompt, llm_find_description_files)
+    logger.info(f"Found {len(description_files)} potential description files: {description_files}")
 
     # Step 2: Generate task description (includes reading file contents)
     task_description = generate_task_description(

@@ -1,15 +1,14 @@
-import argparse
-import os
 import logging
-from pathlib import Path
+import os
 from collections import defaultdict
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 # Import the file reader utility
 from ..reader import LLMFileReader
+
 
 def get_all_files(folder_path):
     """
@@ -119,12 +118,12 @@ def pattern_to_path(pattern, base_path):
 def generate_data_prompt_with_llm(input_data_folder, max_chars_per_file, llm_config):
     """
     Generate a data prompt using LLM for file content reading.
-    
+
     Args:
         input_data_folder: Path to the folder to analyze
         max_chars_per_file: Maximum characters per file content
         llm_reader: LLMFileReader instance
-    
+
     Returns:
         str: Generated data prompt
     """
@@ -147,7 +146,7 @@ def generate_data_prompt_with_llm(input_data_folder, max_chars_per_file, llm_con
     for pattern, group_files in file_groups.items():
         pattern_path = pattern_to_path(pattern, abs_folder_path)
         logger.info(f"Processing pattern: {pattern_path} ({len(group_files)} files)")
-        
+
         if len(group_files) > 5:  # TODO: ask LLM to decide if we want to show all examples or just one representitive.
             # For large groups, only show one example
             example_rel_path, example_abs_path = group_files[0]
@@ -155,21 +154,15 @@ def generate_data_prompt_with_llm(input_data_folder, max_chars_per_file, llm_con
 
             # Use LLM to read file content
             logger.info(f"Reading example file: {example_abs_path}")
-            file_contents[group_info] = llm_reader(
-                file_path=example_abs_path,
-                max_chars=max_chars_per_file
-            )
+            file_contents[group_info] = llm_reader(file_path=example_abs_path, max_chars=max_chars_per_file)
         else:
             # For small groups, show all files
             for rel_path, abs_path in group_files:
                 file_info = f"Absolute path: {abs_path}"
-                
+
                 # Use LLM to read file content
                 logger.info(f"Reading file: {abs_path}")
-                file_contents[file_info] = llm_reader(
-                    file_path=abs_path,
-                    max_chars=max_chars_per_file
-                )
+                file_contents[file_info] = llm_reader(file_path=abs_path, max_chars=max_chars_per_file)
 
     # Generate the prompt
     prompt = f"Absolute path to the folder: {abs_folder_path}\n\nFiles structures:\n\n{'-' * 10}\n\n"

@@ -176,9 +176,7 @@ class ToolsRegistry:
 
         tutorials_source = Path(tutorials_source)
         if not tutorials_source.exists():
-            raise FileNotFoundError(
-                f"Tutorials source path {tutorials_source} not found"
-            )
+            raise FileNotFoundError(f"Tutorials source path {tutorials_source} not found")
 
         if condense and not llm_config:
             raise ValueError("llm_config is required when condense=True")
@@ -201,14 +199,10 @@ class ToolsRegistry:
 
             # Create LLM instance for this tutorial with multi_turn enabled
             tutorial_config = llm_config.copy()
-            tutorial_config.multi_turn = (
-                True  # Always enable multi-turn for tutorial processing
-            )
+            tutorial_config.multi_turn = True  # Always enable multi-turn for tutorial processing
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
             tutorial_id = f"{tool_name}_{relative_path.stem}_{timestamp}"
-            llm = ChatLLMFactory.get_chat_model(
-                tutorial_config, session_name=tutorial_id
-            )
+            llm = ChatLLMFactory.get_chat_model(tutorial_config, session_name=tutorial_id)
 
             if len(content) > 2 * chunk_size:
                 # Process tutorial in chunks using smart markdown splitting
@@ -218,9 +212,7 @@ class ToolsRegistry:
             condensed_chunks = []
 
             for i, chunk in enumerate(chunks):
-                context = (
-                    "This is a continuation of the previous chunk. " if i > 0 else ""
-                )
+                context = "This is a continuation of the previous chunk. " if i > 0 else ""
                 chunk_prompt = f"""{context}Condense this portion of the tutorial while preserving essential implementation details, code samples, and key concepts. Focus on:
 
 1. Implementation details and techniques
@@ -264,9 +256,7 @@ Provide the summary in a single paragraph starting with "Summary: "."""
                     if truncate_point == -1:
                         truncate_point = max_length
 
-                condensed_content = (
-                    condensed_content[:truncate_point] + "\n\n...(truncated)"
-                )
+                condensed_content = condensed_content[:truncate_point] + "\n\n...(truncated)"
 
             # Write original content with summary
             with open(destination, "w", encoding="utf-8") as f:
@@ -414,8 +404,6 @@ Provide the summary in a single paragraph starting with "Summary: "."""
         else:
             tutorials_folder = tool_path / "tutorials"
         if not tutorials_folder.exists():
-            raise FileNotFoundError(
-                f"No tutorials directory found for tool '{tool_name}' at {tutorials_folder}"
-            )
+            raise FileNotFoundError(f"No tutorials directory found for tool '{tool_name}' at {tutorials_folder}")
 
         return tutorials_folder

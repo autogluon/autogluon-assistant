@@ -5,7 +5,8 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 import boto3
-#from autogluon.assistant.constants import WHITE_LIST_LLM
+
+# from autogluon.assistant.constants import WHITE_LIST_LLM
 from langchain_aws import ChatBedrock
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -79,8 +80,7 @@ class GlobalTokenTracker:
             usage_data["conversations"][conv_id] = {
                 "input_tokens": conv_usage["input_tokens"],
                 "output_tokens": conv_usage["output_tokens"],
-                "total_tokens": conv_usage["input_tokens"]
-                + conv_usage["output_tokens"],
+                "total_tokens": conv_usage["input_tokens"] + conv_usage["output_tokens"],
             }
 
         # Add session-level usage
@@ -88,8 +88,7 @@ class GlobalTokenTracker:
             usage_data["sessions"][session_name] = {
                 "input_tokens": session_usage["input_tokens"],
                 "output_tokens": session_usage["output_tokens"],
-                "total_tokens": session_usage["input_tokens"]
-                + session_usage["output_tokens"],
+                "total_tokens": session_usage["input_tokens"] + session_usage["output_tokens"],
             }
 
         # Save to file if path is provided
@@ -148,9 +147,7 @@ class BaseAssistantChat(BaseModel):
 
     def describe(self) -> Dict[str, Any]:
         """Get model description and conversation history."""
-        conversation_usage = self.token_tracker.get_conversation_usage(
-            self.conversation_id
-        )
+        conversation_usage = self.token_tracker.get_conversation_usage(self.conversation_id)
         total_usage = self.token_tracker.get_total_usage()
 
         return {
@@ -160,15 +157,11 @@ class BaseAssistantChat(BaseModel):
             "session_name": self.session_name,
         }
 
-    @retry(
-        stop=stop_after_attempt(8), wait=wait_exponential(multiplier=1, min=60, max=120)
-    )
+    @retry(stop=stop_after_attempt(8), wait=wait_exponential(multiplier=1, min=60, max=120))
     def assistant_chat(self, message: str) -> str:
         """Send a message and get response using LangGraph."""
         if not self.app:
-            raise RuntimeError(
-                "Conversation not initialized. Call initialize_conversation first."
-            )
+            raise RuntimeError("Conversation not initialized. Call initialize_conversation first.")
 
         thread_id = str(uuid.uuid4())
         config = {"configurable": {"thread_id": thread_id}}
@@ -186,9 +179,7 @@ class BaseAssistantChat(BaseModel):
             # Update both instance and global tracking
             self.input_tokens_ += input_tokens
             self.output_tokens_ += output_tokens
-            self.token_tracker.add_tokens(
-                self.conversation_id, self.session_name, input_tokens, output_tokens
-            )
+            self.token_tracker.add_tokens(self.conversation_id, self.session_name, input_tokens, output_tokens)
 
         self.history_.append(
             {
@@ -204,17 +195,13 @@ class BaseAssistantChat(BaseModel):
     async def astream(self, message: str):
         """Stream responses using LangGraph."""
         if not self.app:
-            raise RuntimeError(
-                "Conversation not initialized. Call initialize_conversation first."
-            )
+            raise RuntimeError("Conversation not initialized. Call initialize_conversation first.")
 
         thread_id = str(uuid.uuid4())
         config = {"configurable": {"thread_id": thread_id}}
         input_messages = [HumanMessage(content=message)]
 
-        async for chunk, metadata in self.app.stream(
-            {"messages": input_messages}, config, stream_mode="messages"
-        ):
+        async for chunk, metadata in self.app.stream({"messages": input_messages}, config, stream_mode="messages"):
             if isinstance(chunk, AIMessage):
                 yield chunk.content
 
@@ -256,11 +243,7 @@ class ChatLLMFactory:
         try:
             client = OpenAI()
             models = client.models.list()
-            return [
-                model.id
-                for model in models
-                if model.id.startswith(("gpt-3.5", "gpt-4", "o1", "o3"))
-            ]
+            return [model.id for model in models if model.id.startswith(("gpt-3.5", "gpt-4", "o1", "o3"))]
         except Exception as e:
             logger.error(f"Error fetching OpenAI models: {e}")
             return []
@@ -276,29 +259,23 @@ class ChatLLMFactory:
             return []
 
     @classmethod
-    def get_chat_model(
-        cls, config: DictConfig, session_name: str = "default_session"
-    ) -> BaseAssistantChat:
+    def get_chat_model(cls, config: DictConfig, session_name: str = "default_session") -> BaseAssistantChat:
         """Get a configured chat model instance using LangGraph patterns."""
         provider = config.provider
         model = config.model
 
         valid_providers = ["openai", "bedrock"]
         if provider not in valid_providers:
-            raise ValueError(
-                f"Invalid provider: {provider}. Must be one of {valid_providers}"
-            )
+            raise ValueError(f"Invalid provider: {provider}. Must be one of {valid_providers}")
 
-        valid_models = (
-            cls.get_openai_models()
-            if provider == "openai"
-            else cls.get_bedrock_models()
-        )
+        valid_models = cls.get_openai_models() if provider == "openai" else cls.get_bedrock_models()
         if model not in valid_models:
             if model[3:] not in valid_models:  # TODO: better logic for cross region inference
-                raise ValueError(f"Invalid model: {model} for provider {provider}. All valid models are {valid_models}")
+                raise ValueError(
+                    f"Invalid model: {model} for provider {provider}. All valid models are {valid_models}"
+                )
 
-        #if model not in WHITE_LIST_LLM:
+        # if model not in WHITE_LIST_LLM:
         #    logger.warning(f"Model {model} is not on the white list: {WHITE_LIST_LLM}")
 
         if provider == "openai":
@@ -317,10 +294,10 @@ class ChatLLMFactory:
 
             if hasattr(config, "max_tokens"):
                 kwargs["max_tokens"] = config.max_tokens
-                
+
             if hasattr(config, "verbose"):
                 kwargs["verbose"] = config.verbose
-                
+
             if hasattr(config, "proxy_url"):
                 kwargs["openai_api_base"] = config.proxy_url
 

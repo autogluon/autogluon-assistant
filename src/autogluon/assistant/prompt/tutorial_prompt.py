@@ -38,21 +38,13 @@ def get_all_tutorials(tool_name: str, condensed: bool = False) -> List[TutorialI
 
                 # Find title (first line starting with #)
                 title = next(
-                    (
-                        line.lstrip("#").strip()
-                        for line in content
-                        if line.strip().startswith("#")
-                    ),
+                    (line.lstrip("#").strip() for line in content if line.strip().startswith("#")),
                     "",
                 )
 
                 # Find summary (line starting with "Summary: ")
                 summary = next(
-                    (
-                        line.replace("Summary:", "").strip()
-                        for line in content
-                        if line.strip().startswith("Summary:")
-                    ),
+                    (line.replace("Summary:", "").strip() for line in content if line.strip().startswith("Summary:")),
                     "",
                 )
 
@@ -79,9 +71,7 @@ def select_relevant_tutorials(
     """Select most relevant tutorials using LLM scoring based on titles and summaries."""
 
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    llm_select_tutorial = ChatLLMFactory.get_chat_model(
-        llm_config, session_name=f"tutorial_selector_{timestamp}"
-    )
+    llm_select_tutorial = ChatLLMFactory.get_chat_model(llm_config, session_name=f"tutorial_selector_{timestamp}")
 
     context = f"""Task: {task_prompt}
 Data: {data_prompt}
@@ -115,9 +105,7 @@ DO NOT include any other text, explanation, or formatting in your response."""
             return tutorials[:max_num_tutorials]
 
         try:
-            selected_indices = [
-                int(idx.strip()) - 1 for idx in content.split(",") if idx.strip()
-            ]
+            selected_indices = [int(idx.strip()) - 1 for idx in content.split(",") if idx.strip()]
         except ValueError as e:
             logger.warning(f"Error parsing indices from LLM response: {e}")
             return tutorials[:max_num_tutorials]
@@ -179,9 +167,7 @@ def save_selection_results(
             for tutorial in selected_tutorials
         ]
 
-        with open(
-            output_folder / "selected_tutorials.json", "w", encoding="utf-8"
-        ) as f:
+        with open(output_folder / "selected_tutorials.json", "w", encoding="utf-8") as f:
             json.dump(selection_data, f, indent=2)
 
         contents_folder = output_folder / "tutorial_contents"
@@ -263,8 +249,6 @@ def generate_tutorial_prompt(
 
     if output_folder:
         output_path = Path(output_folder)
-        save_selection_results(
-            output_path, selected_tutorials, formatted_tutorials, prompt
-        )
+        save_selection_results(output_path, selected_tutorials, formatted_tutorials, prompt)
 
     return prompt

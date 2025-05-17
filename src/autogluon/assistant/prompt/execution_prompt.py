@@ -38,7 +38,6 @@ def generate_execution_prompt(
             + error_message[-max_error_message_length // 2 :]
         )
 
-
     # Build the core instructions
     instructions = []
     if create_venv:
@@ -55,9 +54,7 @@ def generate_execution_prompt(
             "The environment may not be fully configured. Install any packages required in the python code."
         )
     else:
-        instructions.append(
-            "The environment is already configured. Do not install or update any package."
-        )
+        instructions.append("The environment is already configured. Do not install or update any package.")
 
     instructions.append(f"Execute the Python script: {python_file_path}")
 
