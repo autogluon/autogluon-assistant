@@ -22,6 +22,9 @@ tmp_AWS_DEFAULT_REGION=""
 tmp_AWS_ACCESS_KEY_ID=""
 tmp_AWS_SECRET_ACCESS_KEY=""
 tmp_OPENAI_API_KEY=""
+tmp_AZURE_OPENAI_API_KEY=""
+tmp_OPENAI_API_VERSION=""
+tmp_AZURE_OPENAI_ENDPOINT=""
 
 # Function to print colored messages
 print_color() {
@@ -60,6 +63,20 @@ validate_openai_api_key() {
     return 1
 }
 
+# Function to validate Azure OpenAI endpoint
+validate_azure_endpoint() {
+    local endpoint=$1
+    [[ $endpoint =~ ^https://[a-zA-Z0-9-]+\.openai\.azure\.com/?$ ]] && return 0
+    return 1
+}
+
+# Function to validate API version
+validate_api_version() {
+    local version=$1
+    [[ $version =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && return 0
+    return 1
+}
+
 # Function to read existing configuration into temporary variables
 read_existing_config() {
     if [ -f "$CONFIG_FILE" ]; then
@@ -70,6 +87,9 @@ read_existing_config() {
                     "AWS_ACCESS_KEY_ID") tmp_AWS_ACCESS_KEY_ID="$value" ;;
                     "AWS_SECRET_ACCESS_KEY") tmp_AWS_SECRET_ACCESS_KEY="$value" ;;
                     "OPENAI_API_KEY") tmp_OPENAI_API_KEY="$value" ;;
+                    "AZURE_OPENAI_API_KEY") tmp_AZURE_OPENAI_API_KEY="$value" ;;
+                    "OPENAI_API_VERSION") tmp_OPENAI_API_VERSION="$value" ;;
+                    "AZURE_OPENAI_ENDPOINT") tmp_AZURE_OPENAI_ENDPOINT="$value" ;;
                 esac
             fi
         done < "$CONFIG_FILE"
@@ -83,15 +103,21 @@ save_configuration() {
     # Create or truncate the config file
     echo "" > "$CONFIG_FILE" || { print_color "$RED" "Error: Cannot write to '$CONFIG_FILE'"; return 1; }
     
-    if [ "$provider" = "bedrock" ]; then
-        # Update AWS variables
-        tmp_AWS_DEFAULT_REGION="$AWS_DEFAULT_REGION"
-        tmp_AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
-        tmp_AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
-    else
-        # Update OpenAI variable
-        tmp_OPENAI_API_KEY="$OPENAI_API_KEY"
-    fi
+    case "$provider" in
+        "bedrock")
+            tmp_AWS_DEFAULT_REGION="$AWS_DEFAULT_REGION"
+            tmp_AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
+            tmp_AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
+            ;;
+        "openai")
+            tmp_OPENAI_API_KEY="$OPENAI_API_KEY"
+            ;;
+        "azure")
+            tmp_AZURE_OPENAI_API_KEY="$AZURE_OPENAI_API_KEY"
+            tmp_OPENAI_API_VERSION="$OPENAI_API_VERSION"
+            tmp_AZURE_OPENAI_ENDPOINT="$AZURE_OPENAI_ENDPOINT"
+            ;;
+    esac
     
     # Save all configurations
     if [ -n "$tmp_AWS_ACCESS_KEY_ID" ]; then
@@ -104,6 +130,12 @@ save_configuration() {
         echo "OPENAI_API_KEY=$tmp_OPENAI_API_KEY" >> "$CONFIG_FILE"
     fi
     
+    if [ -n "$tmp_AZURE_OPENAI_API_KEY" ]; then
+        echo "AZURE_OPENAI_API_KEY=$tmp_AZURE_OPENAI_API_KEY" >> "$CONFIG_FILE"
+        echo "OPENAI_API_VERSION=$tmp_OPENAI_API_VERSION" >> "$CONFIG_FILE"
+        echo "AZURE_OPENAI_ENDPOINT=$tmp_AZURE_OPENAI_ENDPOINT" >> "$CONFIG_FILE"
+    fi
+    
     # Export all variables
     if [ -n "$tmp_AWS_ACCESS_KEY_ID" ]; then
         export AWS_DEFAULT_REGION="$tmp_AWS_DEFAULT_REGION"
@@ -113,6 +145,12 @@ save_configuration() {
     
     if [ -n "$tmp_OPENAI_API_KEY" ]; then
         export OPENAI_API_KEY="$tmp_OPENAI_API_KEY"
+    fi
+    
+    if [ -n "$tmp_AZURE_OPENAI_API_KEY" ]; then
+        export AZURE_OPENAI_API_KEY="$tmp_AZURE_OPENAI_API_KEY"
+        export OPENAI_API_VERSION="$tmp_OPENAI_API_VERSION"
+        export AZURE_OPENAI_ENDPOINT="$tmp_AZURE_OPENAI_ENDPOINT"
     fi
     
     # Set proper permissions
@@ -158,6 +196,16 @@ display_config() {
     else
         print_color "$YELLOW" "OpenAI is not configured"
     fi
+
+    echo
+    print_color "$GREEN" "Azure OpenAI Configuration:"
+    if [ -n "$tmp_AZURE_OPENAI_API_KEY" ]; then
+        echo "AZURE_OPENAI_API_KEY=********"
+        echo "OPENAI_API_VERSION=${tmp_OPENAI_API_VERSION}"
+        echo "AZURE_OPENAI_ENDPOINT=${tmp_AZURE_OPENAI_ENDPOINT}"
+    else
+        print_color "$YELLOW" "Azure OpenAI is not configured"
+    fi
     echo
 }
 
@@ -177,6 +225,16 @@ display_env_vars() {
     echo
     print_color "$GREEN" "OpenAI Environment Variables:"
     echo "OPENAI_API_KEY=${OPENAI_API_KEY:-(not set)}"
+
+    echo
+    print_color "$GREEN" "Azure OpenAI Environment Variables:"
+    if [ -n "$AZURE_OPENAI_API_KEY" ]; then
+        echo "AZURE_OPENAI_API_KEY=********"
+    else
+        echo "AZURE_OPENAI_API_KEY=(not set)"
+    fi
+    echo "OPENAI_API_VERSION=${OPENAI_API_VERSION:-(not set)}"
+    echo "AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-(not set)}"
     echo
 
     # Compare configuration with environment variables
@@ -196,6 +254,15 @@ display_env_vars() {
         if [ -n "$tmp_OPENAI_API_KEY" ] && [ "$tmp_OPENAI_API_KEY" != "$OPENAI_API_KEY" ]; then
             has_mismatch=true
         fi
+        if [ -n "$tmp_AZURE_OPENAI_API_KEY" ] && [ "$tmp_AZURE_OPENAI_API_KEY" != "$AZURE_OPENAI_API_KEY" ]; then
+            has_mismatch=true
+        fi
+        if [ -n "$tmp_OPENAI_API_VERSION" ] && [ "$tmp_OPENAI_API_VERSION" != "$OPENAI_API_VERSION" ]; then
+            has_mismatch=true
+        fi
+        if [ -n "$tmp_AZURE_OPENAI_ENDPOINT" ] && [ "$tmp_AZURE_OPENAI_ENDPOINT" != "$AZURE_OPENAI_ENDPOINT" ]; then
+            has_mismatch=true
+        fi
         
         if [ "$has_mismatch" = true ]; then
             print_color "$YELLOW" "Warning: Some environment variables don't match the configuration file."
@@ -209,7 +276,8 @@ configure_provider() {
     print_color "$GREEN" "Select your LLM provider to configure:"
     echo "1) AWS Bedrock"
     echo "2) OpenAI"
-    echo -n "Enter your choice (1/2): "
+    echo "3) Azure OpenAI"
+    echo -n "Enter your choice (1/2/3): "
     read provider_choice
     
     case $provider_choice in
@@ -250,6 +318,34 @@ configure_provider() {
             print_color "$RED" "We recommend using a paid OpenAI API key for seamless functionality."
             
             save_configuration "openai"
+            ;;
+
+        3)
+            print_color "$BLUE" "\nConfiguring Azure OpenAI..."
+            
+            echo -n "Enter your Azure OpenAI API Key: "
+            read -s AZURE_OPENAI_API_KEY
+            echo
+
+            while true; do
+                echo -n "Enter the API version (YYYY-MM-DD format): "
+                read OPENAI_API_VERSION
+                if validate_api_version "$OPENAI_API_VERSION"; then
+                    break
+                fi
+                print_color "$RED" "Invalid API version format. Please use YYYY-MM-DD format."
+            done
+
+            while true; do
+                echo -n "Enter your Azure OpenAI endpoint (https://<resource-name>.openai.azure.com): "
+                read AZURE_OPENAI_ENDPOINT
+                if validate_azure_endpoint "$AZURE_OPENAI_ENDPOINT"; then
+                    break
+                fi
+                print_color "$RED" "Invalid endpoint format. Please enter a valid Azure OpenAI endpoint."
+            done
+            
+            save_configuration "azure"
             ;;
             
         *)
