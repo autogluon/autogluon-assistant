@@ -160,19 +160,19 @@ def run_agent(
 ):
     # Get the directory of the current file
     current_file_dir = Path(__file__).parent
-    
+
     # Always load default config first
     default_config_path = current_file_dir / "configs" / "default.yaml"
     if not default_config_path.exists():
         raise FileNotFoundError(f"Default config file not found: {default_config_path}")
-    
+
     config = OmegaConf.load(default_config_path)
-    
+
     # If config_path is provided, merge it with the default config
     if config_path is not None:
         if not Path(config_path).exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
-        
+
         user_config = OmegaConf.load(config_path)
         config = OmegaConf.merge(config, user_config)
 
