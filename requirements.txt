@@ -1,0 +1,5 @@
+autogluon==1.2.0
+pycocotools
+autogluon.assistant
+langgraph
+opencv-python

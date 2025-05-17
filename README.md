@@ -1,214 +1,144 @@
-# AutoML Agent
+# MAAB (Multimodal AutoML Agent Benchmark)
 
-This repository contains an ML agent that generates and executes code based on input data and configuration settings. The agent can work with various machine learning tools and frameworks while allowing for optional interactive user input during the code generation process.
+MAAB is a comprehensive benchmark framework designed to evaluate AutoML agents across diverse multimodal datasets. This benchmark helps researchers and practitioners assess the performance, efficiency, and robustness of AutoML solutions in handling various types of data.
 
-## Prerequisites
+## Features
 
-- Python 3.9/10/11/12
-- Conda package manager
-- AutoGluon dependencies
-- Access to Bedrock/OpenAI API
+- Standardized evaluation framework for AutoML agents
+- Support for multiple data modalities (text, image, tabular, etc.)
+- Automated performance metrics collection
+- Extensive dataset collection covering various domains
+- Scalable architecture for batch evaluation
 
-## Setup
+## Installation
 
-1. Clone the repository:
+1. Enter the repository:
 ```bash
-git clone https://github.com/FANGAreNotGnu/AutoMLAgent.git
-cd AutoMLAgent
+cd maab
 ```
 
-2. Install the package:
+2. Download and extract the benchmark datasets (an 140GiB archive file, 159GiB after unzip):
 ```bash
-conda create -n agent python=3.11 -y
+wget https://mlzero.s3.us-east-1.amazonaws.com/data/maabdatasets20250504.zip
+unzip maabdatasets20250504.zip
+```
+
+3. Set up the Python environment:
+```bash
+conda create -n maab -y
+conda activate maab
+pip install -r requirements.txt
+```
+
+4. (To benchmark MLZero) Install the AutoMLAgent package (See AutoMLAgent repo for more details):
+```bash
+cd ../AutoMLAgent
+conda deactivate
+conda create -n agent -y
 conda activate agent
 pip install -e .
-```
-
-2.1 Install Object Detection Dependencies
-```bash
-pip install -U pip setuptools wheel
-sudo apt-get install -y ninja-build gcc g++
-python3 -m mim install "mmcv==2.1.0"
-python3 -m pip install "mmdet==3.2.0"
-python3 -m pip install "mmengine>=0.10.6"
-```
-
-3. Configure your environment variables:
-```bash
-# Similar to Autogluon Assistant
-export OPENAI_API_KEY=your_api_key
-export AWS_ACCESS_KEY_ID=your_access_key
-export AWS_SECRET_ACCESS_KEY=your_secret_key
-export AWS_DEFAULT_REGION=your_region
+conda deactivate
 ```
 
 ## Usage
 
-### Command Line Interface
+### Basic Evaluation
 
-The main script `run.py` provides a command-line interface with the following options:
+To evaluate one or more agents on specific datasets:
 
 ```bash
-python run.py -i INPUT_DATA_FOLDER -o OUTPUT_DIR -c CONFIG_PATH [-n MAX_ITERATIONS] [--need_user_input]
+eval_batch.sh -a <agent_name1,agent_name2,...|all> -d <dataset_name1,dataset_name2,...|all>
 ```
 
-Arguments:
-- `-i, --input_data_folder`: Path to the folder containing input data (required)
-- `-o, --output_dir`: Path to the output directory for generated files (required)
-- `-c, --config_path`: Path to the configuration file (required)
-- `-n, --max_iterations`: Maximum number of iterations for code generation (default: 5)
-- `--need_user_input`: Enable user input between iterations (optional flag)
+Parameters:
+- `-a`: Specify agent names (comma-separated) or use 'all' for evaluating all available agents
+- `-d`: Specify dataset names (comma-separated) or use 'all' for evaluating on all datasets
 
 Example:
 ```bash
-python run.py -i ./data -o ./output -c config.yaml -n 3
+eval_batch.sh -a agentsonnet37 -d abalone
 ```
 
-### Adding Third-Party ML Tools
+### Default Agent for MLZero
 
-To interactively add new machine learning tools to the agent:
+- agentsonnet37
 
-```bash
-python3 tools/add_tools.py
-```
+## Datasets
 
-This will guide you through the process of integrating additional ML frameworks or libraries.
-
-## Project Structure
+MAAB includes a diverse collection of datasets covering various domains and problem types. The datasets are organized in a standardized structure under `maab/datasets/`:
 
 ```
-AutoMLAgent/
-├── LICENSE
-├── README.md
-├── automlagent/
-│   └── src/
-│       └── automlagent/
-│           ├── __init__.py
-│           ├── coder/
-│           │   ├── __init__.py
-│           │   ├── llm_coder.py
-│           │   └── utils.py
-│           ├── coding_agent.py
-│           ├── configs/
-│           │   ├── agrag/
-│           │   │   ├── agrag_object_detection.yaml
-│           │   │   └── agrag_semantic_segmentation.yaml
-│           │   └── default.yaml
-│           ├── constants.py
-│           ├── llm/
-│           │   ├── __init__.py
-│           │   └── llm_factory.py
-│           ├── prompt/
-│           │   ├── __init__.py
-│           │   ├── data_prompt.py
-│           │   ├── error_prompt.py
-│           │   ├── execution_prompt.py
-│           │   ├── prompt_aggregation.py
-│           │   ├── task_prompt.py
-│           │   ├── tutorial_prompt.py
-│           │   ├── user_prompt.py
-│           │   └── utils.py
-│           └── tools_registry/
-│               ├── __init__.py
-│               ├── _common/
-│               ├── autogluon.multimodal/
-│               ├── autogluon.tabular/
-│               ├── autogluon.timeseries/
-│               └── registry.py
-├── run.py
-├── setup.py
-└── tools/
-    ├── add_tools.py
-    └── convert_notebooks.py
+maab/datasets/
+└── [dataset_name]/
+    ├── training/      # Only this folder is exposed to agents
+    ├── eval/          # Hidden evaluation data
+    ├── backups/       # Backup files
+    └── metadata.json  # Dataset configuration and metadata
 ```
 
-## Output Files
+### Available Datasets
 
-The agent generates a structured output directory with the following organization:
+Note: Agents only have access to the `training` folder during development and evaluation. The `eval` folder contains hidden test data used for final performance assessment.
+
+Each dataset includes a `metadata.json` file that specifies:
+- Problem type
+- Evaluation metric
+- ...
+
+## Output Structure
+
+The evaluation results are organized in timestamped run directories under `maab/runs/`. Each run has the following structure:
 
 ```
-outputs/
-├── description_analysis.txt     # Analysis of the problem description
-├── description_files.txt       # List of input files analyzed
-├── error_analysis.json         # Error tracking and analysis
-├── eval_log.txt               # Evaluation metrics and logs
-├── log.txt                    # General execution log
-├── results.csv                # Final results and predictions
-├── selected_tutorials.json     # Selected tutorials for the task
-├── task_description.txt       # Original task description
-├── tool_selection.txt         # Selected ML tools and reasoning
-├── tutorial_prompt.txt        # Generated tutorial prompt
-├── tutorial_contents/         # Retrieved tutorials
-│   ├── tutorial_1.md
-│   ├── tutorial_2.md
-│   └── tutorial_3.md
-├── iteration_0/              # First iteration
-│   ├── coding_prompt.txt     # Prompt for code generation
-│   ├── execution_prompt.txt  # Prompt for execution
-│   ├── execution_script.sh   # Generated shell script
-│   ├── generated_code.py     # Generated Python code
-│   └── states/              # Iteration state information
-│       ├── bash_script.sh
-│       ├── data_prompt.txt
-│       ├── error_message.txt
-│       ├── python_code.py
-│       ├── stderr.txt
-│       ├── stdout.txt
-│       ├── task_prompt.txt
-│       ├── tutorial_prompt.txt
-│       └── user_input.txt
-├── iteration_1/             # Second iteration
-│   └── ...                 # Same structure as iteration_0
-├── iteration_2/             # Third iteration
-│   └── ...                 # Same structure as iteration_0
-├── iteration_3/             # Fourth iteration
-│   └── ...                 # Same structure as iteration_0
-└── model_YYYYMMDD_HHMMSS/   # Trained model directory
+maab/runs/RUN_[TIMESTAMP]/
+├── outputs/
+│   └── [agent_name]_[dataset_name]_output/
+│       └── ... (agent-specific output files)
+└── overall_results.csv
 ```
 
-Each iteration directory contains the prompts, generated code, and execution states for that specific iteration. The model directory contains all artifacts related to the trained model, including individual model components, logs, and utilities.
-Multiple model directories may be created with timestamps (YYYYMMDD_HHMMSS) during different stages of the training process. Each contains its own complete set of model artifacts.
+- Each run is stored in a directory named with the pattern `RUN_[TIMESTAMP]` (e.g., `RUN_20250212_235513`)
+- The `outputs` directory contains subdirectories for each agent-dataset combination
+- Each agent-dataset output directory is named as `[agent_name]_[dataset_name]_output`
+- `overall_results.csv` contains the consolidated evaluation metrics for all agent-dataset combinations in the run
 
-## Configuration
+## Metrics
 
-A YAML configuration file to control:
-- Tutorial generation parameters
-- LLM provider settings (Bedrock or OpenAI)
-- Model selection and parameters
-- Agent-specific configurations
+MAAB supports a comprehensive set of evaluation metrics based on the problem type:
 
-A default configuration is provided at `AutoMLAgent/automlagent/src/automlagent/configs/default.yaml`:
-```yaml
-# Tutorial Prompt Generator Configuration
-max_chars_per_file: 100
-max_num_tutorials: 3
-max_user_input_length: 9999
-max_error_message_length: 9999
-max_tutorial_length: 99999
-create_venv: false
-condense_tutorials: false
+### Classification (Binary & Multiclass)
+- Accuracy: Standard classification accuracy
+- F1 (Weighted): Weighted average of F1 scores
+- F1: Standard F1 score
+- AUROC: Area Under the Receiver Operating Characteristic curve
+- NLL: Negative Log-Likelihood
 
-# Default LLM Configuration
-# For each agent (coder, etc.) you can use a different one
-llm: &default_llm
-  # Note: bedrock is only supported in limited AWS regions
-  # and requires AWS credentials
-  provider: bedrock
-  model: "anthropic.claude-3-5-sonnet-20241022-v2:0"
-  # Alternative configuration:
-  # provider: openai
-  # model: gpt-4-0314
-  max_tokens: 4096
-  proxy_url: null
-  temperature: 0
-  verbose: True
-  multi_turn: True
+### Regression
+- RMSE: Root Mean Square Error
+- RMSLE: Root Mean Square Logarithmic Error
+- MAE: Mean Absolute Error
+- MEDAE: Median Absolute Error
+- R-Squared: Coefficient of determination
 
-coder:
-  <<: *default_llm  # Merge llm_config
-  temperature: 0.5
-  max_tokens: 4096
-  top_p: 1
-  multi_turn: True
-```
+### Semantic Segmentation
+- IoU: Intersection over Union
+- S-Measure: Structure-measure evaluation
 
+### Time Series
+- SQL: Supervised Quality Loss
+- WQL: Weighted Quality Loss
+- MAE: Mean Absolute Error
+- MASE: Mean Absolute Scaled Error
+- WAPE: Weighted Absolute Percentage Error
+- MSE: Mean Squared Error
+- RMSE: Root Mean Square Error
+- RMSLE: Root Mean Square Logarithmic Error
+- RMSSE: Root Mean Square Scaled Error
+- MAPE: Mean Absolute Percentage Error
+- SMAPE: Symmetric Mean Absolute Percentage Error
+
+To specify a metric for evaluation, use the `metric_name` field in the dataset metadata. The metric name should be lowercase and match one of the supported metrics for the given problem type.
+
+## License
+
+MAAB is released under the Apache 2.0 License. See the LICENSE file for more details.

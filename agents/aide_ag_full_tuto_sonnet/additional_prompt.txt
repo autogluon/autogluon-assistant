@@ -1,0 +1,1176 @@
+As an AutoML Agent, you will be given a folder containing data and description files. Please generate Python code using autogluon.tabular, autogluon.multimodal, autogluon.timeseries, or FlagEmbedding to make predictions on test data. Follow these specifications:
+
+1. Data preprocessing:
+   - Remove training data samples without valid labels (unless told not to do so).
+   - Remove the unneccesary index column (if applicable)
+
+2. Model training:
+   - Use appropriate package with appropriate parameters for the task
+   - If a model is trained, save it in a folder with random timestamp.
+
+3. Prediction:
+   - Make predictions on the test data
+   - Save the predicted results, the format and extension should be same as the test data file
+   - ENSURE the output columns match what in the training file, or those in the sample submission file (if any). DO NOT create any new column names.
+
+4. Documentation:
+   - Add a brief docstring at the beginning of the script explaining its purpose and usage
+   - Also include additional installation steps with comments at the beginning of the script
+   - Include comments explaining any complex operations or design decisions
+
+5. Others:
+   - To avoid DDP errors, wrap the code in: if __name__ == "__main__":
+   - Ensure errors are propagated up and not silently caught - do not use try/except blocks unless you explicitly re-raise the exception.
+
+For Autogluon, use the following parameters:
+- time_limit: 1800 seconds
+- presets: \"medium_quality\"
+  - tuning_data: only use validation if there is a validation dataset.
+
+For Autogluon Timeseries:
+DO NOT drop any data samples (to make sure the frequency is regular).
+Note that the prediction is given in a column named "mean". You need to rename the column in the result.
+`from_data_frame()` method of TimeSeriesDataFrame does not accept a 'target' parameter.
+If there are known covariates, they should be specified in both TimeSeriesPredictor initialization AND predict.
+
+For Autogluon Tabular:
+problem_type: binary, multiclass, or regression
+Works best when there are only tabular data (categorical and numerical).
+Does not work very well on nlp tasks.
+Does not work with image data
+
+For Autogluon Multimodal:
+The usage of document prediction is different from image prediction.
+Check data path carefully when encounter ValueError: No model is available for this dataset.
+For semantic segmentation, use single GPU by setting CUDA_VISIBLE_DEVICES=0
+For semantic segmentation, save the mask as greyscale JPG image (squeeze then cv2.imwrite) in \\\"predicted_mask\\\" folder under output folder and save its absolute path in label column.
+No need to specift model.name
+
+Tutorials:
+# AutoGluon Tabular - Quick Start
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/tabular-quick-start.ipynb)
+[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/tabular-quick-start.ipynb)
+
+In this tutorial, we will see how to use AutoGluon's `TabularPredictor` to predict the values of a target column based on the other columns in a tabular dataset.
+
+Begin by making sure AutoGluon is installed, and then import AutoGluon's `TabularDataset` and `TabularPredictor`. We will use the former to load data and the latter to train models and make predictions. 
+
+
+```python
+!python -m pip install --upgrade pip
+!python -m pip install autogluon
+```
+
+
+```python
+from autogluon.tabular import TabularDataset, TabularPredictor
+```
+
+## Example Data
+
+For this tutorial we will use a dataset from the cover story of [Nature issue 7887](https://www.nature.com/nature/volumes/600/issues/7887): [AI-guided intuition for math theorems](https://www.nature.com/articles/s41586-021-04086-x.pdf). The goal is to predict a knot's signature based on its properties. We sampled 10K training and 5K test examples from the [original data](https://github.com/deepmind/mathematics_conjectures/blob/main/knot_theory.ipynb). The sampled dataset make this tutorial run quickly, but AutoGluon can handle the full dataset if desired.
+
+We load this dataset directly from a URL. AutoGluon's `TabularDataset` is a subclass of pandas [DataFrame](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html), so any `DataFrame` methods can be used on `TabularDataset` as well.
+
+
+```python
+data_url = 'https://raw.githubusercontent.com/mli/ag-docs/main/knot_theory/'
+train_data = TabularDataset(f'{data_url}train.csv')
+train_data.head()
+```
+
+Our targets are stored in the "signature" column, which has 18 unique integers. Even though pandas didn't correctly recognize this data type as categorical, AutoGluon will fix this issue.
+
+
+
+```python
+label = 'signature'
+train_data[label].describe()
+```
+
+## Training
+
+We now construct a `TabularPredictor` by specifying the label column name and then train on the dataset with `TabularPredictor.fit()`. We don't need to specify any other parameters. AutoGluon will recognize this is a multi-class classification task, perform automatic feature engineering, train multiple models, and then ensemble the models to create the final predictor. 
+
+
+```python
+predictor = TabularPredictor(label=label).fit(train_data)
+```
+
+Model fitting should take a few minutes or less depending on your CPU. You can make training faster by specifying the `time_limit` argument. For example, `fit(..., time_limit=60)` will stop training after 60 seconds. Higher time limits will generally result in better prediction performance, and excessively low time limits will prevent AutoGluon from training and ensembling a reasonable set of models.
+
+
+
+## Prediction
+
+Once we have a predictor that is fit on the training dataset, we can load a separate set of data to use for prediction and evaulation.
+
+
+```python
+test_data = TabularDataset(f'{data_url}test.csv')
+
+y_pred = predictor.predict(test_data.drop(columns=[label]))
+y_pred.head()
+```
+
+## Evaluation
+
+We can evaluate the predictor on the test dataset using the `evaluate()` function, which measures how well our predictor performs on data that was not used for fitting the models.
+
+
+```python
+predictor.evaluate(test_data, silent=True)
+```
+
+AutoGluon's `TabularPredictor` also provides the `leaderboard()` function, which allows us to evaluate the performance of each individual trained model on the test data.
+
+
+```python
+predictor.leaderboard(test_data)
+```
+
+## Conclusion
+
+In this quickstart tutorial we saw AutoGluon's basic fit and predict functionality using `TabularDataset` and `TabularPredictor`. AutoGluon simplifies the model training process by not requiring feature engineering or model hyperparameter tuning. Check out the in-depth tutorials to learn more about AutoGluon's other features like customizing the training and prediction steps or extending AutoGluon with custom feature generators, models, or metrics.
+
+
+# AutoGluon Time Series - Forecasting Quick Start
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/timeseries/forecasting-quick-start.ipynb)
+[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/timeseries/forecasting-quick-start.ipynb)
+
+
+Via a simple `fit()` call, AutoGluon can train and tune
+
+- simple forecasting models (e.g., ARIMA, ETS, Theta),
+- powerful deep learning models (e.g., DeepAR, Temporal Fusion Transformer),
+- tree-based models (e.g., LightGBM),
+- an ensemble that combines predictions of other models
+
+to produce multi-step ahead _probabilistic_ forecasts for univariate time series data.
+
+This tutorial demonstrates how to quickly start using AutoGluon to generate hourly forecasts for the [M4 forecasting competition](https://www.sciencedirect.com/science/article/pii/S0169207019301128) dataset.
+
+## Loading time series data as a `TimeSeriesDataFrame`
+
+First, we import some required modules
+
+
+```python
+# We use uv for faster installation
+!pip install uv
+!uv pip install -q autogluon.timeseries --system
+!uv pip uninstall -q torchaudio torchvision torchtext --system # fix incompatible package versions on Colab
+
+```
+
+
+```python
+import pandas as pd
+from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
+
+```
+
+To use `autogluon.timeseries`, we will only need the following two classes:
+
+- `TimeSeriesDataFrame` stores a dataset consisting of multiple time series.
+- `TimeSeriesPredictor` takes care of fitting, tuning and selecting the best forecasting models, as well as generating new forecasts.
+
+We load a subset of the M4 hourly dataset as a `pandas.DataFrame`
+
+
+```python
+df = pd.read_csv("https://autogluon.s3.amazonaws.com/datasets/timeseries/m4_hourly_subset/train.csv")
+df.head()
+
+```
+
+AutoGluon expects time series data in [long format](https://doc.dataiku.com/dss/latest/time-series/data-formatting.html#long-format).
+Each row of the data frame contains a single observation (timestep) of a single time series represented by
+
+- unique ID of the time series (`"item_id"`) as int or str
+- timestamp of the observation (`"timestamp"`) as a `pandas.Timestamp` or compatible format
+- numeric value of the time series (`"target"`)
+
+The raw dataset should always follow this format with at least three columns for unique ID, timestamp, and target value, but the names of these columns can be arbitrary.
+It is important, however, that we provide the names of the columns when constructing a `TimeSeriesDataFrame` that is used by AutoGluon.
+AutoGluon will raise an exception if the data doesn't match the expected format.
+
+
+```python
+train_data = TimeSeriesDataFrame.from_data_frame(
+    df,
+    id_column="item_id",
+    timestamp_column="timestamp"
+)
+train_data.head()
+
+```
+
+We refer to each individual time series stored in a `TimeSeriesDataFrame` as an _item_.
+For example, items might correspond to different products in demand forecasting, or to different stocks in financial datasets.
+This setting is also referred to as a _panel_ of time series.
+Note that this is *not* the same as multivariate forecasting — AutoGluon generates forecasts for each time series individually, without modeling interactions between different items (time series).
+
+`TimeSeriesDataFrame` inherits from [pandas.DataFrame](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html), so all attributes and methods of `pandas.DataFrame` are available in a `TimeSeriesDataFrame`.
+It also provides other utility functions, such as loaders for different data formats (see [TimeSeriesDataFrame](../../api/autogluon.timeseries.TimeSeriesDataFrame) for details).
+
+## Training time series models with `TimeSeriesPredictor.fit`
+To forecast future values of the time series, we need to create a `TimeSeriesPredictor` object.
+
+Models in `autogluon.timeseries` forecast time series _multiple steps_ into the future.
+We choose the number of these steps — the _prediction length_ (also known as the _forecast horizon_) —  depending on our task.
+For example, our dataset contains time series measured at hourly _frequency_, so we set `prediction_length = 48` to train models that forecast up to 48 hours into the future.
+
+We instruct AutoGluon to save trained models in the folder `./autogluon-m4-hourly`.
+We also specify that AutoGluon should rank models according to [mean absolute scaled error (MASE)](https://en.wikipedia.org/wiki/Mean_absolute_scaled_error), and that data that we want to forecast is stored in the column `"target"` of the `TimeSeriesDataFrame`.
+
+
+```python
+predictor = TimeSeriesPredictor(
+    prediction_length=48,
+    path="autogluon-m4-hourly",
+    target="target",
+    eval_metric="MASE",
+)
+
+predictor.fit(
+    train_data,
+    presets="medium_quality",
+    time_limit=600,
+)
+
+```
+
+Here we used the `"medium_quality"` presets and limited the training time to 10 minutes (600 seconds).
+The presets define which models AutoGluon will try to fit.
+For `medium_quality` presets, these are
+simple baselines (`Naive`, `SeasonalNaive`),
+statistical models (`ETS`, `Theta`),
+tree-based models based on LightGBM (`RecursiveTabular`, `DirectTabular`),
+a deep learning model `TemporalFusionTransformer`,
+and a weighted ensemble combining these.
+Other available presets for `TimeSeriesPredictor` are `"fast_training"`, `"high_quality"` and `"best_quality"`.
+Higher quality presets will usually produce more accurate forecasts but take longer to train.
+
+Inside `fit()`, AutoGluon will train as many models as possible within the given time limit.
+Trained models are then ranked based on their performance on an internal validation set.
+By default, this validation set is constructed by holding out the last `prediction_length` timesteps of each time series in `train_data`.
+
+
+## Generating forecasts with `TimeSeriesPredictor.predict`
+
+We can now use the fitted `TimeSeriesPredictor` to forecast the future time series values.
+By default, AutoGluon will make forecasts using the model that had the best score on the internal validation set.
+The forecast always includes predictions for the next `prediction_length` timesteps, starting from the end of each time series in `train_data`.
+
+
+```python
+predictions = predictor.predict(train_data)
+predictions.head()
+
+```
+
+AutoGluon produces a _probabilistic_ forecast: in addition to predicting the mean (expected value) of the time series in the future, models also provide the quantiles of the forecast distribution.
+The quantile forecasts give us an idea about the range of possible outcomes.
+For example, if the `"0.1"` quantile is equal to `500.0`, it means that the model predicts a 10% chance that the target value will be below `500.0`.
+
+We will now visualize the forecast and the actually observed values for one of the time series in the dataset.
+We plot the mean forecast, as well as the 10% and 90% quantiles to show the range of potential outcomes.
+
+
+```python
+import matplotlib.pyplot as plt
+
+# TimeSeriesDataFrame can also be loaded directly from a file
+test_data = TimeSeriesDataFrame.from_path("https://autogluon.s3.amazonaws.com/datasets/timeseries/m4_hourly_subset/test.csv")
+
+# Plot 4 randomly chosen time series and the respective forecasts
+predictor.plot(test_data, predictions, quantile_levels=[0.1, 0.9], max_history_length=200, max_num_item_ids=4);
+
+```
+
+## Evaluating the performance of different models
+
+We can view the performance of each model AutoGluon has trained via the `leaderboard()` method.
+We provide the test data set to the leaderboard function to see how well our fitted models are doing on the unseen test data.
+The leaderboard also includes the validation scores computed on the internal validation dataset.
+
+Note the test data includes both the forecast horizon (last `prediction_length` values of each time series) as well as the historic data (all except the last `prediction_last` values).
+
+In AutoGluon leaderboards, higher scores always correspond to better predictive performance.
+Therefore our MASE scores are multiplied by `-1`, such that higher "negative MASE"s correspond to more accurate forecasts.
+
+
+```python
+# The test score is computed using the last
+# prediction_length=48 timesteps of each time series in test_data
+predictor.leaderboard(test_data)
+
+```
+
+## Summary
+We used `autogluon.timeseries` to make probabilistic multi-step forecasts on the M4 Hourly dataset.
+Check out [Forecasting Time Series - In Depth](forecasting-indepth.ipynb) to learn about the advanced capabilities of AutoGluon for time series forecasting.
+
+
+# AutoMM for Image + Text + Tabular - Quick Start
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/multimodal_prediction/beginner_multimodal.ipynb)
+[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/multimodal_prediction/beginner_multimodal.ipynb)
+
+
+
+AutoMM is a deep learning "model zoo" of model zoos. It can automatically build deep learning models that are suitable for multimodal datasets. You will only need to convert the data into the multimodal dataframe format
+and AutoMM can predict the values of one column conditioned on the features from the other columns including images, text, and tabular data.
+
+
+```python
+!pip install autogluon.multimodal
+
+```
+
+
+```python
+import os
+import numpy as np
+import warnings
+warnings.filterwarnings('ignore')
+np.random.seed(123)
+```
+
+## Dataset
+
+For demonstration, we use a simplified and subsampled version of [PetFinder dataset](https://www.kaggle.com/c/petfinder-adoption-prediction). The task is to predict the animals' adoption rates based on their adoption profile information. In this simplified version, the adoption speed is grouped into two categories: 0 (slow) and 1 (fast).
+
+To get started, let's download and prepare the dataset.
+
+
+```python
+download_dir = './ag_automm_tutorial'
+zip_file = 'https://automl-mm-bench.s3.amazonaws.com/petfinder_for_tutorial.zip'
+from autogluon.core.utils.loaders import load_zip
+load_zip.unzip(zip_file, unzip_dir=download_dir)
+```
+
+Next, we will load the CSV files.
+
+
+```python
+import pandas as pd
+dataset_path = download_dir + '/petfinder_for_tutorial'
+train_data = pd.read_csv(f'{dataset_path}/train.csv', index_col=0)
+test_data = pd.read_csv(f'{dataset_path}/test.csv', index_col=0)
+label_col = 'AdoptionSpeed'
+```
+
+We need to expand the image paths to load them in training.
+
+
+```python
+image_col = 'Images'
+train_data[image_col] = train_data[image_col].apply(lambda ele: ele.split(';')[0]) # Use the first image for a quick tutorial
+test_data[image_col] = test_data[image_col].apply(lambda ele: ele.split(';')[0])
+
+
+def path_expander(path, base_folder):
+    path_l = path.split(';')
+    return ';'.join([os.path.abspath(os.path.join(base_folder, path)) for path in path_l])
+
+train_data[image_col] = train_data[image_col].apply(lambda ele: path_expander(ele, base_folder=dataset_path))
+test_data[image_col] = test_data[image_col].apply(lambda ele: path_expander(ele, base_folder=dataset_path))
+
+train_data[image_col].iloc[0]
+```
+
+Each animal's adoption profile includes pictures, a text description, and various tabular features such as age, breed, name, color, and more. Let's look at an example row of data and display the text description and a picture.
+
+
+```python
+example_row = train_data.iloc[0]
+
+example_row
+```
+
+
+```python
+example_row['Description']
+```
+
+
+```python
+example_image = example_row[image_col]
+
+from IPython.display import Image, display
+pil_img = Image(filename=example_image)
+display(pil_img)
+```
+
+## Training
+Now let's fit the predictor with the training data. Here we set a tight time budget for a quick demo.
+
+
+```python
+from autogluon.multimodal import MultiModalPredictor
+predictor = MultiModalPredictor(label=label_col)
+predictor.fit(
+    train_data=train_data,
+    time_limit=120, # seconds
+)
+```
+
+Under the hood, AutoMM automatically infers the problem type (classification or regression), detects the data modalities, selects the related models from the multimodal model pools, and trains the selected models. If multiple backbones are available, AutoMM appends a late-fusion model (MLP or transformer) on top of them.
+
+
+## Evaluation
+Then we can evaluate the predictor on the test data.
+
+
+```python
+scores = predictor.evaluate(test_data, metrics=["roc_auc"])
+scores
+```
+
+## Prediction
+Given a multimodal dataframe without the label column, we can predict the labels.
+
+
+```python
+predictions = predictor.predict(test_data.drop(columns=label_col))
+predictions[:5]
+```
+
+For classification tasks, we can get the probabilities of all classes.
+
+
+```python
+probas = predictor.predict_proba(test_data.drop(columns=label_col))
+probas[:5]
+```
+
+Note that calling `.predict_proba()` on one regression task will throw an exception.
+
+
+## Extract Embeddings
+
+Extracting embeddings can also be useful in many cases, where we want to convert each sample (per row in the dataframe) into an embedding vector.
+
+
+```python
+embeddings = predictor.extract_embedding(test_data.drop(columns=label_col))
+embeddings.shape
+```
+
+## Save and Load
+It is also convenient to save a predictor and re-load it.
+
+```{warning}
+
+`MultiModalPredictor.load()` uses `pickle` module implicitly, which is known to be insecure. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling. Never load data that could have come from an untrusted source, or that could have been tampered with. **Only load data you trust.**
+
+```
+
+
+```python
+import uuid
+
+model_path = f"./tmp/{uuid.uuid4().hex}-saved_model"
+predictor.save(model_path)
+loaded_predictor = MultiModalPredictor.load(model_path)
+scores2 = loaded_predictor.evaluate(test_data, metrics=["roc_auc"])
+scores2
+```
+
+## Other Examples
+
+You may go to [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm) to explore other examples about AutoMM.
+
+## Customization
+To learn how to customize AutoMM, please refer to [Customize AutoMM](../advanced_topics/customization.ipynb).
+
+
+# AutoMM for Semantic Segmentation - Quick Start
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/image_segmentation/beginner_semantic_seg.ipynb)
+[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/image_segmentation/beginner_semantic_seg.ipynb)
+
+
+Semantic Segmentation is a computer vision task where the objective is to create a detailed pixel-wise segmentation map of an image, assigning each pixel to a specific class or object. This technology is crucial in various applications, such as in autonomous vehicles to identify vehicles, pedestrians, traffic signs, pavement, and other road features.
+
+The Segment Anything Model (SAM) is a foundational model pretrained on a vast dataset with 1 billion masks and 11 million images. While SAM performs exceptionally well on generic scenes, it encounters challenges when applied to specialized domains like remote sensing, medical imagery, agriculture, and manufacturing. Fortunately, AutoMM comes to the rescue by facilitating the fine-tuning of SAM on domain-specific data.
+
+In this easy-to-follow tutorial, we will guide you through the process of using AutoMM to fine-tune SAM. With just a single call to the `fit()` API, you can effortlessly train the model.
+
+
+## Prepare Data
+For demonstration purposes, we use the [Leaf Disease Segmentation](https://www.kaggle.com/datasets/sovitrath/leaf-disease-segmentation-with-trainvalid-split) from Kaggle. This dataset is a good example for automating disease detection in plants, especially for speeding up the plant pathology process. Segmenting specific regions on leaves or plants can be quite challenging, particularly when dealing with smaller diseased areas or various types of diseases.
+
+To begin, download and prepare the dataset.
+
+
+```python
+!pip install autogluon.multimodal
+
+```
+
+
+```python
+download_dir = './ag_automm_tutorial'
+zip_file = 'https://automl-mm-bench.s3.amazonaws.com/semantic_segmentation/leaf_disease_segmentation.zip'
+from autogluon.core.utils.loaders import load_zip
+load_zip.unzip(zip_file, unzip_dir=download_dir)
+```
+
+Next, load the CSV files, ensuring that relative paths are expanded to facilitate correct data loading during both training and testing.
+
+
+```python
+import pandas as pd
+import os
+dataset_path = os.path.join(download_dir, 'leaf_disease_segmentation')
+train_data = pd.read_csv(f'{dataset_path}/train.csv', index_col=0)
+val_data = pd.read_csv(f'{dataset_path}/val.csv', index_col=0)
+test_data = pd.read_csv(f'{dataset_path}/test.csv', index_col=0)
+image_col = 'image'
+label_col = 'label'
+```
+
+
+```python
+def path_expander(path, base_folder):
+    path_l = path.split(';')
+    return ';'.join([os.path.abspath(os.path.join(base_folder, path)) for path in path_l])
+
+for per_col in [image_col, label_col]:
+    train_data[per_col] = train_data[per_col].apply(lambda ele: path_expander(ele, base_folder=dataset_path))
+    val_data[per_col] = val_data[per_col].apply(lambda ele: path_expander(ele, base_folder=dataset_path))
+    test_data[per_col] = test_data[per_col].apply(lambda ele: path_expander(ele, base_folder=dataset_path))
+    
+
+print(train_data[image_col].iloc[0])
+print(train_data[label_col].iloc[0])
+```
+
+Each Pandas DataFrame contains two columns: one for image paths and the other for corresponding groundtruth masks. Let's take a closer look at the training data DataFrame.
+
+
+```python
+train_data.head()
+```
+
+We can also visualize one image and its groundtruth mask.
+
+
+```python
+from autogluon.multimodal.utils import SemanticSegmentationVisualizer
+visualizer = SemanticSegmentationVisualizer()
+visualizer.plot_image(test_data.iloc[0]['image'])
+```
+
+
+```python
+visualizer.plot_image(test_data.iloc[0]['label'])
+```
+
+## Zero Shot Evaluation
+
+Now, let's see how well the pretrained SAM can segment the images. For this demonstration, we'll use the base SAM model.
+
+
+```python
+from autogluon.multimodal import MultiModalPredictor
+predictor_zero_shot = MultiModalPredictor(
+    problem_type="semantic_segmentation", 
+    label=label_col,
+     hyperparameters={
+            "model.sam.checkpoint_name": "facebook/sam-vit-base",
+        },
+    num_classes=1, # forground-background segmentation
+)
+```
+
+After initializing the predictor, you can perform inference directly. 
+
+
+```python
+pred_zero_shot = predictor_zero_shot.predict({'image': [test_data.iloc[0]['image']]})
+```
+
+
+```python
+visualizer.plot_mask(pred_zero_shot)
+```
+
+It's worth noting that SAM without prompts outputs a rough leaf mask instead of disease masks due to its lack of context about the domain task. While SAM can perform better with proper click prompts, it might not be an ideal end-to-end solution for some applications that require a standalone model for deployment.
+
+You can also conduct a zero-shot evaluation on the test data.
+
+
+```python
+scores = predictor_zero_shot.evaluate(test_data, metrics=["iou"])
+print(scores)
+```
+
+As expected, the test score of the zero-shot SAM is relatively low. Next, let's explore how to fine-tune SAM for enhanced performance.
+
+## Finetune SAM
+
+Initialize a new predictor and fit it with the training and validation data.
+
+
+```python
+from autogluon.multimodal import MultiModalPredictor
+import uuid
+save_path = f"./tmp/{uuid.uuid4().hex}-automm_semantic_seg"
+predictor = MultiModalPredictor(
+    problem_type="semantic_segmentation", 
+    label="label",
+     hyperparameters={
+            "model.sam.checkpoint_name": "facebook/sam-vit-base",
+        },
+    path=save_path,
+)
+predictor.fit(
+    train_data=train_data,
+    tuning_data=val_data,
+    time_limit=180, # seconds
+)
+```
+
+Under the hood, we use [LoRA](https://arxiv.org/abs/2106.09685) for efficient fine-tuning. Note that, without hyperparameter customization, the huge SAM serves as the default model, which requires efficient fine-tuning in many cases.
+
+After fine-tuning, evaluate SAM on the test data.
+
+
+```python
+scores = predictor.evaluate(test_data, metrics=["iou"])
+print(scores)
+```
+
+Thanks to the fine-tuning process, the test score has significantly improved.
+
+To visualize the impact, let's examine the predicted mask after fine-tuning.
+
+
+```python
+pred = predictor.predict({'image': [test_data.iloc[0]['image']]})
+```
+
+
+```python
+visualizer.plot_mask(pred)
+```
+
+As evident from the results, the predicted mask is now much closer to the groundtruth. This demonstrates the effectiveness of using AutoMM to fine-tune SAM for domain-specific applications, enhancing its performance in tasks like leaf disease segmentation.
+
+## Save and Load
+
+The trained predictor is automatically saved at the end of `fit()`, and you can easily reload it.
+
+```{warning}
+
+`MultiModalPredictor.load()` uses `pickle` module implicitly, which is known to be insecure. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling. Never load data that could have come from an untrusted source, or that could have been tampered with. **Only load data you trust.**
+
+```
+
+
+```python
+loaded_predictor = MultiModalPredictor.load(save_path)
+scores = loaded_predictor.evaluate(test_data, metrics=["iou"])
+print(scores)
+```
+
+We can see the evaluation score is still the same as above, which means same model!
+
+## Other Examples
+
+You may go to [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm) to explore other examples about AutoMM.
+
+## Customization
+To learn how to customize AutoMM, please refer to [Customize AutoMM](../advanced_topics/customization.ipynb).
+
+
+# Classifying PDF Documents with AutoMM
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/document_prediction/pdf_classification.ipynb)
+[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/document_prediction/pdf_classification.ipynb)
+
+PDF comes short from Portable Document Format and is one of the most popular document formats.
+We can find PDFs everywhere, from personal resumes to business contracts, and from commercial brochures to government documents. 
+The list can be endless. 
+PDF is highly praised for its portability. 
+There's no worry about the receiver being unable to view the document or see an imperfect version regardless of their operating system and device models.
+
+Using AutoMM, you can handle and build machine learning models on PDF documents just like working on other modalities such as text and images, without bothering about PDFs processing. 
+In this tutorial, we will introduce how to classify PDF documents automatically with AutoMM using document foundation models. Let’s get started!
+
+For document processing, AutoGluon requires poppler to be installed. Check https://poppler.freedesktop.org for source 
+
+https://github.com/oschwartz10612/poppler-windows for Windows release (make sure to add the bin/ folder to PATH after installing) 
+
+`brew install poppler` for Mac
+
+## Get the PDF document dataset
+We have created a simple PDFs dataset via manual crawling for demonstration purpose. 
+It consists of two categories, resume and historical documents (downloaded from [milestone documents](https://www.archives.gov/milestone-documents/list)). 
+We picked 20 PDF documents for each of the category. 
+
+Now, let's download the dataset and split it into training and test sets.
+
+
+```python
+!pip install autogluon.multimodal
+
+```
+
+
+```python
+import warnings
+warnings.filterwarnings('ignore')
+import os
+import pandas as pd
+from autogluon.core.utils.loaders import load_zip
+
+download_dir = './ag_automm_tutorial_pdf_classifier'
+zip_file = "https://automl-mm-bench.s3.amazonaws.com/doc_classification/pdf_docs_small.zip"
+load_zip.unzip(zip_file, unzip_dir=download_dir)
+
+dataset_path = os.path.join(download_dir, "pdf_docs_small")
+pdf_docs = pd.read_csv(f"{dataset_path}/data.csv")
+train_data = pdf_docs.sample(frac=0.8, random_state=200)
+test_data = pdf_docs.drop(train_data.index)
+```
+
+Now, let's visualize one of the PDF documents. Here, we use the S3 URL of the PDF document and `IFrame` to show it in the tutorial.
+
+
+```python
+from IPython.display import IFrame
+IFrame("https://automl-mm-bench.s3.amazonaws.com/doc_classification/historical_1.pdf", width=400, height=500)
+```
+
+As you can see, this document is an America's historical document in PDF format. 
+To make sure the MultiModalPredictor can locate the documents correctly, we need to overwrite the document paths.
+
+
+```python
+from autogluon.multimodal.utils.misc import path_expander
+
+DOC_PATH_COL = "doc_path"
+
+train_data[DOC_PATH_COL] = train_data[DOC_PATH_COL].apply(lambda ele: path_expander(ele, base_folder=download_dir))
+test_data[DOC_PATH_COL] = test_data[DOC_PATH_COL].apply(lambda ele: path_expander(ele, base_folder=download_dir))
+print(test_data.head())
+```
+
+## Create a PDF Document Classifier
+
+You can create a PDFs classifier easily with `MultiModalPredictor`. 
+All you need to do is to create a predictor and fit it with the above training dataset. 
+AutoMM will handle all the details, like (1) detecting if it is PDF format datasets; (2) processing PDFs like converting it into a format that our model can recognize; (3) detecting and recognizing the text in PDF documents; etc., without your notice. 
+
+Here, label is the name of the column that contains the target variable to predict, e.g., it is "label" in our example. 
+We set the training time limit to 120 seconds for demonstration purposes.
+
+
+```python
+from autogluon.multimodal import MultiModalPredictor
+
+predictor = MultiModalPredictor(label="label")
+predictor.fit(
+    train_data=train_data,
+    hyperparameters={"model.document_transformer.checkpoint_name":"microsoft/layoutlm-base-uncased",
+    "optimization.top_k_average_method":"best",
+    },
+    time_limit=120,
+)
+```
+
+## Evaluate on Test Dataset
+
+You can evaluate the classifier on the test dataset to see how it performs:
+
+
+```python
+scores = predictor.evaluate(test_data, metrics=["accuracy"])
+print('The test acc: %.3f' % scores["accuracy"])
+```
+
+## Predict on a New PDF Document
+
+Given an example PDF document, we can easily use the final model to predict the label:
+
+
+
+```python
+predictions = predictor.predict({DOC_PATH_COL: [test_data.iloc[0][DOC_PATH_COL]]})
+print(f"Ground-truth label: {test_data.iloc[0]['label']}, Prediction: {predictions}")
+
+```
+
+If probabilities of all categories are needed, you can call predict_proba:
+
+
+```python
+proba = predictor.predict_proba({DOC_PATH_COL: [test_data.iloc[0][DOC_PATH_COL]]})
+print(proba)
+```
+
+## Extract Embeddings
+
+Extracting representation from the whole document learned by a model is also very useful. 
+We provide extract_embedding function to allow predictor to return the N-dimensional document feature where N depends on the model.
+
+
+```python
+feature = predictor.extract_embedding({DOC_PATH_COL: [test_data.iloc[0][DOC_PATH_COL]]})
+print(feature[0].shape)
+```
+
+## Other Examples
+
+You may go to [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm) to explore other examples about AutoMM.
+
+## Customization
+To learn how to customize AutoMM, please refer to [Customize AutoMM](../advanced_topics/customization.ipynb).
+
+
+# AutoMM for Image Classification - Quick Start
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/image_prediction/beginner_image_cls.ipynb)
+[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/image_prediction/beginner_image_cls.ipynb)
+
+
+
+In this quick start, we'll use the task of image classification to illustrate how to use **MultiModalPredictor**. Once the data is prepared in [Pandas DataFrame](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html) format, a single call to `MultiModalPredictor.fit()` will take care of the model training for you.
+
+
+## Create Image Dataset
+
+For demonstration purposes, we use a subset of the [Shopee-IET dataset](https://www.kaggle.com/competitions/demo-shopee-iet-competition/data) from Kaggle.
+Each image in this data depicts a clothing item and the corresponding label specifies its clothing category.
+Our subset of the data contains the following possible labels: `BabyPants`, `BabyShirt`, `womencasualshoes`, `womenchiffontop`.
+
+We can load a dataset by downloading a url data automatically:
+
+
+```python
+!pip install autogluon.multimodal
+
+```
+
+
+```python
+import warnings
+warnings.filterwarnings('ignore')
+import pandas as pd
+
+from autogluon.multimodal.utils.misc import shopee_dataset
+download_dir = './ag_automm_tutorial_imgcls'
+train_data_path, test_data_path = shopee_dataset(download_dir)
+print(train_data_path)
+```
+
+We can see there are 800 rows and 2 columns in this training dataframe. The 2 columns are **image** and **label**, and the **image** column contains the absolute paths of the images. Each row represents a different training sample.
+
+In addition to image paths, `MultiModalPredictor` also supports image bytearrays during training and inference. We can load the dataset with bytearrays with the option `is_bytearray` set to `True`:
+
+
+```python
+import warnings
+warnings.filterwarnings('ignore')
+
+download_dir = './ag_automm_tutorial_imgcls'
+train_data_byte, test_data_byte = shopee_dataset(download_dir, is_bytearray=True)
+```
+
+## Use AutoMM to Fit Models
+
+Now, we fit a classifier using AutoMM as follows:
+
+
+```python
+from autogluon.multimodal import MultiModalPredictor
+import uuid
+model_path = f"./tmp/{uuid.uuid4().hex}-automm_shopee"
+predictor = MultiModalPredictor(label="label", path=model_path)
+predictor.fit(
+    train_data=train_data_path,
+    time_limit=30, # seconds
+)
+```
+
+**label** is the name of the column that contains the target variable to predict, e.g., it is "label" in our example. **path** indicates the directory where models and intermediate outputs should be saved. We set the training time limit to 30 seconds for demonstration purpose, but you can control the training time by setting configurations. To customize AutoMM, please refer to [Customize AutoMM](../advanced_topics/customization.ipynb).
+
+
+## Evaluate on Test Dataset
+
+You can evaluate the classifier on the test dataset to see how it performs, the test top-1 accuracy is:
+
+
+```python
+scores = predictor.evaluate(test_data_path, metrics=["accuracy"])
+print('Top-1 test acc: %.3f' % scores["accuracy"])
+```
+
+You can also evaluate on test data with image bytearray using the model trained on training data with image path, and vice versa:
+
+
+```python
+scores = predictor.evaluate(test_data_byte, metrics=["accuracy"])
+print('Top-1 test acc: %.3f' % scores["accuracy"])
+```
+
+## Predict on a New Image
+
+Given an example image, let's visualize it first,
+
+
+```python
+image_path = test_data_path.iloc[0]['image']
+from IPython.display import Image, display
+pil_img = Image(filename=image_path)
+display(pil_img)
+```
+
+We can easily use the final model to `predict` the label,
+
+
+```python
+predictions = predictor.predict({'image': [image_path]})
+print(predictions)
+```
+
+If probabilities of all categories are needed, you can call `predict_proba`:
+
+
+```python
+proba = predictor.predict_proba({'image': [image_path]})
+print(proba)
+```
+
+Similarly as `predictor.evaluate`, we can also parse image_bytearrays into `.predict` and `.predict_proba`:
+
+
+```python
+image_byte = test_data_byte.iloc[0]['image']
+predictions = predictor.predict({'image': [image_byte]})
+print(predictions)
+
+proba = predictor.predict_proba({'image': [image_byte]})
+print(proba)
+```
+
+## Extract Embeddings
+
+Extracting representation from the whole image learned by a model is also very useful. We provide `extract_embedding` function to allow predictor to return the N-dimensional image feature where `N` depends on the model(usually a 512 to 2048 length vector)
+
+
+```python
+feature = predictor.extract_embedding({'image': [image_path]})
+print(feature[0].shape)
+```
+
+You should expect the same result when extract embedding from image bytearray:
+
+
+```python
+feature = predictor.extract_embedding({'image': [image_byte]})
+print(feature[0].shape)
+```
+
+## Save and Load
+
+The trained predictor is automatically saved at the end of `fit()`, and you can easily reload it.
+
+```{warning}
+
+`MultiModalPredictor.load()` uses `pickle` module implicitly, which is known to be insecure. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling. Never load data that could have come from an untrusted source, or that could have been tampered with. **Only load data you trust.**
+
+```
+
+
+```python
+loaded_predictor = MultiModalPredictor.load(model_path)
+load_proba = loaded_predictor.predict_proba({'image': [image_path]})
+print(load_proba)
+```
+
+We can see the predicted class probabilities are still the same as above, which means same model!
+
+## Other Examples
+
+You may go to [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm) to explore other examples about AutoMM.
+
+## Customization
+To learn how to customize AutoMM, please refer to [Customize AutoMM](../advanced_topics/customization.ipynb).
+
+Summary: This tutorial provides practical implementation guidance for text embedding systems, focusing on both open-source and commercial API approaches. It demonstrates code implementations for popular embedding models including BGE and Sentence Transformers (open-source), plus OpenAI and Voyage AI (commercial APIs). The tutorial covers essential setup requirements, environment configurations, and code snippets for generating embeddings. Key features include vector normalization, GPU configuration, and embedding generation with different frameworks. It's particularly useful for tasks involving semantic search, text similarity comparison, and vector representations, while highlighting important trade-offs between open-source and commercial solutions regarding costs, resource requirements, and usage limitations.
+
+# Intro to Embedding
+
+For text retrieval, pattern matching is the most intuitive way. People would use certain characters, words, phrases, or sentence patterns. However, not only for human, it is also extremely inefficient for computer to do pattern matching between a query and a collection of text files to find the possible results. 
+
+For images and acoustic waves, there are rgb pixels and digital signals. Similarly, in order to accomplish more sophisticated tasks of natural language such as retrieval, classification, clustering, or semantic search, we need a way to represent text data. That's how text embedding comes in front of the stage.
+
+## 1. Background
+
+Traditional text embedding methods like one-hot encoding and bag-of-words (BoW) represent words and sentences as sparse vectors based on their statistical features, such as word appearance and frequency within a document. More advanced methods like TF-IDF and BM25 improve on these by considering a word's importance across an entire corpus, while n-gram techniques capture word order in small groups. However, these approaches suffer from the "curse of dimensionality" and fail to capture semantic similarity like "cat" and "kitty", difference like "play the watch" and "watch the play".
+
+
+```python
+# example of bag-of-words
+sentence1 = "I love basketball"
+sentence2 = "I have a basketball match"
+
+words = ['I', 'love', 'basketball', 'have', 'a', 'match']
+sen1_vec = [1, 1, 1, 0, 0, 0]
+sen2_vec = [1, 0, 1, 1, 1, 1]
+```
+
+To overcome these limitations, dense word embeddings were developed, mapping words to vectors in a low-dimensional space that captures semantic and relational information. Early models like Word2Vec demonstrated the power of dense embeddings using neural networks. Subsequent advancements with neural network architectures like RNNs, LSTMs, and Transformers have enabled more sophisticated models such as BERT, RoBERTa, and GPT to excel in capturing complex word relationships and contexts. **BAAI General Embedding (BGE)** provide a series of open-source models that could satisfy all kinds of demands.
+
+## Get Embedding
+
+The first step of modern text retrieval is embedding the text. So let's take a look at how to use the embedding models.
+
+Install the packages:
+
+
+```python
+%%capture
+%pip install -U FlagEmbedding sentence_transformers openai cohere
+```
+
+
+```python
+import os 
+os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = 'true'
+# single GPU is better for small tasks
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+```
+
+We'll use the following three sentences as the inputs:
+
+
+```python
+sentences = [
+    "That is a happy dog",
+    "That is a very happy person",
+    "Today is a sunny day",
+]
+```
+
+### Open-source Models
+
+A huge portion of embedding models are in the open source community. The advantages of open-source models include:
+- Free, no extra cost. But make sure to check the License and your use case before using.
+- No frequency limit, can accelerate a lot if you have enough GPUs to parallelize.
+- Transparent and might be reproducible.
+
+Let's take a look at two representatives:
+
+#### BGE
+
+BGE is a series of embedding models and rerankers published by BAAI. Several of them reached SOTA at the time they released.
+
+
+```python
+from FlagEmbedding import FlagModel
+
+# Load BGE model
+model = FlagModel('BAAI/bge-base-en-v1.5')
+
+# encode the queries and corpus
+embeddings = model.encode(sentences)
+print(f"Embeddings:\n{embeddings.shape}")
+
+scores = embeddings @ embeddings.T
+print(f"Similarity scores:\n{scores}")
+```
+
+#### Sentence Transformers
+
+Sentence Transformers is a library for sentence embeddings with a huge amount of embedding models and datasets for related tasks.
+
+
+```python
+from sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+embeddings = model.encode(sentences, normalize_embeddings=True)
+print(f"Embeddings:\n{embeddings.shape}")
+
+scores = embeddings @ embeddings.T
+print(f"Similarity scores:\n{scores}")
+```
+
+### Commercial Models
+
+There are also plenty choices of commercial models. They have the advantages of:
+- Efficient memory usage, fast inference with no need of GPUs.
+- Systematic support, commercial models have closer connections with their other products.
+- Better training data, commercial models might be trained on larger, higher-quality datasets than some open-source models.
+
+#### OpenAI
+
+Along with GPT series, OpenAI has their own embedding models. Make sure to fill in your own API key in the field `"YOUR_API_KEY"`
+
+
+```python
+import os
+import numpy as np
+
+os.environ["OPENAI_API_KEY"] = "YOUR_API_KEY"
+```
+
+Then run the following cells to get the embeddings. Check their official [documentation](https://platform.openai.com/docs/guides/embeddings) for more details.
+
+
+```python
+from openai import OpenAI
+
+client = OpenAI()
+
+response = client.embeddings.create(input = sentences, model="text-embedding-3-small")
+```
+
+
+```python
+embeddings = np.asarray([response.data[i].embedding for i in range(len(sentences))])
+print(f"Embeddings:\n{embeddings.shape}")
+
+scores = embeddings @ embeddings.T
+print(f"Similarity scores:\n{scores}")
+```
+
+#### Voyage AI
+
+Voyage AI provides embedding models and rerankers for different purpus and in various fields. Their API keys can be freely used in low frequency and token length.
+
+
+```python
+os.environ["VOYAGE_API_KEY"] = "YOUR_API_KEY"
+```
+
+Check their official [documentation](https://docs.voyageai.com/docs/api-key-and-installation) for more details.
+
+
+```python
+import voyageai
+
+vo = voyageai.Client()
+
+result = vo.embed(sentences, model="voyage-large-2-instruct")
+```
+
+
+```python
+embeddings = np.asarray(result.embeddings)
+print(f"Embeddings:\n{embeddings.shape}")
+
+scores = embeddings @ embeddings.T
+print(f"Similarity scores:\n{scores}")
+```
