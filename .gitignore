@@ -1,19 +1,10 @@
-# OS specific
-*.DS_Store
-
-# Project specific
-.aim/
+# saved runs
+runs/
+temp_run/
 AutogluonModels/
-data/
-user_data/
-sample_dataset/
-results/
-cookies.json
-cdk.out/
-.metaflow
-*.feather
-.langchain.db
-output_*.csv
+raw_tutorials/
+AutogluonTutorials/
+backup/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -123,8 +114,10 @@ ipython_config.py
 #pdm.lock
 #   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
 #   in version control.
-#   https://pdm.fming.dev/#use-with-ide
+#   https://pdm.fming.dev/latest/usage/project/#working-with-version-control
 .pdm.toml
+.pdm-python
+.pdm-build/
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
 __pypackages__/
@@ -160,9 +153,6 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
-# ruff
-.ruff_cache
-
 # Pyre type checker
 .pyre/
 
@@ -177,6 +167,6 @@ cython_debug/
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-.idea/
-# AutoGluon Assistant output files
-aga-output-*.csv
+#.idea/
+data/
+output/

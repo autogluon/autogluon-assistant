@@ -1,0 +1,24 @@
+{
+  "tools": {
+    "autogluon.timeseries": {
+      "path": "autogluon.timeseries",
+      "version": "1.2.0",
+      "description": "AutoGluon Timeseries is an open-source AutoML framework that automates the training and tuning of forecasting models for time series data, handling tasks from preprocessing to model ensembling with built-in support for both univariate and multivariate forecasting."
+    },
+    "speechbrain": {
+      "path": "speechbrain",
+      "version": "1.0.2",
+      "description": "SpeechBrain is an open-source speech toolkit built on PyTorch that provides pre-trained models and tools for various speech-related tasks like speech recognition, speaker identification, speech enhancement, and speech synthesis."
+    },
+    "autogluon.tabular": {
+      "path": "autogluon.tabular",
+      "version": "1.2.0",
+      "description": "AutoGluon Tabular is an open-source AutoML framework that automates the training and tuning of machine learning models for tabular data, handling tasks from preprocessing to model ensembling with minimal code required."
+    },
+    "autogluon.multimodal": {
+      "path": "autogluon.multimodal",
+      "version": "1.2.0",
+      "description": "AutoGluon Multimodal is an open-source AutoML framework that simplifies the training of models across multiple data types including text, images, and tabular data, automating tasks from preprocessing to model ensembling with minimal code required."
+    }
+  }
+}

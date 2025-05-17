@@ -1,88 +1,50 @@
-<table>
-<tr>
-<td width="70%">
+# AutoML Agent
 
-# AutoGluon Assistant (aka MLZero)
-[![Python Versions](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue)](https://pypi.org/project/autogluon.assistant/)
-[![GitHub license](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
-[![Continuous Integration](https://github.com/autogluon/autogluon-assistant/actions/workflows/continuous_integration.yml/badge.svg)](https://github.com/autogluon/autogluon-assistant/actions/workflows/continuous_integration.yml)
+This repository contains an ML agent that generates and executes code based on input data and configuration settings. The agent can work with various machine learning tools and frameworks while allowing for optional interactive user input during the code generation process.
 
-</td>
-<td>
-<img src="https://user-images.githubusercontent.com/16392542/77208906-224aa500-6aba-11ea-96bd-e81806074030.png" width="350">
-</td>
-</tr>
-</table>
+## Prerequisites
 
-AutoGluon Assistant (aka MLZero) is a multi-agent system that automates end-to-end multimodal machine learning or deep learning workflows by transforming raw multimodal data into high-quality ML solutions with zero human intervention. Leveraging specialized perception agents, dual-memory modules, and iterative code generation, it handles diverse data formats while maintaining high success rates across complex ML tasks.
+- Python 3.9/10/11/12
+- Conda package manager
+- AutoGluon dependencies
+- Access to Bedrock/OpenAI API
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/0f0f202e-9804-433b-928a-928cee8ff7fd" alt="aga_demo">
-</p>
+## Setup
 
-
-## 💾 Installation
-
-AutoGluon Assistant is supported on Python 3.8 - 3.11 and is available on Linux, MacOS, and Windows.
-
-You can install with:
-
+1. Clone the repository:
 ```bash
-pip install autogluon.assistant
+git clone https://github.com/FANGAreNotGnu/AutoMLAgent.git
+cd AutoMLAgent
 ```
 
-You can also install from source:
-
+2. Install the package:
 ```bash
-git clone https://github.com/autogluon/autogluon-assistant.git
-cd autogluon-assistant && pip install -e "."
+conda create -n agent python=3.11 -y
+conda activate agent
+pip install -e .
 ```
 
-### API Keys
-
-#### Configuring LLMs
-AG-A supports using both AWS Bedrock and OpenAI as LLM model providers. You will need to set up API keys for the respective provider you choose. By default, AG-A uses AWS Bedrock for its language models.
-
-#### AWS Bedrock Setup
-AG-A integrates with AWS Bedrock by default. To use AWS Bedrock, you will need to configure your AWS credentials and region settings:
-
+2.1 Install Object Detection Dependencies
 ```bash
-export AWS_DEFAULT_REGION="<your-region>"
-export AWS_ACCESS_KEY_ID="<your-access-key>"
-export AWS_SECRET_ACCESS_KEY="<your-secret-key>"
+pip install -U pip setuptools wheel
+sudo apt-get install -y ninja-build gcc g++
+python3 -m mim install "mmcv==2.1.0"
+python3 -m pip install "mmdet==3.2.0"
+python3 -m pip install "mmengine>=0.10.6"
 ```
 
-Ensure you have an active AWS account and appropriate permissions set up for using Bedrock models. You can manage your AWS credentials through the AWS Management Console. See [Bedrock supported AWS regions](https://docs.aws.amazon.com/bedrock/latest/userguide/bedrock-regions.html)
-
-
-#### OpenAI Setup
-To use OpenAI, you'll need to set your OpenAI API key as an environment variable:
-
+3. Configure your environment variables:
 ```bash
-export OPENAI_API_KEY="sk-..."
-```
-
-You can sign up for an OpenAI account [here](https://platform.openai.com/) and manage your API keys [here](https://platform.openai.com/account/api-keys).
-
-Important: Free-tier OpenAI accounts may be subject to rate limits, which could affect AG-A's performance. We recommend using a paid OpenAI API key for seamless functionality.
-
-
-#### Azure OpenAI Setup (WIP)
-To use Azure OpenAI, you'll need to set the following Azure OpenAI values, as environment variables:
-```bash
-export AZURE_OPENAI_API_KEY=<...>
-export OPENAI_API_VERSION=<...>
-export AZURE_OPENAI_ENDPOINT=<...>
+# Similar to Autogluon Assistant
+export OPENAI_API_KEY=your_api_key
+export AWS_ACCESS_KEY_ID=your_access_key
+export AWS_SECRET_ACCESS_KEY=your_secret_key
+export AWS_DEFAULT_REGION=your_region
 ```
 
 ## Usage
 
-We support two ways of using AutoGluon Assistant: WebUI or CLI.
-
-### Web UI
-WIP
-
-### CLI (Better CLI WIP)
+### Command Line Interface
 
 The main script `run.py` provides a command-line interface with the following options:
 
@@ -102,10 +64,151 @@ Example:
 python run.py -i ./data -o ./output -c config.yaml -n 3
 ```
 
+### Adding Third-Party ML Tools
 
-#### Overriding Configs
-WIP
+To interactively add new machine learning tools to the agent:
 
+```bash
+python3 tools/add_tools.py
+```
 
-## Citation
-(Will be released soon) MLZero: A Multi-Agent System for End-to-end Machine Learning Automation
+This will guide you through the process of integrating additional ML frameworks or libraries.
+
+## Project Structure
+
+```
+AutoMLAgent/
+├── LICENSE
+├── README.md
+├── automlagent/
+│   └── src/
+│       └── automlagent/
+│           ├── __init__.py
+│           ├── coder/
+│           │   ├── __init__.py
+│           │   ├── llm_coder.py
+│           │   └── utils.py
+│           ├── coding_agent.py
+│           ├── configs/
+│           │   ├── agrag/
+│           │   │   ├── agrag_object_detection.yaml
+│           │   │   └── agrag_semantic_segmentation.yaml
+│           │   └── default.yaml
+│           ├── constants.py
+│           ├── llm/
+│           │   ├── __init__.py
+│           │   └── llm_factory.py
+│           ├── prompt/
+│           │   ├── __init__.py
+│           │   ├── data_prompt.py
+│           │   ├── error_prompt.py
+│           │   ├── execution_prompt.py
+│           │   ├── prompt_aggregation.py
+│           │   ├── task_prompt.py
+│           │   ├── tutorial_prompt.py
+│           │   ├── user_prompt.py
+│           │   └── utils.py
+│           └── tools_registry/
+│               ├── __init__.py
+│               ├── _common/
+│               ├── autogluon.multimodal/
+│               ├── autogluon.tabular/
+│               ├── autogluon.timeseries/
+│               └── registry.py
+├── run.py
+├── setup.py
+└── tools/
+    ├── add_tools.py
+    └── convert_notebooks.py
+```
+
+## Output Files
+
+The agent generates a structured output directory with the following organization:
+
+```
+outputs/
+├── description_analysis.txt     # Analysis of the problem description
+├── description_files.txt       # List of input files analyzed
+├── error_analysis.json         # Error tracking and analysis
+├── eval_log.txt               # Evaluation metrics and logs
+├── log.txt                    # General execution log
+├── results.csv                # Final results and predictions
+├── selected_tutorials.json     # Selected tutorials for the task
+├── task_description.txt       # Original task description
+├── tool_selection.txt         # Selected ML tools and reasoning
+├── tutorial_prompt.txt        # Generated tutorial prompt
+├── tutorial_contents/         # Retrieved tutorials
+│   ├── tutorial_1.md
+│   ├── tutorial_2.md
+│   └── tutorial_3.md
+├── iteration_0/              # First iteration
+│   ├── coding_prompt.txt     # Prompt for code generation
+│   ├── execution_prompt.txt  # Prompt for execution
+│   ├── execution_script.sh   # Generated shell script
+│   ├── generated_code.py     # Generated Python code
+│   └── states/              # Iteration state information
+│       ├── bash_script.sh
+│       ├── data_prompt.txt
+│       ├── error_message.txt
+│       ├── python_code.py
+│       ├── stderr.txt
+│       ├── stdout.txt
+│       ├── task_prompt.txt
+│       ├── tutorial_prompt.txt
+│       └── user_input.txt
+├── iteration_1/             # Second iteration
+│   └── ...                 # Same structure as iteration_0
+├── iteration_2/             # Third iteration
+│   └── ...                 # Same structure as iteration_0
+├── iteration_3/             # Fourth iteration
+│   └── ...                 # Same structure as iteration_0
+└── model_YYYYMMDD_HHMMSS/   # Trained model directory
+```
+
+Each iteration directory contains the prompts, generated code, and execution states for that specific iteration. The model directory contains all artifacts related to the trained model, including individual model components, logs, and utilities.
+Multiple model directories may be created with timestamps (YYYYMMDD_HHMMSS) during different stages of the training process. Each contains its own complete set of model artifacts.
+
+## Configuration
+
+A YAML configuration file to control:
+- Tutorial generation parameters
+- LLM provider settings (Bedrock or OpenAI)
+- Model selection and parameters
+- Agent-specific configurations
+
+A default configuration is provided at `AutoMLAgent/automlagent/src/automlagent/configs/default.yaml`:
+```yaml
+# Tutorial Prompt Generator Configuration
+max_chars_per_file: 100
+max_num_tutorials: 3
+max_user_input_length: 9999
+max_error_message_length: 9999
+max_tutorial_length: 99999
+create_venv: false
+condense_tutorials: false
+
+# Default LLM Configuration
+# For each agent (coder, etc.) you can use a different one
+llm: &default_llm
+  # Note: bedrock is only supported in limited AWS regions
+  # and requires AWS credentials
+  provider: bedrock
+  model: "anthropic.claude-3-5-sonnet-20241022-v2:0"
+  # Alternative configuration:
+  # provider: openai
+  # model: gpt-4-0314
+  max_tokens: 4096
+  proxy_url: null
+  temperature: 0
+  verbose: True
+  multi_turn: True
+
+coder:
+  <<: *default_llm  # Merge llm_config
+  temperature: 0.5
+  max_tokens: 4096
+  top_p: 1
+  multi_turn: True
+```
+

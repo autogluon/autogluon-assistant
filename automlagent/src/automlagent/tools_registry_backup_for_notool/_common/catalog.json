@@ -1,0 +1,9 @@
+{
+  "tools": {
+    "machine learning": {
+      "path": "machine learning",
+      "version": "0.1.0",
+      "description": "You should select this as a general reference of machine learning or deep learning algorithms"
+    }
+  }
+}
