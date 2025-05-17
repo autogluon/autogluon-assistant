@@ -151,17 +151,30 @@ def save_iteration_state(
 
 def run_agent(
     input_data_folder,
-    tutorial_link,
     output_folder,
-    config_path,
+    tutorial_link=None,
+    config_path=None,
     max_iterations=5,
     need_user_input=False,
     initial_user_input=None,
 ):
-    # Load config from YAML and merge with default
-    if not Path(config_path).exists():
-        raise FileNotFoundError(f"Config file not found: {config_path}")
-    config = OmegaConf.load(config_path)
+    # Get the directory of the current file
+    current_file_dir = Path(__file__).parent
+    
+    # Always load default config first
+    default_config_path = current_file_dir / "configs" / "default.yaml"
+    if not default_config_path.exists():
+        raise FileNotFoundError(f"Default config file not found: {default_config_path}")
+    
+    config = OmegaConf.load(default_config_path)
+    
+    # If config_path is provided, merge it with the default config
+    if config_path is not None:
+        if not Path(config_path).exists():
+            raise FileNotFoundError(f"Config file not found: {config_path}")
+        
+        user_config = OmegaConf.load(config_path)
+        config = OmegaConf.merge(config, user_config)
 
     stream_output = config.stream_output
     per_execution_timeout = config.per_execution_timeout
