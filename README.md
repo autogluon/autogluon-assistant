@@ -6,6 +6,7 @@
 [![Python Versions](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue)](https://pypi.org/project/autogluon.assistant/)
 [![GitHub license](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
 [![Continuous Integration](https://github.com/autogluon/autogluon-assistant/actions/workflows/continuous_integration.yml/badge.svg)](https://github.com/autogluon/autogluon-assistant/actions/workflows/continuous_integration.yml)
+[![Project Page](https://img.shields.io/badge/Project_Page-MLZero-blue)](https://project-mlzero.github.io/)
 
 </td>
 <td>
@@ -16,35 +17,31 @@
 
 AutoGluon Assistant (aka MLZero) is a multi-agent system that automates end-to-end multimodal machine learning or deep learning workflows by transforming raw multimodal data into high-quality ML solutions with zero human intervention. Leveraging specialized perception agents, dual-memory modules, and iterative code generation, it handles diverse data formats while maintaining high success rates across complex ML tasks.
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/0f0f202e-9804-433b-928a-928cee8ff7fd" alt="aga_demo">
-</p>
-
-
 ## 💾 Installation
 
 AutoGluon Assistant is supported on Python 3.8 - 3.11 and is available on Linux, MacOS, and Windows.
 
-You can install with:
 
-```bash
-pip install autogluon.assistant
-```
-
-You can also install from source:
+You can install from source:
 
 ```bash
 git clone https://github.com/autogluon/autogluon-assistant.git
 cd autogluon-assistant && pip install -e "."
 ```
 
+You can also install old version with (not recommended):
+
+```bash
+pip install autogluon.assistant
+```
+
 ### API Keys
 
 #### Configuring LLMs
-AG-A supports using both AWS Bedrock and OpenAI as LLM model providers. You will need to set up API keys for the respective provider you choose. By default, AG-A uses AWS Bedrock for its language models.
+MLZero supports using both AWS Bedrock and OpenAI as LLM model providers. You will need to set up API keys for the respective provider you choose. By default, MLZero uses AWS Bedrock for its language models.
 
 #### AWS Bedrock Setup
-AG-A integrates with AWS Bedrock by default. To use AWS Bedrock, you will need to configure your AWS credentials and region settings:
+MLZero integrates with AWS Bedrock by default. To use AWS Bedrock, you will need to configure your AWS credentials and region settings:
 
 ```bash
 export AWS_DEFAULT_REGION="<your-region>"
@@ -82,29 +79,29 @@ We support two ways of using AutoGluon Assistant: WebUI or CLI.
 ### Web UI
 WIP
 
-### CLI (Better CLI WIP)
+### CLI (WIP for Better CLI)
 
 The main script `run.py` provides a command-line interface with the following options:
 
 ```bash
-python run.py -i INPUT_DATA_FOLDER -o OUTPUT_DIR -c CONFIG_PATH [-n MAX_ITERATIONS] [--need_user_input]
+python run.py -i INPUT_DATA_FOLDER -o OUTPUT_DIR [-c CONFIG_PATH] [-n MAX_ITERATIONS] [--need_user_input]
 ```
 
 Arguments:
 - `-i, --input_data_folder`: Path to the folder containing input data (required)
 - `-o, --output_dir`: Path to the output directory for generated files (required)
-- `-c, --config_path`: Path to the configuration file (required)
+- `-c, --config_path`: Path to the configuration file (optional, default config will be used if absence)
 - `-n, --max_iterations`: Maximum number of iterations for code generation (default: 5)
 - `--need_user_input`: Enable user input between iterations (optional flag)
 
 Example:
 ```bash
-python run.py -i ./data -o ./output -c config.yaml -n 3
+python run.py -i ./data -o ./output
 ```
 
 
 #### Overriding Configs
-WIP
+You can always provide a config to override default config.
 
 
 ## Citation
