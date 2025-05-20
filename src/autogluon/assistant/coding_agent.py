@@ -9,6 +9,7 @@ from .coder import generate_coder, write_code_script, write_retrieved_context
 from .llm import ChatLLMFactory
 from .planner import get_planner
 from .prompt import PromptGenerator, write_prompt_to_file
+from .utils import extract_archives
 
 
 def execute_bash_script(bash_script, stream_output=True, timeout=3600 * 6):
@@ -151,15 +152,63 @@ def save_iteration_state(
 
 def run_agent(
     input_data_folder,
-    output_folder,
+    output_folder=None,
     tutorial_link=None,
     config_path=None,
     max_iterations=5,
     need_user_input=False,
     initial_user_input=None,
+    extract_archives_to=None,
 ):
     # Get the directory of the current file
     current_file_dir = Path(__file__).parent
+
+    if output_folder is None or not output_folder:
+        working_dir = os.path.join(current_file_dir.parent.parent.parent, "runs")
+        # Get current date in YYYYMMDD format
+        current_date = datetime.now().strftime("%Y%m%d")
+        # Generate a random UUID4
+        random_uuid = uuid.uuid4()
+        # Create the folder name using the pattern
+        folder_name = f"mlzero-{current_date}-{random_uuid}"
+
+        # Create the full path for the new folder
+        output_folder = os.path.join(working_dir, folder_name)
+
+    # Create output directory
+    output_dir = Path(output_folder)
+    output_dir.mkdir(parents=True, exist_ok=False)
+
+    if extract_archives_to is not None:
+        if extract_archives_to and extract_archives_to != input_data_folder:
+            import shutil
+
+            # Create the destination directory if it doesn't exist
+            os.makedirs(extract_archives_to, exist_ok=True)
+
+            # Walk through all files and directories in the source folder
+            for root, dirs, files in os.walk(input_data_folder):
+                # Calculate the relative path from the source folder
+                rel_path = os.path.relpath(root, input_data_folder)
+
+                # Create the corresponding directory structure in the destination
+                if rel_path != ".":
+                    dest_dir = os.path.join(extract_archives_to, rel_path)
+                    os.makedirs(dest_dir, exist_ok=True)
+                else:
+                    dest_dir = extract_archives_to
+
+                # Copy all files in the current directory
+                for file in files:
+                    src_file = os.path.join(root, file)
+                    dest_file = os.path.join(dest_dir, file)
+                    shutil.copy2(src_file, dest_file)  # copy2 preserves metadata
+
+            input_data_folder = extract_archives_to
+            print(
+                f"Note: we strongly recommend using data without archived files. Extracting archived files under {input_data_folder}..."
+            )
+            extract_archives(input_data_folder)
 
     # Always load default config first
     default_config_path = current_file_dir / "configs" / "default.yaml"
