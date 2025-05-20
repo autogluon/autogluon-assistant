@@ -77,7 +77,9 @@ class LLMFileReader:
 
         # Add format instruction if configured
         if self.add_coding_format_instruction:
-            format_instruction = "Please format your response with the code in a ```python``` code block to make it easily extractable."
+            format_instruction = (
+                "Please format your response with the code in a ```python``` code block to make it easily extractable."
+            )
             prompt = f"{prompt}\n\n{format_instruction}"
 
         response = self.llm.assistant_chat(prompt)

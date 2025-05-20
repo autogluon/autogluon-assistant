@@ -180,6 +180,3 @@ cython_debug/
 .idea/
 # AutoGluon Assistant output files
 aga-output-*.csv
-
-
-/output

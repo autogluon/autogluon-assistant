@@ -101,9 +101,9 @@ skip = ".git,*.pdf,*.svg,*.ipynb,*.csv,"
 
 [tool.ruff]
 lint.ignore = [
-  "E501",
-  "E731",
-  "E722",
+    "E501",  # Line too long
+    "E731",  # Do not assign a `lambda` expression, use a `def`
+    "E722",  # Do not use bare `except`
 ]
 extend-exclude = ["__init__.py"]
 
