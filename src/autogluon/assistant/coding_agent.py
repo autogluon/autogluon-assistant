@@ -1,20 +1,11 @@
-import logging
 import os
-import select
 import subprocess
 import sys
-import time
 import uuid
 from datetime import datetime
 from pathlib import Path
 
 from omegaconf import OmegaConf
-from rich import print
-from rich.progress import (
-    BarColumn,
-    Progress,
-    TextColumn,
-)
 
 from .coder import generate_coder, write_code_script, write_retrieved_context
 from .llm import ChatLLMFactory
@@ -22,21 +13,21 @@ from .planner import get_planner
 from .prompt import PromptGenerator, write_prompt_to_file
 from .utils import extract_archives
 
-logger = logging.getLogger(__name__)
 
-
-def execute_bash_script(bash_script: str, stream_output: bool = True, timeout: float = 3600 * 6):
+def execute_bash_script(bash_script, stream_output=True, timeout=3600 * 6):
     """
-    Execute bash script with real-time output streaming and timeout and show a linear timeout progress bar.
+    Execute bash script with real-time output streaming and timeout.
 
     Args:
-        bash_script (str): The bash script to execute.
-        stream_output (bool): Whether to stream stdout/stderr via logger.model_info.e
-        timeout (float): Maximum execution time in seconds before terminating the process.
+        bash_script (str): The bash script to execute
+        stream_output (bool): Whether to stream output in real-time
+        timeout (int): Maximum execution time in seconds before terminating the process
 
     Returns:
-        tuple: (success: bool, stdout: str, stderr: str)
+        tuple: (success, stdout, stderr)
     """
+    import select
+    import time
 
     try:
         process = subprocess.Popen(
@@ -47,7 +38,8 @@ def execute_bash_script(bash_script: str, stream_output: bool = True, timeout: f
             bufsize=1,
         )
 
-        stdout_chunks, stderr_chunks = [], []
+        stdout_chunks = []
+        stderr_chunks = []
 
         # Set up tracking of both output streams
         streams = [process.stdout, process.stderr]
@@ -55,64 +47,53 @@ def execute_bash_script(bash_script: str, stream_output: bool = True, timeout: f
         # Track start time for timeout
         start_time = time.time()
 
-        with Progress(
-            TextColumn(f"[cyan]Execution of maximum remaining time ({int(timeout)}s)[/]"),
-            BarColumn(bar_width=None),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            transient=True,
-        ) as progress:
-            task = progress.add_task("", total=timeout)
+        while streams:
+            # Calculate remaining time
+            elapsed_time = time.time() - start_time
+            remaining_time = max(0, timeout - elapsed_time)
 
-            while streams:
-                # Calculate remaining time
-                elapsed = time.time() - start_time
-                progress.update(task, completed=min(elapsed, timeout))
-                remaining_time = max(0, timeout - elapsed)
+            # Check if we've exceeded timeout
+            if remaining_time == 0:
+                process.terminate()
+                time.sleep(10)  # Give it a moment to terminate gracefully
+                if process.poll() is None:  # If still running
+                    process.kill()  # Force kill
+                stderr_chunks.append(f"\nProcess timed out after {timeout} seconds\n")
+                if stream_output:
+                    sys.stderr.write(f"\nProcess timed out after {timeout} seconds\n")
+                    sys.stderr.flush()
+                break
 
-                # Check if we've exceeded timeout
-                if remaining_time == 0:
-                    process.terminate()
-                    time.sleep(1)
-                    if process.poll() is None:
-                        process.kill()
-                    stderr_chunks.append(f"\nProcess timed out after {timeout} seconds\n")
-                    if stream_output:
-                        sys.stderr.write(f"\nProcess timed out after {timeout} seconds\n")
-                        sys.stderr.flush()
-                    break
+            # Wait for output on either stream with timeout
+            # select.select returns empty lists if the timeout elapses
+            readable, _, _ = select.select(streams, [], [], min(1, remaining_time))
 
-                # Wait for output on either stream with timeout
-                # select.select returns empty lists if the timeout elapses
-                readable, _, _ = select.select(streams, [], [], min(1, remaining_time))
+            # If nothing was read but process is still running, continue the loop
+            if not readable and process.poll() is None:
+                continue
 
-                # If nothing was read but process is still running, continue the loop
-                if not readable and process.poll() is None:
+            # If nothing was read and process exited, exit loop
+            if not readable and process.poll() is not None:
+                break
+
+            for stream in readable:
+                line = stream.readline()
+                if not line:  # EOF
+                    streams.remove(stream)
                     continue
 
-                # If nothing was read and process exited, exit loop
-                if not readable and process.poll() is not None:
-                    break
-
-                for stream in readable:
-                    line = stream.readline()
-                    if not line:  # EOF
-                        streams.remove(stream)
-                        continue
-
-                    # Handle stdout
-                    if stream == process.stdout:
-                        stdout_chunks.append(line)
-                        if stream_output:
-                            sys.stdout.write(line)
-                            sys.stdout.flush()
-                    # Handle stderr
-                    else:
-                        stderr_chunks.append(line)
-                        if stream_output:
-                            sys.stderr.write(line)
-                            sys.stderr.flush()
-
-            progress.update(task, completed=timeout)
+                # Handle stdout
+                if stream == process.stdout:
+                    stdout_chunks.append(line)
+                    if stream_output:
+                        sys.stdout.write(line)
+                        sys.stdout.flush()
+                # Handle stderr
+                else:
+                    stderr_chunks.append(line)
+                    if stream_output:
+                        sys.stderr.write(line)
+                        sys.stderr.flush()
 
         # Wait for process to complete (should already be done, but just in case)
         if process.poll() is None:
@@ -126,7 +107,7 @@ def execute_bash_script(bash_script: str, stream_output: bool = True, timeout: f
         return success, "".join(stdout_chunks), "".join(stderr_chunks)
 
     except Exception as e:
-        return False, "", f"Error executing bash script: {e}"
+        return False, "", f"Error executing bash script: {str(e)}"
 
 
 def save_iteration_state(
@@ -275,10 +256,7 @@ def run_agent(
         # Get per iter user inputs if needed
         if need_user_input:
             if iteration > 0:
-                previous_path = os.path.join(output_folder, f"iteration_{iteration-1}")
-                print(f"\n[bold green]Previous iteration files are in:[/bold green] {previous_path}")
-            if not user_input:
-                user_input = ""
+                print(f"\nPrevious iteration files are in: {os.path.join(output_folder, f'iteration_{iteration-1}')}")
             user_input += input("Enter your inputs for this iteration (press Enter to skip): ")
 
         prompt_generator.step(user_input=user_input)
@@ -352,11 +330,11 @@ def run_agent(
             prompt_generator.update_error_message(error_message=error_message)
 
             # Let the user know we're continuing despite success
-            print(f"[bold red]Code generation failed in iteration[/bold red] {iteration}!")
+            print(f"Code generation failed in iteration {iteration}!")
         else:
             if planner_decision != "FINISH":
-                print(f"[bold red]###INVALID Planner Output:[/bold red] {planner_decision}###")
-            print(f"[bold green]Code generation successful after[/bold green] {iteration + 1} iterations")
+                print(f"###INVALID Planner Output: {planner_decision}###")
+            print(f"Code generation successful after {iteration + 1} iterations")
             prompt_generator.update_error_message(error_message="")
             # Save the current state
             save_iteration_state(iteration_folder, prompt_generator, stdout, stderr)
@@ -372,17 +350,7 @@ def run_agent(
 
         iteration += 1
         if iteration >= max_iterations:
-            print(
-                f"[bold yellow]Warning: Reached maximum iterations ([/bold yellow]{max_iterations}[bold yellow]) without success[/bold yellow]"
-            )
+            print(f"Warning: Reached maximum iterations ({max_iterations}) without success")
 
     token_usage_path = os.path.join(iteration_folder, "token_usage.json")
-    usage = ChatLLMFactory.get_total_token_usage(save_path=token_usage_path)
-    total = usage["total"]
-    logger.brief(
-        f"Total tokens — input: {total['total_input_tokens']}, "
-        f"output: {total['total_output_tokens']}, "
-        f"sum: {total['total_tokens']}"
-    )
-
-    logger.info(f"Full token usage detail:\n{usage}")
+    print(f"Total token usage:\n{ChatLLMFactory.get_total_token_usage(save_path=token_usage_path)}")

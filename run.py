@@ -33,11 +33,12 @@ def main():
 
     args = parser.parse_args()
 
+
     # Generate and execute code
     run_agent(
         input_data_folder=args.input_data_folder,
         tutorial_link=None,  # TODO: Only needed if we use RAG
-        output_folder=args.output_dir,
+        output_folder=str(output_dir),
         config_path=args.config_path,
         max_iterations=args.max_iterations,
         need_user_input=args.need_user_input,
