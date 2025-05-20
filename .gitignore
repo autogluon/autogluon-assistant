@@ -181,3 +181,6 @@ cython_debug/
 .idea/
 # AutoGluon Assistant output files
 aga-output-*.csv
+
+# ignore the MLAgent output folder
+/output/

@@ -144,24 +144,3 @@ class MapEvaluator(BaseEvaluator):
         except Exception as e:
             print(f"An error occurred: {str(e)}")
             raise
-
-    @property
-    def name(self) -> str:
-        return "map"
-
-    def evaluate(
-        self,
-        pred_path: str,
-        gt_path: str,
-        results_path: str,
-        metadata_path: str,
-        agent_name: str,
-    ):
-        try:
-            metadata = load_metadata(metadata_path)
-            score = self.calculate_metric(gt_path, pred_path)
-            print(f"Evaluation Score ({self.name}): {score:.4f}")
-            self.write_results(results_path, metadata, score, agent_name)
-        except Exception as e:
-            print(f"An error occurred: {str(e)}")
-            raise

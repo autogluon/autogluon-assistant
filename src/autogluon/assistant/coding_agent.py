@@ -3,9 +3,9 @@ import os
 import select
 import subprocess
 import sys
+import time
 import uuid
 from datetime import datetime
-import time
 from pathlib import Path
 
 from omegaconf import OmegaConf
@@ -24,6 +24,7 @@ from .utils import extract_archives
 
 logger = logging.getLogger(__name__)
 
+
 def execute_bash_script(bash_script: str, stream_output: bool = True, timeout: float = 3600 * 6):
     """
     Execute bash script with real-time output streaming and timeout and show a linear timeout progress bar.
@@ -36,8 +37,6 @@ def execute_bash_script(bash_script: str, stream_output: bool = True, timeout: f
     Returns:
         tuple: (success: bool, stdout: str, stderr: str)
     """
-    import select
-    import time
 
     try:
         process = subprocess.Popen(
@@ -68,6 +67,7 @@ def execute_bash_script(bash_script: str, stream_output: bool = True, timeout: f
                 # Calculate remaining time
                 elapsed = time.time() - start_time
                 progress.update(task, completed=min(elapsed, timeout))
+                remaining_time = max(0, timeout - elapsed)
 
                 # Check if we've exceeded timeout
                 if remaining_time == 0:

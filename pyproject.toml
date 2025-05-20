@@ -39,8 +39,8 @@ dependencies = [
 ]
 
 [project.scripts]
-automlagent       = "autogluon.assistant.cli.app:app"
-automlagent-webui = "autogluon.assistant.webui.app:main"
+mlzero       = "autogluon.assistant.cli.app:main"
+mlzero-webui = "autogluon.assistant.webui.app:main"
 
 [project.optional-dependencies]
 dev = [
