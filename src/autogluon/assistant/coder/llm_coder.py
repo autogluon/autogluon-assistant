@@ -24,7 +24,9 @@ class LLMCoder:
         self.multi_turn = llm_config.multi_turn
         if self.multi_turn:
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            self.llm = ChatLLMFactory.get_chat_model(llm_config, session_name=f"multi_round_coder_{timestamp}")
+            self.llm = ChatLLMFactory.get_chat_model(
+                llm_config, session_name=f"multi_round_coder_{timestamp}"
+            )
 
     def __call__(self, prompt: str, language: str) -> Dict[str, str]:
         """Generate code using LLM based on prompt.
@@ -39,13 +41,15 @@ class LLMCoder:
         if not self.multi_turn:
             # create a new session if not multi_turn
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            self.llm = ChatLLMFactory.get_chat_model(self.llm_config, session_name=f"single_round_coder_{timestamp}")
+            self.llm = ChatLLMFactory.get_chat_model(
+                self.llm_config, session_name=f"single_round_coder_{timestamp}"
+            )
 
         if language not in VALID_CODING_LANGUAGES:
             raise ValueError(f"Language must be one of {VALID_CODING_LANGUAGES}")
 
         # Add format instruction if configured
-        if hasattr(self.llm_config, "add_coding_format_instruction") and self.llm_config.add_coding_format_instruction:
+        if hasattr(self.llm_config, 'add_coding_format_instruction') and self.llm_config.add_coding_format_instruction:
             format_instruction = f"Please format your response with the code in a ```{language}``` code block to make it easily extractable."
             prompt = f"{prompt}\n\n{format_instruction}"
 

@@ -1,0 +1,27 @@
+[
+  {
+    "path": "/opt/dlami/nvme/autogluon-assistant/src/autogluon/assistant/tools_registry/autogluon.tabular/condensed_tutorials/tabular-quick-start.md",
+    "title": "Condensed: AutoGluon Tabular - Quick Start",
+    "summary": "This tutorial demonstrates AutoGluon's tabular machine learning implementation, focusing on automated model training and prediction workflows. It covers essential techniques for loading tabular data, training models with customizable time limits, and evaluating model performance using TabularPredictor. The tutorial helps with tasks like automated feature engineering, model selection, and ensemble creation for both classification and regression problems. Key features include built-in data type handling, automatic model selection, hyperparameter tuning, and performance evaluation through leaderboards, all achievable with minimal code requirements. The implementation emphasizes AutoGluon's ability to handle complex ML pipelines with simple API calls while supporting advanced customization options for features, models, and metrics."
+  },
+  {
+    "path": "/opt/dlami/nvme/autogluon-assistant/src/autogluon/assistant/tools_registry/autogluon.tabular/condensed_tutorials/tabular-essentials.md",
+    "title": "Condensed: AutoGluon Tabular - Essential Functionality",
+    "summary": "This tutorial provides implementation guidance for AutoGluon's TabularPredictor, covering essential techniques for automated machine learning on tabular data. It helps with tasks including model training, prediction, evaluation, and optimization through presets. Key features include basic setup and installation, data loading without preprocessing, model training with various quality presets (best_quality to medium_quality), prediction methods (including probability predictions), model evaluation and persistence, and performance optimization techniques. The tutorial demonstrates how to handle both classification and regression tasks, configure evaluation metrics, and implement best practices for model deployment, while highlighting AutoGluon's automatic handling of feature engineering, missing data, and model ensembling."
+  },
+  {
+    "path": "/opt/dlami/nvme/autogluon-assistant/src/autogluon/assistant/tools_registry/autogluon.tabular/condensed_tutorials/tabular-indepth.md",
+    "title": "Condensed: AutoGluon Tabular - In Depth",
+    "summary": "This tutorial provides comprehensive implementation guidance for AutoGluon's tabular machine learning capabilities, covering model training, optimization, and deployment. It demonstrates techniques for hyperparameter configuration, model ensembling, decision threshold calibration, inference acceleration, and memory optimization. Key functionalities include automated model stacking/bagging, feature importance analysis, model persistence, and various optimization strategies (refit_full, persist, infer_limit). The tutorial helps with tasks like efficient model training, prediction acceleration (up to 160x speedup), memory usage reduction, and deployment optimization. It's particularly useful for implementing production-ready AutoML solutions that balance accuracy, inference speed, and resource constraints."
+  },
+  {
+    "path": "/opt/dlami/nvme/autogluon-assistant/src/autogluon/assistant/tools_registry/autogluon.tabular/condensed_tutorials/advanced/tabular-multilabel.md",
+    "title": "Condensed: Predicting Multiple Columns in a Table (Multi-Label Prediction)",
+    "summary": "This tutorial covers AutoGluon's MultilabelPredictor implementation for handling multiple prediction tasks simultaneously. It demonstrates how to build models that can predict different types of targets (regression, classification) while considering label correlations. Key implementation knowledge includes initializing the predictor with different problem types and metrics, training with time limits, and accessing individual predictors. The tutorial helps with tasks involving multi-target prediction, model optimization, and memory management. Notable features include label correlation handling, support for mixed problem types (regression/classification), performance optimization through presets, and model persistence capabilities. It's particularly useful for developers working on complex prediction tasks requiring multiple interdependent outputs."
+  },
+  {
+    "path": "/opt/dlami/nvme/autogluon-assistant/src/autogluon/assistant/tools_registry/autogluon.tabular/condensed_tutorials/tabular-feature-engineering.md",
+    "title": "Condensed: AutoGluon Tabular - Feature Engineering",
+    "summary": "This tutorial covers AutoGluon's tabular feature engineering implementation, focusing on automatic data type detection and processing for boolean, categorical, numerical, datetime, and text columns. It demonstrates how to implement custom feature processing pipelines, configure data type overrides, and handle automated feature engineering for datetime (extracting year, month, day components) and text data (using either Transformer networks or n-gram generation). Key functionalities include automatic column type detection rules, missing value handling, and categorical encoding. The tutorial helps with tasks like building custom feature pipelines, optimizing datetime processing, and implementing text feature generation, while highlighting best practices for data type management and column preprocessing."
+  }
+]

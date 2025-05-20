@@ -1,0 +1,843 @@
+
+As an AutoML Agent, you will be given a folder containing data and description files. Please generate Python code using autogluon.tabular to train a predictor and make predictions on test data. Follow these specifications:
+
+ONLY save files to the working directory: /opt/dlami/nvme/autogluon-assistant/output.
+
+1. Data preprocessing:
+   - Remove training data samples without valid labels (drop NA values from training dataset ONLY, NOT from test dataset) unless explicitly instructed otherwise.
+   - Remove the unneccesary index column (if applicable)
+
+2. Model training:
+   - Use autogluon.tabular with appropriate parameters for the task
+   - If a model is trained, save it in a folder with random timestamp within /opt/dlami/nvme/autogluon-assistant/output
+
+3. Prediction:
+   - Make predictions on the test data
+   - Save the predicted results to /opt/dlami/nvme/autogluon-assistant/output, result file name should be "results", the format and extension should be same as the test data file
+   - Output column names must exactly match those in the training or sample submission files without adding "predicted_" prefixes or creating any new columns.
+
+4. Documentation:
+   - Add a brief docstring at the beginning of the script explaining its purpose and usage
+   - Also include additional installation steps with comments at the beginning of the script
+   - Include comments explaining any complex operations or design decisions
+
+5. Others:
+   - To avoid DDP errors, wrap the code in: if __name__ == "__main__":
+   - Ensure errors are propagated up and not silently caught - do not use try/except blocks unless you explicitly re-raise the exception.
+
+Use Autogluon Tabular with the following parameters:
+- time_limit: 1800 seconds
+- presets: \"medium_quality\"
+- tuning_data: only use validation if there is a validation dataset.
+- problem_type: binary, multiclass, or regression.
+IMPORTANT: To handle multi-label classification/regression with AutoGluon, split the problem by training a separate model for each label column (whether binary or multiclass) using the same feature set (EXCLUDE other label columns!) but different target columns, then combine predictions from all models to form the complete multi-label output for new data.
+
+Please provide the complete Python script that accomplishes these tasks, ensuring it's ready to run given the appropriate data inputs.
+
+Task Description: # Data Science Task Description
+
+Based solely on the provided information, the data science task is:
+
+**Objective**: Predict the price category (price_label) of Airbnb listings in Melbourne, where the price_label represents the price range into which a listing falls after being grouped into distinct bins.
+
+**Data Available**:
+- Training data (`train.pq`, 30.50 MB) containing Airbnb listing information
+- Inference data (`inference.pq`, 7.43 MB) for making predictions
+
+**Data Structure**:
+- Both datasets contain numerous columns including listing details (name, summary, space, description), neighborhood information, and host verification data
+- The training data has 90 columns while the inference data has 89 columns
+
+The task appears to be a classification problem where the model needs to categorize Airbnb listings into predefined price range bins based on the available features.
+
+
+Absolute path to the folder: /opt/dlami/nvme/maab/datasets/airbnb_melbourne/training
+
+Files structures:
+
+----------
+
+Absolute path: /opt/dlami/nvme/maab/datasets/airbnb_melbourne/training/inference.pq
+Content:
+File Size: 7.43 MB
+Column names:
+['name', 'summary', 'space', 'description', 'neighborhood_overview', 'notes', 'transit', 'access', 'interaction', 'house_rules', '...', 'host_verifications_manual_offline', 'host_verifications_offline_government_id', 'host_verifications_selfie', 'host_verifications_reviews', 'host_verifications_identity_manual', 'host_verifications_sesame_offline', 'host_verifications_weibo', 'host_verifications_email', 'host_verifications_sent_id', 'host_verifications_phone']
+
+First few rows:
+                                                name  ... host_verifications_phone
+0  Melbourne CBD Apartment! Great and location vi...  ...                     True
+1                    1BR FITZROY TOWNHOUSE - Jul/Aug  ...                     True
+2                       Mt Dandenong Honeymoon Suite  ...                     True
+
+[3 rows x 89 columns]
+
+----------
+Absolute path: /opt/dlami/nvme/maab/datasets/airbnb_melbourne/training/train.pq
+Content:
+File Size: 30.50 MB
+Column names:
+['name', 'summary', 'space', 'description', 'neighborhood_overview', 'notes', 'transit', 'access', 'interaction', 'house_rules', '...', 'host_verifications_manual_offline', 'host_verifications_offline_government_id', 'host_verifications_selfie', 'host_verifications_reviews', 'host_verifications_identity_manual', 'host_verifications_sesame_offline', 'host_verifications_weibo', 'host_verifications_email', 'host_verifications_sent_id', 'host_verifications_phone']
+
+First rows:
+                                             name  ... host_verifications_phone
+0  Beach side, art deco flat in heart of St Kilda  ...                     True
+1                 Modern Bayside Studio Apartment  ...                     True
+2           Spacious Saint kilda home with a View  ...                     True
+
+[3 rows x 90 columns]
+
+----------
+Absolute path: /opt/dlami/nvme/maab/datasets/airbnb_melbourne/training/descriptions.txt
+Content:
+File Size: 0.00 MB
+First few lines (up to 1024 characters):
+Predict the price category (price_label), which represents the price range into which a product falls after being grouped into distinct bins.
+
+
+----------
+
+
+RELEVANT TUTORIALS:
+### Condensed: AutoGluon Tabular - Quick Start
+        
+        # Condensed: AutoGluon Tabular - Quick Start
+
+Summary: This tutorial demonstrates AutoGluon's tabular machine learning implementation, focusing on automated model training and prediction workflows. It covers essential techniques for loading tabular data, training models with customizable time limits, and evaluating model performance using TabularPredictor. The tutorial helps with tasks like automated feature engineering, model selection, and ensemble creation for both classification and regression problems. Key features include built-in data type handling, automatic model selection, hyperparameter tuning, and performance evaluation through leaderboards, all achievable with minimal code requirements. The implementation emphasizes AutoGluon's ability to handle complex ML pipelines with simple API calls while supporting advanced customization options for features, models, and metrics.
+
+*This is a condensed version that preserves essential implementation details and context.*
+
+Here's the condensed tutorial focusing on essential implementation details:
+
+# AutoGluon Tabular - Quick Start Guide
+
+## Setup and Installation
+```python
+!python -m pip install autogluon
+from autogluon.tabular import TabularDataset, TabularPredictor
+```
+
+## Key Implementation Details
+
+### 1. Data Loading
+```python
+# Load data using TabularDataset (extends pandas DataFrame)
+train_data = TabularDataset('path/to/train.csv')
+test_data = TabularDataset('path/to/test.csv')
+```
+
+### 2. Model Training
+```python
+# Basic training
+predictor = TabularPredictor(label='target_column').fit(train_data)
+
+# With time limit (in seconds)
+predictor = TabularPredictor(label='target_column').fit(train_data, time_limit=60)
+```
+
+### 3. Prediction and Evaluation
+```python
+# Make predictions
+y_pred = predictor.predict(test_data.drop(columns=['target_column']))
+
+# Evaluate model performance
+performance = predictor.evaluate(test_data)
+
+# View model leaderboard
+leaderboard = predictor.leaderboard(test_data)
+```
+
+## Important Notes and Best Practices
+
+1. **Time Limit Configuration**:
+   - Higher time limits generally yield better performance
+   - Too low time limits prevent proper model training and ensembling
+   - Default: no time limit; specify with `time_limit` parameter
+
+2. **Data Handling**:
+   - AutoGluon automatically handles:
+     - Feature engineering
+     - Data type recognition
+     - Model selection and ensembling
+     - Hyperparameter tuning
+
+3. **Functionality**:
+   - Supports multi-class classification
+   - Automatic feature engineering
+   - Model ensembling
+   - Built-in evaluation metrics
+
+4. **TabularDataset Features**:
+   - Inherits all pandas DataFrame functionality
+   - Seamless integration with AutoGluon's predictors
+
+## Advanced Features
+- Custom training configurations
+- Custom feature generators
+- Custom models
+- Custom metrics
+- Extended prediction options
+
+This implementation supports both classification and regression tasks with minimal configuration required from the user.
+        
+
+### Condensed: AutoGluon Tabular - Essential Functionality
+        
+        # Condensed: AutoGluon Tabular - Essential Functionality
+
+Summary: This tutorial provides implementation guidance for AutoGluon's TabularPredictor, covering essential techniques for automated machine learning on tabular data. It helps with tasks including model training, prediction, evaluation, and optimization through presets. Key features include basic setup and installation, data loading without preprocessing, model training with various quality presets (best_quality to medium_quality), prediction methods (including probability predictions), model evaluation and persistence, and performance optimization techniques. The tutorial demonstrates how to handle both classification and regression tasks, configure evaluation metrics, and implement best practices for model deployment, while highlighting AutoGluon's automatic handling of feature engineering, missing data, and model ensembling.
+
+*This is a condensed version that preserves essential implementation details and context.*
+
+Here's the condensed tutorial focusing on essential implementation details:
+
+# AutoGluon Tabular - Essential Implementation Guide
+
+## Core Setup and Installation
+
+```python
+!pip install autogluon.tabular[all]
+from autogluon.tabular import TabularDataset, TabularPredictor
+```
+
+## Key Implementation Steps
+
+### 1. Data Loading
+```python
+# Load data from CSV (local or remote)
+train_data = TabularDataset('path_to_csv')
+```
+
+**Best Practice**: AutoGluon handles raw data directly - avoid preprocessing like imputation or one-hot encoding.
+
+### 2. Basic Training
+```python
+# Simple training implementation
+predictor = TabularPredictor(label='target_column').fit(train_data)
+```
+
+### 3. Prediction Methods
+```python
+# Make predictions
+predictions = predictor.predict(test_data)
+
+# Get probability predictions
+pred_proba = predictor.predict_proba(test_data)
+```
+
+### 4. Model Evaluation
+```python
+# Evaluate overall performance
+performance = predictor.evaluate(test_data)
+
+# Get model leaderboard
+leaderboard = predictor.leaderboard(test_data)
+```
+
+### 5. Model Persistence
+```python
+# Save location
+model_path = predictor.path
+
+# Load saved model
+predictor = TabularPredictor.load(model_path)
+```
+
+## Critical Configurations
+- `label`: Target variable name
+- `train_data`: Input dataset (TabularDataset or pandas DataFrame)
+
+## Important Warnings
+1. Security: `TabularPredictor.load()` uses pickle - only load trusted data to avoid security risks
+2. The basic `fit()` call is meant for prototyping - use `presets` and `eval_metric` parameters for optimized performance
+
+## Minimal Working Example
+```python
+from autogluon.tabular import TabularPredictor
+predictor = TabularPredictor(label='target_column').fit(train_data='data.csv')
+```
+
+This condensed version maintains all critical implementation details while removing explanatory text and redundant examples.
+
+Here's the condensed tutorial content focusing on key implementation details and practices:
+
+# AutoGluon Tabular Fit() and Presets Guide
+
+## Key Implementation Details
+
+### Fit() Process
+- Handles binary classification automatically using accuracy metric
+- Automatically infers feature types (continuous vs categorical)
+- Manages missing data and feature scaling
+- Uses random train/validation split if not specified
+- Trains multiple models and creates ensembles
+- Parallelizes hyperparameter optimization using Ray
+
+### Code Examples
+
+```python
+# Check problem type and feature metadata
+print("Problem type:", predictor.problem_type)
+print("Feature types:", predictor.feature_metadata)
+
+# Transform features to internal representation
+test_data_transform = predictor.transform_features(test_data)
+
+# Get feature importance
+predictor.feature_importance(test_data)
+
+# Access specific models for prediction
+predictor.predict(test_data, model='LightGBM')
+
+# List available models
+predictor.model_names()
+```
+
+## Presets Configuration
+
+| Preset | Quality | Use Case | Time | Inference Speed | Storage |
+|--------|----------|----------|------|-----------------|----------|
+| best_quality | SOTA | Accuracy-critical | 16x+ | 32x+ | 16x+ |
+| high_quality | Enhanced | Large-scale batch inference | 16x+ | 4x | 2x |
+| good_quality | Strong | Fast inference, edge devices | 16x | 2x | 0.1x |
+| medium_quality | Competitive | Prototyping | 1x | 1x | 1x |
+
+### Best Practices
+1. Start with `medium_quality` for initial prototyping
+2. Use `best_quality` with 16x time_limit for production
+3. Consider `high_quality` or `good_quality` for specific performance requirements
+4. Hold out test data for validation
+5. Specify `eval_metric` when default metrics aren't suitable
+
+### Important Notes
+- AutoGluon automatically handles:
+  - Feature type inference
+  - Missing data
+  - Feature scaling
+  - Model selection and ensembling
+  - Hyperparameter optimization
+- Use `time_limit` to control training duration
+- Monitor resource usage with different presets
+- Consider inference speed requirements when selecting presets
+
+Here's the condensed version of chunk 3/3, focusing on key implementation details and best practices:
+
+# Maximizing Predictive Performance
+
+## Key Implementation Pattern
+```python
+predictor = TabularPredictor(
+    label=label_column,
+    eval_metric=metric
+).fit(
+    train_data,
+    time_limit=time_limit,
+    presets='best_quality'
+)
+```
+
+## Critical Best Practices
+
+### Model Performance Optimization
+1. Use `presets='best_quality'` for:
+   - Advanced model ensembles with stacking/bagging
+   - Maximum prediction accuracy
+   - Trade-off: Longer training time
+
+2. Alternative presets:
+   - `presets=['good_quality', 'optimize_for_deployment']` for faster deployment
+   - Default: `'medium_quality'` for rapid prototyping
+
+### Important Configuration Parameters
+- `eval_metric`: Specify appropriate metric for your task
+  - Binary classification: 'f1', 'roc_auc', 'log_loss'
+  - Regression: 'mean_absolute_error', 'median_absolute_error'
+  - Custom metrics supported
+
+### Data Handling Best Practices
+- Provide all data in `train_data`
+- Avoid manual `tuning_data` splits
+- Skip `hyperparameter_tune_kwargs` unless deploying single models
+- Avoid manual `hyperparameters` specification
+- Set realistic `time_limit` (longer = better performance)
+
+## Regression Tasks
+```python
+predictor_age = TabularPredictor(
+    label='age',
+    path="agModels-predictAge"
+).fit(train_data, time_limit=60)
+```
+
+### Key Features
+- Automatic problem type detection
+- Default regression metric: RMSE
+- Customizable evaluation metrics
+- Negative values during training indicate metrics where lower is better
+
+## Supported Data Formats
+- Pandas DataFrames
+- CSV files
+- Parquet files
+- Note: Multiple tables must be joined into single table before processing
+
+## Advanced Features
+- Custom metrics
+- Model deployment optimization
+- Custom model integration
+- Detailed performance analysis via leaderboard
+
+For implementation details, refer to TabularPredictor documentation and advanced tutorials.
+        
+
+### Condensed: AutoGluon Tabular - In Depth
+        
+        # Condensed: AutoGluon Tabular - In Depth
+
+Summary: This tutorial provides comprehensive implementation guidance for AutoGluon's tabular machine learning capabilities, covering model training, optimization, and deployment. It demonstrates techniques for hyperparameter configuration, model ensembling, decision threshold calibration, inference acceleration, and memory optimization. Key functionalities include automated model stacking/bagging, feature importance analysis, model persistence, and various optimization strategies (refit_full, persist, infer_limit). The tutorial helps with tasks like efficient model training, prediction acceleration (up to 160x speedup), memory usage reduction, and deployment optimization. It's particularly useful for implementing production-ready AutoML solutions that balance accuracy, inference speed, and resource constraints.
+
+*This is a condensed version that preserves essential implementation details and context.*
+
+Here's the condensed tutorial focusing on key implementation details and concepts:
+
+# AutoGluon Tabular - Core Implementation Details
+
+## Key Setup
+```python
+from autogluon.tabular import TabularDataset, TabularPredictor
+from autogluon.common import space
+
+# Load data
+train_data = TabularDataset('https://autogluon.s3.amazonaws.com/datasets/Inc/train.csv')
+test_data = TabularDataset('https://autogluon.s3.amazonaws.com/datasets/Inc/test.csv')
+```
+
+## Hyperparameter Configuration
+
+### Important Notes
+- Hyperparameter tuning usually unnecessary; `presets="best_quality"` typically works best
+- Custom validation data only needed if test distribution differs from training
+
+### Core Configuration Example
+```python
+# Neural Network hyperparameters
+nn_options = {
+    'num_epochs': 10,
+    'learning_rate': space.Real(1e-4, 1e-2, default=5e-4, log=True),
+    'activation': space.Categorical('relu', 'softrelu', 'tanh'),
+    'dropout_prob': space.Real(0.0, 0.5, default=0.1),
+}
+
+# LightGBM hyperparameters
+gbm_options = {
+    'num_boost_round': 100,
+    'num_leaves': space.Int(lower=26, upper=66, default=36),
+}
+
+# Combined hyperparameter configuration
+hyperparameters = {
+    'GBM': gbm_options,
+    'NN_TORCH': nn_options,
+}
+```
+
+### HPO Settings
+```python
+hyperparameter_tune_kwargs = {
+    'num_trials': 5,  # max configurations to try
+    'scheduler': 'local',
+    'searcher': 'auto',
+}
+```
+
+## Model Training
+```python
+predictor = TabularPredictor(label=label, eval_metric='accuracy').fit(
+    train_data,
+    time_limit=2*60,  # 2 minutes
+    hyperparameters=hyperparameters,
+    hyperparameter_tune_kwargs=hyperparameter_tune_kwargs,
+)
+```
+
+## Best Practices
+1. Start with default arguments in `TabularPredictor()` and `fit()`
+2. Then experiment with:
+   - `eval_metric`
+   - `presets`
+   - `hyperparameter_tune_kwargs`
+   - `num_stack_levels`
+   - `num_bag_folds`
+
+3. For better performance:
+   - Increase `subsample_size`
+   - Increase `num_epochs` and `num_boost_round`
+   - Extend `time_limit`
+   - Use `verbosity=3` for detailed output
+
+## Prediction
+```python
+y_pred = predictor.predict(test_data_nolabel)
+perf = predictor.evaluate(test_data, auxiliary_metrics=False)
+results = predictor.fit_summary()  # View training details
+```
+
+Here's the condensed tutorial focusing on key implementation details and practices:
+
+# Model Ensembling and Decision Threshold Calibration
+
+## Stacking and Bagging
+- Use `num_bag_folds=5-10` and `num_stack_levels=1` to improve performance
+- Key considerations:
+  - Don't provide `tuning_data` with stacking/bagging
+  - Use `auto_stack=True` for automatic optimization
+  - `num_bag_sets` controls bagging repetition
+
+```python
+# Basic stacking/bagging implementation
+predictor = TabularPredictor(label=label, eval_metric=metric).fit(
+    train_data,
+    num_bag_folds=5,
+    num_bag_sets=1,
+    num_stack_levels=1
+)
+
+# Auto-stacking implementation
+predictor = TabularPredictor(label=label, eval_metric='balanced_accuracy').fit(
+    train_data,
+    auto_stack=True
+)
+```
+
+## Decision Threshold Calibration
+
+### Key Features:
+- Improves metrics like `f1` and `balanced_accuracy` 
+- Can be applied during or after model fitting
+- Different thresholds optimize different metrics
+
+### Implementation Options:
+
+1. **Post-fit calibration**:
+```python
+# Calibrate and set threshold
+calibrated_threshold = predictor.calibrate_decision_threshold()
+predictor.set_decision_threshold(calibrated_threshold)
+
+# Calibrate for specific metric
+threshold = predictor.calibrate_decision_threshold(metric='f1')
+```
+
+2. **During fit**:
+```python
+predictor.fit(
+    train_data,
+    calibrate_decision_threshold=True  # or "auto" (default)
+)
+```
+
+### Prediction Methods:
+```python
+# Standard prediction
+y_pred = predictor.predict(test_data)
+
+# Custom threshold prediction
+y_pred_custom = predictor.predict(test_data, decision_threshold=0.8)
+
+# Two-step prediction
+y_pred_proba = predictor.predict_proba(test_data)
+y_pred = predictor.predict_from_proba(y_pred_proba)
+```
+
+### Best Practices:
+- Keep default `calibrate_decision_threshold="auto"`
+- Be aware of metric trade-offs when calibrating
+- Consider using `auto_stack=True` for optimal performance
+- Stacking/bagging often outperforms hyperparameter-tuning alone
+
+Here's the condensed version focusing on key implementation details and practices:
+
+# Prediction and Model Management
+
+## Loading Saved Models
+```python
+predictor = TabularPredictor.load(save_path)
+```
+- Models can be deployed by copying the `save_path` folder to new machines
+- Use `predictor.features()` to see required feature columns
+
+## Making Predictions
+```python
+# Single prediction
+datapoint = test_data_nolabel.iloc[[0]]  # Use [[]] for DataFrame
+predictor.predict(datapoint)
+
+# Probability predictions
+predictor.predict_proba(datapoint)
+```
+
+## Model Evaluation and Selection
+```python
+# View all models' performance
+predictor.leaderboard(test_data)
+
+# Detailed model information
+predictor.leaderboard(extra_info=True)
+
+# Multiple metrics evaluation
+predictor.leaderboard(test_data, extra_metrics=['accuracy', 'balanced_accuracy', 'log_loss'])
+```
+
+**Important Notes:**
+- Metrics are always shown in `higher_is_better` form (negative for log_loss, RMSE)
+- `log_loss` can be `-inf` if models weren't optimized for it
+- Avoid using `log_loss` as a secondary metric
+
+## Using Specific Models
+```python
+model_to_use = predictor.model_names()[i]
+model_pred = predictor.predict(datapoint, model=model_to_use)
+```
+
+## Model Evaluation
+```python
+# Evaluate predictions
+y_pred_proba = predictor.predict_proba(test_data_nolabel)
+perf = predictor.evaluate_predictions(y_true=y_test, y_pred=y_pred_proba)
+
+# Shorthand evaluation
+perf = predictor.evaluate(test_data)
+```
+
+## Feature Importance
+```python
+predictor.feature_importance(test_data)
+```
+
+**Key Points:**
+- Uses permutation-shuffling method
+- Negative scores indicate potentially harmful features
+- For local explanations, use Shapley values (see example notebooks)
+- Features with non-positive importance scores might be worth removing
+
+**Best Practices:**
+1. Keep save_path for model portability
+2. Use DataFrame format for single predictions
+3. Consider model-specific tradeoffs (accuracy vs. inference speed)
+4. Be cautious with log_loss as a metric
+5. Use feature importance to identify and remove harmful features
+
+Here's the condensed version of the inference acceleration techniques in AutoGluon:
+
+# Accelerating Inference in AutoGluon
+
+## Key Optimization Methods (In Priority Order)
+
+### With Bagging Enabled:
+1. refit_full (8x-160x speedup)
+2. persist (up to 10x speedup)
+3. infer_limit (up to 50x speedup)
+
+### Without Bagging:
+1. persist
+2. infer_limit
+
+## Implementation Details
+
+### 1. Model Persistence
+```python
+# Load models into memory
+predictor.persist()
+
+# Make predictions
+for i in range(num_test):
+    datapoint = test_data_nolabel.iloc[[i]]
+    pred_numpy = predictor.predict(datapoint, as_pandas=False)
+
+# Free memory
+predictor.unpersist()
+```
+
+### 2. Inference Speed Constraints
+```python
+# Configure inference limits
+predictor_infer_limit = TabularPredictor(label=label, eval_metric=metric).fit(
+    train_data=train_data,
+    time_limit=30,
+    infer_limit=0.00005,  # 0.05 ms per row
+    infer_limit_batch_
+...(truncated)
+        
+
+### Condensed: Predicting Multiple Columns in a Table (Multi-Label Prediction)
+        
+        # Condensed: Predicting Multiple Columns in a Table (Multi-Label Prediction)
+
+Summary: This tutorial covers AutoGluon's MultilabelPredictor implementation for handling multiple prediction tasks simultaneously. It demonstrates how to build models that can predict different types of targets (regression, classification) while considering label correlations. Key implementation knowledge includes initializing the predictor with different problem types and metrics, training with time limits, and accessing individual predictors. The tutorial helps with tasks involving multi-target prediction, model optimization, and memory management. Notable features include label correlation handling, support for mixed problem types (regression/classification), performance optimization through presets, and model persistence capabilities. It's particularly useful for developers working on complex prediction tasks requiring multiple interdependent outputs.
+
+*This is a condensed version that preserves essential implementation details and context.*
+
+Here's the condensed tutorial focusing on essential implementation details:
+
+# Multi-Label Prediction in AutoGluon
+
+## Key Implementation Details
+
+### MultilabelPredictor Class
+```python
+class MultilabelPredictor:
+    def __init__(self, labels, path=None, problem_types=None, eval_metrics=None, 
+                 consider_labels_correlation=True, **kwargs):
+        # Core parameters:
+        # - labels: List of columns to predict
+        # - problem_types: List of prediction types for each label
+        # - eval_metrics: List of metrics for each label
+        # - consider_labels_correlation: Whether to account for label dependencies
+```
+
+### Critical Configurations
+```python
+# Example setup
+labels = ['education-num', 'education', 'class']
+problem_types = ['regression', 'multiclass', 'binary']
+eval_metrics = ['mean_absolute_error', 'accuracy', 'accuracy']
+save_path = 'agModels-predictEducationClass'
+```
+
+### Basic Usage
+```python
+# Initialize
+multi_predictor = MultilabelPredictor(
+    labels=labels, 
+    problem_types=problem_types, 
+    eval_metrics=eval_metrics, 
+    path=save_path
+)
+
+# Train
+multi_predictor.fit(train_data, time_limit=time_limit)
+
+# Predict
+predictions = multi_predictor.predict(test_data)
+
+# Evaluate
+evaluations = multi_predictor.evaluate(test_data)
+```
+
+## Best Practices
+
+1. **Performance Optimization**:
+   - Set `presets='best_quality'` for optimal predictions
+   - Use `consider_labels_correlation=False` if planning to use individual predictors
+
+2. **Memory Management**:
+   - For memory issues: Use strategies from tabular-indepth tutorial
+   - For faster inference: Use preset `['good_quality', 'optimize_for_deployment']`
+
+3. **Model Access**:
+   ```python
+   # Access individual predictor
+   predictor_specific = multi_predictor.get_predictor('label_name')
+   ```
+
+## Important Notes
+
+- Requires at least 2 labels for prediction
+- Saves separate TabularPredictor for each label
+- Label correlation handling depends on order in labels list
+- Can load/save models using `load()` and `save()` methods
+
+## Warning
+
+When `consider_labels_correlation=True`, prediction order matters as each label is predicted conditionally on previous labels in the sequence.
+        
+
+### Condensed: AutoGluon Tabular - Feature Engineering
+        
+        # Condensed: AutoGluon Tabular - Feature Engineering
+
+Summary: This tutorial covers AutoGluon's tabular feature engineering implementation, focusing on automatic data type detection and processing for boolean, categorical, numerical, datetime, and text columns. It demonstrates how to implement custom feature processing pipelines, configure data type overrides, and handle automated feature engineering for datetime (extracting year, month, day components) and text data (using either Transformer networks or n-gram generation). Key functionalities include automatic column type detection rules, missing value handling, and categorical encoding. The tutorial helps with tasks like building custom feature pipelines, optimizing datetime processing, and implementing text feature generation, while highlighting best practices for data type management and column preprocessing.
+
+*This is a condensed version that preserves essential implementation details and context.*
+
+Here's the condensed version focusing on key implementation details and practices:
+
+# AutoGluon Tabular - Feature Engineering
+
+## Core Column Types
+```python
+- boolean: [A, B]
+- numerical: [1.3, 2.0, -1.6]
+- categorical: [Red, Blue, Yellow]
+- datetime: [1/31/2021, Mar-31]
+- text: [longer text content]
+- image: [path/image123.png] (with MultiModal option)
+```
+
+## Key Detection Rules
+- **Boolean**: Columns with exactly 2 unique values
+- **Categorical**: String columns not classified as text
+- **Numerical**: Passed through unchanged (float/int)
+- **Text**: Most rows unique + multiple words per row
+- **Datetime**: Auto-detected via Pandas datetime conversion
+
+## Important Configurations
+
+```python
+# Override problem type detection
+predictor = TabularPredictor(
+    label='class', 
+    problem_type='multiclass'
+).fit(train_data)
+```
+
+## Automatic Feature Engineering
+
+### Datetime Processing
+- Converts to numerical timestamp
+- Extracts: `[year, month, day, dayofweek]`
+- Missing values → column mean
+
+### Text Processing
+Two approaches:
+1. With MultiModal: Uses Transformer neural network
+2. Standard:
+   - N-gram feature generation
+   - Special features (word counts, character counts, etc.)
+
+## Implementation Example
+
+```python
+from autogluon.features.generators import AutoMLPipelineFeatureGenerator
+from autogluon.tabular import TabularDataset, TabularPredictor
+
+# Basic usage
+auto_ml_pipeline = AutoMLPipelineFeatureGenerator()
+transformed_data = auto_ml_pipeline.fit_transform(X=data)
+
+# Custom pipeline
+from autogluon.features.generators import PipelineFeatureGenerator, CategoryFeatureGenerator
+custom_pipeline = PipelineFeatureGenerator(
+    generators = [[        
+        CategoryFeatureGenerator(maximum_num_cat=10),
+        IdentityFeatureGenerator(
+            infer_features_in_args=dict(
+                valid_raw_types=[R_INT, R_FLOAT]
+            )
+        ),
+    ]]
+)
+```
+
+## Best Practices
+1. Explicitly mark categorical columns: `df['col'].astype('category')`
+2. Configure datetime feature extraction as needed
+3. Use MultiModal option for complex text processing
+4. Consider custom pipelines for specific requirements
+5. Handle missing values appropriately per column type
+
+## Critical Notes
+- Duplicate columns are automatically removed
+- Single-value columns are dropped
+- Datetime extremes are bounded by Pandas Timestamp limits
+- Categorical features are encoded as integers for model compatibility
+        

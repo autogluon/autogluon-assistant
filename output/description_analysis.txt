@@ -1,0 +1,9 @@
+# Analysis of Description Files
+
+## Description Files:
+/opt/dlami/nvme/maab/datasets/airbnb_melbourne/training/descriptions.txt
+
+## Explanation:
+I identified the "descriptions.txt" file as the only description file in the provided dataset. This file contains the project task definition, which clearly states the objective: to predict the price category (price_label) of Airbnb listings after they've been grouped into distinct bins. 
+
+While the file is very small (0.00 MB), it contains the essential information about what the machine learning task is supposed to accomplish. The other files (inference.pq and train.pq) are data files containing the actual Airbnb listing information that would be used for training and inference, not project descriptions or requirements.

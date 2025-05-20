@@ -1,0 +1,44 @@
+Absolute path to the folder: /opt/dlami/nvme/maab/datasets/airbnb_melbourne/training
+
+Files structures:
+
+----------
+
+Absolute path: /opt/dlami/nvme/maab/datasets/airbnb_melbourne/training/inference.pq
+Content:
+File Size: 7.43 MB
+Column names:
+['name', 'summary', 'space', 'description', 'neighborhood_overview', 'notes', 'transit', 'access', 'interaction', 'house_rules', '...', 'host_verifications_manual_offline', 'host_verifications_offline_government_id', 'host_verifications_selfie', 'host_verifications_reviews', 'host_verifications_identity_manual', 'host_verifications_sesame_offline', 'host_verifications_weibo', 'host_verifications_email', 'host_verifications_sent_id', 'host_verifications_phone']
+
+First few rows:
+                                                name  ... host_verifications_phone
+0  Melbourne CBD Apartment! Great and location vi...  ...                     True
+1                    1BR FITZROY TOWNHOUSE - Jul/Aug  ...                     True
+2                       Mt Dandenong Honeymoon Suite  ...                     True
+
+[3 rows x 89 columns]
+
+----------
+Absolute path: /opt/dlami/nvme/maab/datasets/airbnb_melbourne/training/train.pq
+Content:
+File Size: 30.50 MB
+Column names:
+['name', 'summary', 'space', 'description', 'neighborhood_overview', 'notes', 'transit', 'access', 'interaction', 'house_rules', '...', 'host_verifications_manual_offline', 'host_verifications_offline_government_id', 'host_verifications_selfie', 'host_verifications_reviews', 'host_verifications_identity_manual', 'host_verifications_sesame_offline', 'host_verifications_weibo', 'host_verifications_email', 'host_verifications_sent_id', 'host_verifications_phone']
+
+First rows:
+                                             name  ... host_verifications_phone
+0  Beach side, art deco flat in heart of St Kilda  ...                     True
+1                 Modern Bayside Studio Apartment  ...                     True
+2           Spacious Saint kilda home with a View  ...                     True
+
+[3 rows x 90 columns]
+
+----------
+Absolute path: /opt/dlami/nvme/maab/datasets/airbnb_melbourne/training/descriptions.txt
+Content:
+File Size: 0.00 MB
+First few lines (up to 1024 characters):
+Predict the price category (price_label), which represents the price range into which a product falls after being grouped into distinct bins.
+
+
+----------

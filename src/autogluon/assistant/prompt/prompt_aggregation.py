@@ -10,7 +10,7 @@ from .tutorial_prompt import generate_tutorial_prompt
 from .user_prompt import generate_user_prompt
 
 # Basic configuration
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 
 # Create a logger
 logger = logging.getLogger(__name__)
@@ -102,14 +102,22 @@ class PromptGenerator:
 
     @property
     def user_input(self) -> str:
-        assert self.time_step >= 0, "No user input because the prompt generator is not stepped yet."
-        assert len(self.user_inputs) == self.time_step + 1, "user input is not updated yet"
+        assert (
+            self.time_step >= 0
+        ), "No user input because the prompt generator is not stepped yet."
+        assert (
+            len(self.user_inputs) == self.time_step + 1
+        ), "user input is not updated yet"
         return self.user_inputs[self.time_step]
 
     @property
     def python_code(self) -> str:
-        assert self.time_step >= 0, "No python code because the prompt generator is not stepped yet."
-        assert len(self.python_codes) == self.time_step + 1, "python code is not updated yet"
+        assert (
+            self.time_step >= 0
+        ), "No python code because the prompt generator is not stepped yet."
+        assert (
+            len(self.python_codes) == self.time_step + 1
+        ), "python code is not updated yet"
         return self.python_codes[self.time_step]
 
     @property
@@ -121,8 +129,12 @@ class PromptGenerator:
 
     @property
     def bash_script(self) -> str:
-        assert self.time_step >= 0, "No bash script because the prompt generator is not stepped yet."
-        assert len(self.bash_scripts) == self.time_step + 1, "bash script is not updated yet"
+        assert (
+            self.time_step >= 0
+        ), "No bash script because the prompt generator is not stepped yet."
+        assert (
+            len(self.bash_scripts) == self.time_step + 1
+        ), "bash script is not updated yet"
         return self.bash_scripts[self.time_step]
 
     @property
@@ -134,8 +146,12 @@ class PromptGenerator:
 
     @property
     def error_message(self) -> str:
-        assert self.time_step >= 0, "No error message because the prompt generator is not stepped yet."
-        assert len(self.error_messages) == self.time_step + 1, "error message is not updated yet"
+        assert (
+            self.time_step >= 0
+        ), "No error message because the prompt generator is not stepped yet."
+        assert (
+            len(self.error_messages) == self.time_step + 1
+        ), "error message is not updated yet"
         return self.error_messages[self.time_step]
 
     @property
@@ -147,8 +163,12 @@ class PromptGenerator:
 
     @property
     def error_prompt(self) -> str:
-        assert self.time_step >= 0, "No error prompt because the prompt generator is not stepped yet."
-        assert len(self.error_prompts) == self.time_step + 1, "error prompt is not updated yet"
+        assert (
+            self.time_step >= 0
+        ), "No error prompt because the prompt generator is not stepped yet."
+        assert (
+            len(self.error_prompts) == self.time_step + 1
+        ), "error prompt is not updated yet"
         return self.error_prompts[self.time_step]
 
     @property
@@ -160,8 +180,12 @@ class PromptGenerator:
 
     @property
     def tutorial_prompt(self) -> str:
-        assert self.time_step >= 0, "No tutorial prompt because the prompt generator is not stepped yet."
-        assert len(self.tutorial_prompts) == self.time_step + 1, "tutorial prompt is not updated yet"
+        assert (
+            self.time_step >= 0
+        ), "No tutorial prompt because the prompt generator is not stepped yet."
+        assert (
+            len(self.tutorial_prompts) == self.time_step + 1
+        ), "tutorial prompt is not updated yet"
         return self.tutorial_prompts[self.time_step]
 
     @property
@@ -201,8 +225,8 @@ class PromptGenerator:
                 llm_config=self.config.llm,
                 output_folder=self.output_folder,
                 max_error_message_length=self.config.max_error_message_length,
-                error_summary=self.config.error_summary if hasattr(self.config, "error_summary") else True,
-                error_fix=self.config.error_fix if hasattr(self.config, "error_fix") else True,
+                error_summary=self.config.error_summary if hasattr(self.config, 'error_summary') else True,
+                error_fix=self.config.error_fix if hasattr(self.config, 'error_fix') else True,
             )
             assert len(self.error_prompts) == self.time_step - 1
             self.error_prompts.append(previous_error_prompt)
@@ -221,9 +245,7 @@ class PromptGenerator:
             max_num_tutorials=self.config.max_num_tutorials,
             max_tutorial_length=self.config.max_tutorial_length,
             condense_tutorials=self.config.condense_tutorials,
-            use_tutorial_summary=(
-                self.config.use_tutorial_summary if hasattr(self.config, "use_tutorial_summary") else True
-            ),
+            use_tutorial_summary=self.config.use_tutorial_summary if hasattr(self.config, 'use_tutorial_summary') else True,
         )
 
         # Save tutorial prompt
@@ -242,7 +264,9 @@ class PromptGenerator:
         Returns:
             str: The complete prompt combining task, data, user, error and tutorial prompts
         """
-        assert self.time_step >= 0, "run PromptGenerator.step(user_input) before get the prompt"
+        assert (
+            self.time_step >= 0
+        ), "run PromptGenerator.step(user_input) before get the prompt"
 
         prompt_parts = []
 

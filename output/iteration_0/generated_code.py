@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+"""
+Airbnb Melbourne Price Category Prediction
+
+This script uses AutoGluon to predict price categories (price_label) of Airbnb listings in Melbourne.
+It loads training and test data, trains a model using AutoGluon TabularPredictor, and generates
+predictions for the test dataset.
+
+Usage:
+    python airbnb_price_prediction.py
+"""
+
+# Additional installation steps (if needed)
+# pip install autogluon.tabular
+# pip install pandas pyarrow
+
+import os
+import time
+import pandas as pd
+from autogluon.tabular import TabularDataset, TabularPredictor
+
+if __name__ == "__main__":
+    # Define paths
+    output_dir = "/opt/dlami/nvme/autogluon-assistant/output"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Create a unique timestamp for the model directory
+    timestamp = int(time.time())
+    model_dir = os.path.join(output_dir, f"model_{timestamp}")
+    
+    # Load data
+    train_path = "/opt/dlami/nvme/maab/datasets/airbnb_melbourne/training/train.pq"
+    test_path = "/opt/dlami/nvme/maab/datasets/airbnb_melbourne/training/inference.pq"
+    
+    # Load training data
+    train_data = TabularDataset(train_path)
+    
+    # Load test data
+    test_data = TabularDataset(test_path)
+    
+    # Check for the target column in the training data
+    # Based on the task description, we need to predict 'price_label'
+    target_column = 'price_label'
+    
+    # Check if there's an index column to remove
+    # For parquet files, we don't typically have an explicit index column, but let's check
+    if 'Unnamed: 0' in train_data.columns:
+        train_data = train_data.drop(columns=['Unnamed: 0'])
+    if 'Unnamed: 0' in test_data.columns:
+        test_data = test_data.drop(columns=['Unnamed: 0'])
+    
+    # Remove rows with NA in the target column from training data
+    print(f"Training data shape before removing NA: {train_data.shape}")
+    train_data = train_data.dropna(subset=[target_column])
+    print(f"Training data shape after removing NA: {train_data.shape}")
+    
+    # Determine problem type based on the target column
+    # Since we're predicting price categories, this is likely a classification problem
+    # Let's check the number of unique values to determine if it's binary or multiclass
+    num_unique_labels = train_data[target_column].nunique()
+    if num_unique_labels == 2:
+        problem_type = 'binary'
+    elif num_unique_labels > 2:
+        problem_type = 'multiclass'
+    else:
+        # Default to multiclass if we can't determine
+        problem_type = 'multiclass'
+    
+    print(f"Detected problem type: {problem_type} with {num_unique_labels} unique labels")
+    
+    # Train the model
+    print("Training model...")
+    predictor = TabularPredictor(
+        label=target_column,
+        path=model_dir,
+        problem_type=problem_type
+    ).fit(
+        train_data=train_data,
+        time_limit=1800,  # 30 minutes
+        presets="medium_quality"
+    )
+    
+    # Generate predictions
+    print("Generating predictions...")
+    predictions = predictor.predict(test_data)
+    
+    # Create results dataframe
+    # We need to maintain the same format as the test data
+    results = test_data.copy()
+    results[target_column] = predictions
+    
+    # Save the results to the output directory
+    results_path = os.path.join(output_dir, "results.pq")
+    results.to_parquet(results_path, index=False)
+    
+    print(f"Results saved to {results_path}")
+    print("Model performance summary:")
+    print(predictor.fit_summary())
