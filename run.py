@@ -1,6 +1,9 @@
 import argparse
 import logging
+import os
 import sys
+import uuid
+from datetime import datetime
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
@@ -16,8 +19,8 @@ def main():
     parser = argparse.ArgumentParser(description="Generate and execute code using AutoML Agent")
     parser.add_argument("-i", "--input_data_folder", required=True, help="Path to the input data folder")
     parser.add_argument("-e", "--extract_archives_to", default=None, help="Extract the archives.")
-    parser.add_argument("-o", "--output_dir", required=True, help="Path to output directory")
-    parser.add_argument("-c", "--config_path", required=True, help="Path to configuration file")
+    parser.add_argument("-o", "--output_dir", default=None, help="Path to output directory")
+    parser.add_argument("-c", "--config_path", default=None, help="Path to configuration file")
     parser.add_argument(
         "-n",
         "--max_iterations",
@@ -34,14 +37,25 @@ def main():
 
     args = parser.parse_args()
 
+    if args.output_dir is None or not args.output_dir:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Get current date in YYYYMMDD format
+        current_date = datetime.now().strftime("%Y%m%d")
+        # Generate a random UUID4
+        random_uuid = uuid.uuid4()
+        # Create the folder name using the pattern
+        folder_name = f"mlzero-{current_date}-{random_uuid}"
+
+        # Create the full path for the new folder
+        args.output_dir = os.path.join(current_dir, "runs", folder_name)
+
     # Create output directory
     output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=False)
 
     if args.extract_archives_to is not None:
         if args.extract_archives_to and args.extract_archives_to != args.input_data_folder:
             # TODO: copy all from args.input_data_folder to args.extract_archives_to
-            import os
             import shutil
 
             # Create the destination directory if it doesn't exist

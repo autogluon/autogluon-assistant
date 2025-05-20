@@ -14,6 +14,7 @@ cdk.out/
 *.feather
 .langchain.db
 output_*.csv
+runs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

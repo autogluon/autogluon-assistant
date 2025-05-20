@@ -1,8 +1,9 @@
+import json
+import os
+from typing import Dict, List
+
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
-import os
-import json
-from typing import Dict, List
 
 from .base_evaluator import BaseEvaluator
 from .utils import load_metadata

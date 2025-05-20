@@ -1,9 +1,10 @@
-import pandas as pd
-import numpy as np
-import cv2
 import os
-from typing import Union, List, Optional, Tuple
 from abc import abstractmethod
+from typing import List, Optional, Tuple, Union
+
+import cv2
+import numpy as np
+import pandas as pd
 
 from .base_evaluator import BaseEvaluator
 from .utils import load_metadata
@@ -128,11 +129,7 @@ class SemanticSegmentationEvaluator(BaseEvaluator):
                     print(f"Processed {processed_pairs}/{total_pairs} mask pairs...")
 
             except Exception as e:
-                error_info = (
-                    f"GT: {gt_input}\nPred: {pred_input}"
-                    if using_paths
-                    else "mask pair"
-                )
+                error_info = f"GT: {gt_input}\nPred: {pred_input}" if using_paths else "mask pair"
                 import random
 
                 if random.randint(1, 200) == 1:
@@ -166,9 +163,7 @@ class SemanticSegmentationEvaluator(BaseEvaluator):
             if isinstance(pred_input, str) and isinstance(gt_input, str):
                 # Handle CSV file input
                 if metadata_path is None:
-                    raise ValueError(
-                        "metadata_path must be provided when using CSV files"
-                    )
+                    raise ValueError("metadata_path must be provided when using CSV files")
 
                 metadata = load_metadata(metadata_path)
                 label_column = metadata["label_column"]
@@ -181,13 +176,8 @@ class SemanticSegmentationEvaluator(BaseEvaluator):
                 pred_df = pd.read_csv(pred_input)
                 gt_df = pd.read_csv(gt_input)
 
-                if (
-                    label_column not in pred_df.columns
-                    or label_column not in gt_df.columns
-                ):
-                    raise ValueError(
-                        f"Label column '{label_column}' not found in CSV files"
-                    )
+                if label_column not in pred_df.columns or label_column not in gt_df.columns:
+                    raise ValueError(f"Label column '{label_column}' not found in CSV files")
 
                 pred_masks = pred_df[label_column].tolist()
                 gt_masks = gt_df[label_column].tolist()
@@ -197,16 +187,12 @@ class SemanticSegmentationEvaluator(BaseEvaluator):
                 print(f"Pred directory: {pred_dir}")
 
                 # Calculate metric with paths
-                score = self.calculate_metric(
-                    gt_masks, pred_masks, gt_base_dir, pred_dir
-                )
+                score = self.calculate_metric(gt_masks, pred_masks, gt_base_dir, pred_dir)
 
             else:
                 # Handle direct numpy array input
                 if not isinstance(pred_input, list) or not isinstance(gt_input, list):
-                    raise TypeError(
-                        "When not using CSV files, inputs must be lists of numpy arrays"
-                    )
+                    raise TypeError("When not using CSV files, inputs must be lists of numpy arrays")
 
                 print(f"Processing {len(pred_input)} mask pairs...")
                 score = self.calculate_metric(gt_input, pred_input)
@@ -252,9 +238,7 @@ class IouEvaluator(SemanticSegmentationEvaluator):
 class SMeasureEvaluator(SemanticSegmentationEvaluator):
     """Evaluator for Structure-measure metric"""
 
-    def calculate_region_similarity(
-        self, mask1: np.ndarray, mask2: np.ndarray
-    ) -> float:
+    def calculate_region_similarity(self, mask1: np.ndarray, mask2: np.ndarray) -> float:
         """Calculate region-aware structural similarity"""
         # Convert masks to float for calculations
         mask1 = mask1.astype(float)
@@ -281,9 +265,7 @@ class SMeasureEvaluator(SemanticSegmentationEvaluator):
 
         return 1.0 - (max_mean - min_mean) / max_mean
 
-    def calculate_object_similarity(
-        self, mask1: np.ndarray, mask2: np.ndarray
-    ) -> float:
+    def calculate_object_similarity(self, mask1: np.ndarray, mask2: np.ndarray) -> float:
         """Calculate object-aware structural similarity"""
         h, w = mask1.shape
         if h * w == 0:
@@ -309,18 +291,14 @@ class SMeasureEvaluator(SemanticSegmentationEvaluator):
         y2_centroid = np.sum(Y * mask2) / area2
 
         # Calculate distance between centroids
-        centroid_distance = np.sqrt(
-            (x1_centroid - x2_centroid) ** 2 + (y1_centroid - y2_centroid) ** 2
-        )
-        diagonal = np.sqrt(h ** 2 + w ** 2)
+        centroid_distance = np.sqrt((x1_centroid - x2_centroid) ** 2 + (y1_centroid - y2_centroid) ** 2)
+        diagonal = np.sqrt(h**2 + w**2)
 
         # Normalize distance by diagonal length
         normalized_distance = 2.0 * centroid_distance / diagonal
         return max(0.0, 1.0 - normalized_distance)
 
-    def calculate_pair_metric(
-        self, mask1: np.ndarray, mask2: np.ndarray, alpha: float = 0.5
-    ) -> float:
+    def calculate_pair_metric(self, mask1: np.ndarray, mask2: np.ndarray, alpha: float = 0.5) -> float:
         """
         Calculate S-measure between two binary masks
         Args:

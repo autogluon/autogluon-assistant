@@ -1,13 +1,13 @@
 import numpy as np
 from sklearn.metrics import (
-    mean_squared_error,
     accuracy_score,
-    mean_absolute_error,
-    roc_auc_score,
-    median_absolute_error,
-    log_loss,
     f1_score,
+    log_loss,
+    mean_absolute_error,
+    mean_squared_error,
+    median_absolute_error,
     r2_score,
+    roc_auc_score,
 )
 
 from .base_evaluator import BaseEvaluator
@@ -96,9 +96,7 @@ class MedaeEvaluator(BaseEvaluator):
 
 class NllEvaluator(BaseEvaluator):
     def calculate_metric(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
-        return log_loss(
-            y_true, y_pred if y_pred.ndim > 1 else np.column_stack((1 - y_pred, y_pred))
-        )
+        return log_loss(y_true, y_pred if y_pred.ndim > 1 else np.column_stack((1 - y_pred, y_pred)))
 
     @property
     def name(self) -> str:

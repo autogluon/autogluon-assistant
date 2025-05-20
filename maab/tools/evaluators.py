@@ -6,9 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from maab.src.evaluator import evaluate
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Evaluate a specific metric and log results with metadata"
-    )
+    parser = argparse.ArgumentParser(description="Evaluate a specific metric and log results with metadata")
     parser.add_argument("--pred_path", help="Path to the prediction CSV file")
     parser.add_argument("--metadata_path", help="Path to the metadata file")
     parser.add_argument("--gt_path", help="Path to the ground truth file")

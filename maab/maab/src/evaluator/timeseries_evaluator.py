@@ -1,67 +1,59 @@
-import os
+import gzip
 import json
-from typing import Dict, Any
+import os
+from typing import Any, Dict
+
+import autogluon.timeseries.metrics as ts_metrics
 import numpy as np
 import pandas as pd
 from autogluon.timeseries import TimeSeriesDataFrame
-import autogluon.timeseries.metrics as ts_metrics
-import gzip
+
 from .base_evaluator import BaseEvaluator
+
 
 def load_jsonl_gz(file_path, freq):
     """Load compressed JSONL file and convert to DataFrame."""
     data_list = []
-    with gzip.open(file_path, 'rt') as f:
+    with gzip.open(file_path, "rt") as f:
         for line in f:
             data_list.append(json.loads(line))
-    
+
     # Process each record
     processed_data = []
     for record in data_list:
-        item_id = record['item_id']
-        start_time = pd.to_datetime(record['start'])
-        
+        item_id = record["item_id"]
+        start_time = pd.to_datetime(record["start"])
+
         # Create timestamps for each target value
-        timestamps = pd.date_range(start=start_time, 
-                                 periods=len(record['target']), 
-                                 freq=freq)
-        
+        timestamps = pd.date_range(start=start_time, periods=len(record["target"]), freq=freq)
+
         # Create individual records
-        for ts, target in zip(timestamps, record['target']):
-            processed_data.append({
-                'item_id': item_id,
-                'timestamp': ts,
-                'target': target
-            })
-    
+        for ts, target in zip(timestamps, record["target"]):
+            processed_data.append({"item_id": item_id, "timestamp": ts, "target": target})
+
     return pd.DataFrame(processed_data)
+
 
 def load_jsonl(file_path, freq):
     """Load uncompressed JSONL file and convert to DataFrame."""
     data_list = []
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         for line in f:
             data_list.append(json.loads(line))
-    
+
     # Process each record
     processed_data = []
     for record in data_list:
-        item_id = record['item_id']
-        start_time = pd.to_datetime(record['start'])
-        
+        item_id = record["item_id"]
+        start_time = pd.to_datetime(record["start"])
+
         # Create timestamps for each target value
-        timestamps = pd.date_range(start=start_time, 
-                                 periods=len(record['target']), 
-                                 freq=freq)
-        
+        timestamps = pd.date_range(start=start_time, periods=len(record["target"]), freq=freq)
+
         # Create individual records
-        for ts, target in zip(timestamps, record['target']):
-            processed_data.append({
-                'item_id': item_id,
-                'timestamp': ts,
-                'target': target
-            })
-    
+        for ts, target in zip(timestamps, record["target"]):
+            processed_data.append({"item_id": item_id, "timestamp": ts, "target": target})
+
     return pd.DataFrame(processed_data)
 
 
@@ -71,7 +63,7 @@ class BaseTimeseriesEvaluator(BaseEvaluator):
     def __init__(self, metric_name: str):
         """
         Initialize the timeseries evaluator
-        
+
         Args:
             metric_name: Name of the metric to use (must be available in autogluon.timeseries.metrics)
         """
@@ -79,9 +71,7 @@ class BaseTimeseriesEvaluator(BaseEvaluator):
 
         # Validate metric exists in autogluon.timeseries.metrics
         if not hasattr(ts_metrics, metric_name):
-            raise ValueError(
-                f"Metric '{metric_name}' not found in autogluon.timeseries.metrics"
-            )
+            raise ValueError(f"Metric '{metric_name}' not found in autogluon.timeseries.metrics")
         self.metric_func = getattr(ts_metrics, metric_name)()
 
     @property
@@ -94,9 +84,7 @@ class BaseTimeseriesEvaluator(BaseEvaluator):
         This method is overridden but not used in timeseries evaluation.
         The actual calculation happens in evaluate() using TimeSeriesDataFrame.
         """
-        raise NotImplementedError(
-            "For timeseries evaluation, use evaluate() method directly with file paths"
-        )
+        raise NotImplementedError("For timeseries evaluation, use evaluate() method directly with file paths")
 
     def evaluate(
         self,
@@ -108,7 +96,7 @@ class BaseTimeseriesEvaluator(BaseEvaluator):
     ):
         """
         Evaluate timeseries predictions against ground truth
-        
+
         Args:
             pred_path: Path to predictions file
             gt_path: Path to ground truth file
@@ -125,9 +113,7 @@ class BaseTimeseriesEvaluator(BaseEvaluator):
             freq = metadata.get("freq")
 
             if not all([prediction_length, id_column, timestamp_column, target_column]):
-                raise ValueError(
-                    "Metadata must contain 'id_column', 'timestamp_column', and 'label_column'"
-                )
+                raise ValueError("Metadata must contain 'id_column', 'timestamp_column', and 'label_column'")
 
             # Load ground truth data
             groundtruth_df = self._load_file(gt_path, freq)
@@ -159,14 +145,14 @@ class BaseTimeseriesEvaluator(BaseEvaluator):
 
     def _load_file(self, file_path, freq):
         """Load data file based on extension."""
-        if file_path.endswith('.jsonl.gz') or file_path.endswith('.json.gz'):
+        if file_path.endswith(".jsonl.gz") or file_path.endswith(".json.gz"):
             return load_jsonl_gz(file_path, freq)
-        elif file_path.endswith('.jsonl') or file_path.endswith('.json'):
+        elif file_path.endswith(".jsonl") or file_path.endswith(".json"):
             return load_jsonl(file_path, freq)
-        elif file_path.endswith('.csv'):
+        elif file_path.endswith(".csv"):
             return pd.read_csv(file_path)
-        elif file_path.endswith('.csv.gz'):
-            return pd.read_csv(file_path, compression='gzip')
+        elif file_path.endswith(".csv.gz"):
+            return pd.read_csv(file_path, compression="gzip")
         else:
             raise ValueError(f"Unsupported file format: {file_path}")
 
