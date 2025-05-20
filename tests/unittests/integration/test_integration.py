@@ -61,7 +61,7 @@ def light_config():
 
 
 def test_titanic_prediction(titanic_data_path, light_config):
-    output_dir = titanic_data_path
+    output_dir = os.path.join(titanic_data_path, "..", "titanic_data_output")
     run_agent(
         input_data_folder=titanic_data_path,
         output_folder=output_dir,
