@@ -179,7 +179,7 @@ def run_agent(
 
     # Create output directory
     output_dir = Path(output_folder)
-    output_dir.mkdir(parents=True, exist_ok=False)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     if extract_archives_to is not None:
         if extract_archives_to and extract_archives_to != input_data_folder:

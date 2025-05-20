@@ -54,7 +54,7 @@ if ! conda activate "$CONDA_ENV"; then
 fi
 
 # Run the agent with integrated code generation and execution
-python3 mlzero \
+python3 /media/agent/autogluon-assistant/run.py \
     -i "$TRAINING_PATH" \
     -o "$OUTPUT_DIR" \
     -n 5 \
