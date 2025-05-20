@@ -19,9 +19,7 @@ class LLMPlanner:
         self.multi_turn = llm_config.multi_turn
         if self.multi_turn:
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            self.llm = ChatLLMFactory.get_chat_model(
-                llm_config, session_name=f"multi_round_coder_{timestamp}"
-            )
+            self.llm = ChatLLMFactory.get_chat_model(llm_config, session_name=f"multi_round_coder_{timestamp}")
 
     def __call__(
         self,
@@ -50,9 +48,7 @@ class LLMPlanner:
         # Create a new LLM instance for each call if not using multi-turn
         if not self.multi_turn:
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            self.llm = ChatLLMFactory.get_chat_model(
-                self.llm_config, session_name=f"single_round_planner_{timestamp}"
-            )
+            self.llm = ChatLLMFactory.get_chat_model(self.llm_config, session_name=f"single_round_planner_{timestamp}")
 
         # Build prompt for evaluating execution results
         prompt = self._build_evaluation_prompt(
@@ -142,9 +138,7 @@ Even if the code executed without throwing errors, it might still have issues wi
 
         return prompt
 
-    def _parse_evaluation_response(
-        self, response: Dict
-    ) -> Tuple[str, Optional[str]]:
+    def _parse_evaluation_response(self, response: Dict) -> Tuple[str, Optional[str]]:
         """
         Parse the LLM's response to extract decision and error summary.
 
@@ -167,9 +161,7 @@ Even if the code executed without throwing errors, it might still have issues wi
         # Parse the decision
         decision = "FIX"  # Default to FIX if parsing fails
         if "DECISION:" in content:
-            decision_line = [
-                line for line in content.split("\n") if "DECISION:" in line
-            ]
+            decision_line = [line for line in content.split("\n") if "DECISION:" in line]
             if decision_line:
                 decision_text = decision_line[0].split("DECISION:")[1].strip()
                 if "FINISH" in decision_text.upper():

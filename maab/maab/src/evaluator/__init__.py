@@ -1,37 +1,37 @@
 from .base_evaluator import BaseEvaluator
 from .cls_reg_evaluator import (
-    F1WeightedEvaluator,
-    F1Evaluator,
-    RSquaredEvaluator,
-    RmseEvaluator,
     AccuracyEvaluator,
-    RmsleEvaluator,
-    MaeEvaluator,
     AurocEvaluator,
+    F1Evaluator,
+    F1WeightedEvaluator,
+    MaeEvaluator,
     MedaeEvaluator,
     NllEvaluator,
+    RmseEvaluator,
+    RmsleEvaluator,
+    RSquaredEvaluator,
 )
+from .multilabel_evaluator import AverageAccuracyMultiLabelEvaluator, HammingLossMultiLabelEvaluator
+from .ner_evaluator import AccuracyNEREvaluator, F1NEREvaluator
 from .object_detection_evaluator import MapEvaluator
+from .retrieval_evaluator import (
+    MRRRetrievalEvaluator,
+    NDCGRetrievalEvaluator,
+    RecallRetrievalEvaluator,
+)
 from .sematic_segmentation_evaluator import IouEvaluator, SMeasureEvaluator
 from .timeseries_evaluator import (
-    SQLTimeseriesEvaluator,
-    WQLTimeseriesEvaluator,
     MAETimeseriesEvaluator,
+    MAPETimeseriesEvaluator,
     MASETimeseriesEvaluator,
-    WAPETimeseriesEvaluator,
     MSETimeseriesEvaluator,
     RMSETimeseriesEvaluator,
     RMSLETimeseriesEvaluator,
     RMSSETimeseriesEvaluator,
-    MAPETimeseriesEvaluator,
     SMAPETimeseriesEvaluator,
-)
-from .multilabel_evaluator import HammingLossMultiLabelEvaluator, AverageAccuracyMultiLabelEvaluator
-from .ner_evaluator import F1NEREvaluator, AccuracyNEREvaluator
-from .retrieval_evaluator import (
-    NDCGRetrievalEvaluator,
-    RecallRetrievalEvaluator,
-    MRRRetrievalEvaluator,
+    SQLTimeseriesEvaluator,
+    WAPETimeseriesEvaluator,
+    WQLTimeseriesEvaluator,
 )
 from .utils import load_metadata
 
@@ -114,13 +114,7 @@ def get_evaluator(metric: str, problem_type: str) -> BaseEvaluator:
     return evaluators[metric_lower]
 
 
-def evaluate(
-    pred_path: str,
-    gt_path: str,
-    results_path: str,
-    metadata_path: str,
-    agent_name: str
-):
+def evaluate(pred_path: str, gt_path: str, results_path: str, metadata_path: str, agent_name: str):
     metadata = load_metadata(metadata_path)
     metric = metadata["metric_name"]
     problem_type = metadata["problem_type"]

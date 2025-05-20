@@ -1,8 +1,9 @@
-import pandas as pd
-import numpy as np
 import os
-from typing import Dict, Any
 from abc import ABC, abstractmethod
+from typing import Any, Dict
+
+import numpy as np
+import pandas as pd
 
 from .utils import load_metadata
 
@@ -20,11 +21,11 @@ class BaseEvaluator(ABC):
     def load_data(self, file_path: str, label_column: str) -> np.ndarray:
         """
         Load data from different file formats (CSV, Parquet, TXT)
-        
+
         Args:
             file_path: Path to the input file
             label_column: Name of the column containing labels/values
-            
+
         Returns:
             np.ndarray: Array of values from the specified column
         """
@@ -43,9 +44,7 @@ class BaseEvaluator(ABC):
                     try:
                         df = pd.read_csv(file_path, delimiter=delimiter)
                         # Check if we got more than one column and the result makes sense
-                        if len(df.columns) > 1 or (
-                            len(df.columns) == 1 and label_column in df.columns
-                        ):
+                        if len(df.columns) > 1 or (len(df.columns) == 1 and label_column in df.columns):
                             break
                     except:
                         continue
@@ -87,9 +86,7 @@ class BaseEvaluator(ABC):
         except Exception as e:
             raise ValueError(f"Error loading file {file_path}: {str(e)}")
 
-    def write_results(
-        self, results_path: str, metadata: Dict[str, Any], score: float, agent_name: str
-    ):
+    def write_results(self, results_path: str, metadata: Dict[str, Any], score: float, agent_name: str):
         """Write evaluation results to a file (CSV format)"""
         results_df = pd.DataFrame()
         if os.path.exists(results_path):
@@ -111,7 +108,7 @@ class BaseEvaluator(ABC):
     ):
         """
         Evaluate predictions against ground truth using the specified metric
-        
+
         Args:
             pred_path: Path to predictions file
             gt_path: Path to ground truth file

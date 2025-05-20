@@ -24,38 +24,36 @@ def clean_up_dataset(path: Path):
 def extract_archives(path):
     """
     Unzips all .zip files within `path` and cleans up task dir
-    
+
     Args:
         path: Path object or string path to directory containing zip files
-        
+
     [TODO] handle nested zips
     """
     # Convert string path to Path object if necessary
     if isinstance(path, str):
         path = Path(path)
-    
+
     for zip_f in path.rglob("*.zip"):
         f_out_dir = zip_f.with_suffix("")
         # special case: the intended output path already exists (maybe data has already been extracted by user)
         if f_out_dir.exists():
-            logger.debug(
-                f"Skipping {zip_f} as an item with the same name already exists."
-            )
+            logger.debug(f"Skipping {zip_f} as an item with the same name already exists.")
             # if it's a file, it's probably exactly the same as in the zip -> remove the zip
             # [TODO] maybe add an extra check to see if zip file content matches the colliding file
             if f_out_dir.is_file() and f_out_dir.suffix != "":
                 zip_f.unlink()
                 continue
-        
+
         logger.debug(f"Extracting: {zip_f}")
         f_out_dir.mkdir(exist_ok=True)
         with zipfile.ZipFile(zip_f, "r") as zip_ref:
             zip_ref.extractall(f_out_dir)
-        
+
         # remove any unwanted files
         clean_up_dataset(f_out_dir)
         contents = list(f_out_dir.iterdir())
-        
+
         # special case: the zip contains a single dir/file with the same name as the zip
         if len(contents) == 1 and contents[0].name == f_out_dir.name:
             sub_item = contents[0]
@@ -71,5 +69,5 @@ def extract_archives(path):
                 sub_item_tmp = sub_item.rename(f_out_dir.with_suffix(".__tmp_rename"))
                 f_out_dir.rmdir()
                 sub_item_tmp.rename(f_out_dir)
-        
+
         zip_f.unlink()

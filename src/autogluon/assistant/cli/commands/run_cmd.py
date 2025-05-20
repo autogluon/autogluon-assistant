@@ -1,13 +1,15 @@
+import logging
 import os
 import shutil
 from pathlib import Path
-import logging
+
 import typer
 
 from autogluon.assistant.coding_agent import run_agent
 from autogluon.assistant.utils import extract_archives
 
 log = logging.getLogger(__name__)
+
 
 def run_cmd(
     input_data_folder: str,

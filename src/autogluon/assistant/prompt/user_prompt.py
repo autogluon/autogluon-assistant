@@ -1,9 +1,7 @@
 from typing import Optional
 
 
-def generate_user_prompt(
-    user_input: Optional[str] = None, max_user_input_length: int = 9999
-) -> str:
+def generate_user_prompt(user_input: Optional[str] = None, max_user_input_length: int = 9999) -> str:
     """Generate a formatted user prompt from user input.
 
     Args:

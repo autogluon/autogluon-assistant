@@ -1,41 +1,36 @@
+import logging
 import os
+import select
 import subprocess
 import sys
-import select
 import time
-import signal
 from pathlib import Path
+
+from omegaconf import OmegaConf
 from rich import print
-
-
-from rich.console import Console
 from rich.progress import (
+    BarColumn,
     Progress,
     TextColumn,
-    BarColumn,
-    TaskProgressColumn,
-    TimeRemainingColumn,
 )
-from omegaconf import OmegaConf
-from rich.logging import RichHandler
 
 from .coder import generate_coder, write_code_script, write_retrieved_context
 from .llm import ChatLLMFactory
 from .planner import get_planner
 from .prompt import PromptGenerator, write_prompt_to_file
-import logging
+
 logger = logging.getLogger(__name__)
 
 
-def execute_bash_script(bash_script: str, stream_output: bool = True, timeout: float = 3600*6):
+def execute_bash_script(bash_script: str, stream_output: bool = True, timeout: float = 3600 * 6):
     """
     Execute bash script with real-time output streaming and timeout and show a linear timeout progress bar.
-    
+
     Args:
         bash_script (str): The bash script to execute.
         stream_output (bool): Whether to stream stdout/stderr via logger.model_info.e
         timeout (float): Maximum execution time in seconds before terminating the process.
-        
+
     Returns:
         tuple: (success: bool, stdout: str, stderr: str)
     """
@@ -103,7 +98,7 @@ def execute_bash_script(bash_script: str, stream_output: bool = True, timeout: f
                 process.kill()
                 stderr_chunks.append("Process forcibly terminated after timeout\n")
 
-        success = (process.returncode == 0)
+        success = process.returncode == 0
         return success, "".join(stdout_chunks), "".join(stderr_chunks)
 
     except Exception as e:
@@ -166,20 +161,16 @@ def run_agent(
         raise FileNotFoundError(f"Config file not found: {config_path}")
     config = OmegaConf.load(config_path)
 
-    stream_output=config.stream_output
-    per_execution_timeout=config.per_execution_timeout
+    stream_output = config.stream_output
+    per_execution_timeout = config.per_execution_timeout
 
     prompt_generator = PromptGenerator(
         input_data_folder=input_data_folder,
         output_folder=output_folder,
         config=config,
     )
-    python_coder = generate_coder(
-        llm_config=config.coder, tutorial_link_for_rag=tutorial_link
-    )
-    bash_coder = generate_coder(
-        llm_config=config.coder, tutorial_link_for_rag=tutorial_link
-    )
+    python_coder = generate_coder(llm_config=config.coder, tutorial_link_for_rag=tutorial_link)
+    bash_coder = generate_coder(llm_config=config.coder, tutorial_link_for_rag=tutorial_link)
 
     # Initialize log evaluation agent
     planner = get_planner(config.planner)
@@ -199,13 +190,11 @@ def run_agent(
         # Get per iter user inputs if needed
         if need_user_input:
             if iteration > 0:
-                previous_path = os.path.join(output_folder, f'iteration_{iteration-1}')
+                previous_path = os.path.join(output_folder, f"iteration_{iteration-1}")
                 print(f"\n[bold green]Previous iteration files are in:[/bold green] {previous_path}")
             if not user_input:
                 user_input = ""
-            user_input += input(
-                "Enter your inputs for this iteration (press Enter to skip): "
-            )
+            user_input += input("Enter your inputs for this iteration (press Enter to skip): ")
 
         prompt_generator.step(user_input=user_input)
 
@@ -224,26 +213,18 @@ def run_agent(
 
         # Write retrieved context if present
         if "retrieved_context" in generated_content:
-            output_context_path = os.path.join(
-                iteration_folder, "retrieved_context.txt"
-            )
-            write_retrieved_context(
-                generated_content["retrieved_context"], output_context_path
-            )
+            output_context_path = os.path.join(iteration_folder, "retrieved_context.txt")
+            write_retrieved_context(generated_content["retrieved_context"], output_context_path)
 
         prompt_generator.update_python_code(python_code=generated_python_code)
 
         # Generate and save the execution prompt
-        execution_prompt = prompt_generator.get_execution_prompt(
-            python_file_path=python_file_path
-        )
+        execution_prompt = prompt_generator.get_execution_prompt(python_file_path=python_file_path)
         execution_prompt_path = os.path.join(iteration_folder, "execution_prompt.txt")
         write_prompt_to_file(execution_prompt, execution_prompt_path)
 
         # Generate bash code
-        generated_bash_script = bash_coder(prompt=execution_prompt, language="bash")[
-            "code_script"
-        ]
+        generated_bash_script = bash_coder(prompt=execution_prompt, language="bash")["code_script"]
 
         # Save the bash code
         bash_file_path = os.path.join(iteration_folder, "execution_script.sh")
@@ -253,9 +234,7 @@ def run_agent(
 
         # Attempt to execute the generated code
         success, stdout, stderr = execute_bash_script(
-            bash_script=generated_bash_script,
-            stream_output=stream_output,
-            timeout=per_execution_timeout
+            bash_script=generated_bash_script, stream_output=stream_output, timeout=per_execution_timeout
         )
 
         # Initialize log evaluation variables
@@ -263,22 +242,18 @@ def run_agent(
         planner_error_summary = None
 
         # Even though execution succeeded, evaluate logs to check for issues or poor performance
-        planner_decision, planner_error_summary, planner_prompt = (
-            planner(
-                stdout=stdout,
-                stderr=stderr,
-                python_code=generated_python_code,
-                task_prompt=prompt_generator.task_prompt,
-                data_prompt=prompt_generator.data_prompt,
-            )
+        planner_decision, planner_error_summary, planner_prompt = planner(
+            stdout=stdout,
+            stderr=stderr,
+            python_code=generated_python_code,
+            task_prompt=prompt_generator.task_prompt,
+            data_prompt=prompt_generator.data_prompt,
         )
 
         # Save planner results
         planner_decision_path = os.path.join(iteration_folder, "planner_decision.txt")
         with open(planner_decision_path, "w") as f:
-            f.write(
-                f"planner_decision: {planner_decision}\n\nplanner_error_summary: {planner_error_summary}"
-            )
+            f.write(f"planner_decision: {planner_decision}\n\nplanner_error_summary: {planner_error_summary}")
         planner_prompt_path = os.path.join(iteration_folder, "planner_prompt.txt")
         with open(planner_prompt_path, "w") as f:
             f.write(f"planner_prompt: {planner_prompt}")
@@ -286,7 +261,9 @@ def run_agent(
         if planner_decision == "FIX":
             # Add suggestions to the error message to guide next iteration
             error_message = f"stderr: {stderr}\n\n" if stderr else ""
-            error_message += f"Error summary from planner (the error can appear in stdout if it's catched): {planner_error_summary}"
+            error_message += (
+                f"Error summary from planner (the error can appear in stdout if it's catched): {planner_error_summary}"
+            )
             prompt_generator.update_error_message(error_message=error_message)
 
             # Let the user know we're continuing despite success
@@ -310,7 +287,9 @@ def run_agent(
 
         iteration += 1
         if iteration >= max_iterations:
-            print(f"[bold yellow]Warning: Reached maximum iterations ([/bold yellow]{max_iterations}[bold yellow]) without success[/bold yellow]")
+            print(
+                f"[bold yellow]Warning: Reached maximum iterations ([/bold yellow]{max_iterations}[bold yellow]) without success[/bold yellow]"
+            )
 
     token_usage_path = os.path.join(iteration_folder, "token_usage.json")
     usage = ChatLLMFactory.get_total_token_usage(save_path=token_usage_path)
