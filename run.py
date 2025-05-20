@@ -5,7 +5,6 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 from autogluon.assistant.coding_agent import run_agent
-from autogluon.assistant.utils import extract_archives
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -16,8 +15,8 @@ def main():
     parser = argparse.ArgumentParser(description="Generate and execute code using AutoML Agent")
     parser.add_argument("-i", "--input_data_folder", required=True, help="Path to the input data folder")
     parser.add_argument("-e", "--extract_archives_to", default=None, help="Extract the archives.")
-    parser.add_argument("-o", "--output_dir", required=True, help="Path to output directory")
-    parser.add_argument("-c", "--config_path", required=True, help="Path to configuration file")
+    parser.add_argument("-o", "--output_dir", default=None, help="Path to output directory")
+    parser.add_argument("-c", "--config_path", default=None, help="Path to configuration file")
     parser.add_argument(
         "-n",
         "--max_iterations",
@@ -34,42 +33,6 @@ def main():
 
     args = parser.parse_args()
 
-    # Create output directory
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    if args.extract_archives_to is not None:
-        if args.extract_archives_to and args.extract_archives_to != args.input_data_folder:
-            # TODO: copy all from args.input_data_folder to args.extract_archives_to
-            import os
-            import shutil
-
-            # Create the destination directory if it doesn't exist
-            os.makedirs(args.extract_archives_to, exist_ok=True)
-
-            # Walk through all files and directories in the source folder
-            for root, dirs, files in os.walk(args.input_data_folder):
-                # Calculate the relative path from the source folder
-                rel_path = os.path.relpath(root, args.input_data_folder)
-
-                # Create the corresponding directory structure in the destination
-                if rel_path != ".":
-                    dest_dir = os.path.join(args.extract_archives_to, rel_path)
-                    os.makedirs(dest_dir, exist_ok=True)
-                else:
-                    dest_dir = args.extract_archives_to
-
-                # Copy all files in the current directory
-                for file in files:
-                    src_file = os.path.join(root, file)
-                    dest_file = os.path.join(dest_dir, file)
-                    shutil.copy2(src_file, dest_file)  # copy2 preserves metadata
-
-            args.input_data_folder = args.extract_archives_to
-            print(
-                f"Note: we strongly recommend using data without archived files. Extracting archived files under {args.input_data_folder}..."
-            )
-            extract_archives(args.input_data_folder)
 
     # Generate and execute code
     run_agent(
@@ -80,6 +43,7 @@ def main():
         max_iterations=args.max_iterations,
         need_user_input=args.need_user_input,
         initial_user_input=args.initial_user_input,
+        extract_archives_to=args.extract_archives_to,
     )
 
 

@@ -3,6 +3,8 @@ import os
 import select
 import subprocess
 import sys
+import uuid
+from datetime import datetime
 import time
 from pathlib import Path
 
@@ -18,9 +20,9 @@ from .coder import generate_coder, write_code_script, write_retrieved_context
 from .llm import ChatLLMFactory
 from .planner import get_planner
 from .prompt import PromptGenerator, write_prompt_to_file
+from .utils import extract_archives
 
 logger = logging.getLogger(__name__)
-
 
 def execute_bash_script(bash_script: str, stream_output: bool = True, timeout: float = 3600 * 6):
     """
@@ -34,6 +36,9 @@ def execute_bash_script(bash_script: str, stream_output: bool = True, timeout: f
     Returns:
         tuple: (success: bool, stdout: str, stderr: str)
     """
+    import select
+    import time
+
     try:
         process = subprocess.Popen(
             ["bash", "-c", bash_script],
@@ -42,8 +47,13 @@ def execute_bash_script(bash_script: str, stream_output: bool = True, timeout: f
             text=True,
             bufsize=1,
         )
+
         stdout_chunks, stderr_chunks = [], []
+
+        # Set up tracking of both output streams
         streams = [process.stdout, process.stderr]
+
+        # Track start time for timeout
         start_time = time.time()
 
         with Progress(
@@ -55,10 +65,12 @@ def execute_bash_script(bash_script: str, stream_output: bool = True, timeout: f
             task = progress.add_task("", total=timeout)
 
             while streams:
+                # Calculate remaining time
                 elapsed = time.time() - start_time
                 progress.update(task, completed=min(elapsed, timeout))
 
-                if elapsed >= timeout:
+                # Check if we've exceeded timeout
+                if remaining_time == 0:
                     process.terminate()
                     time.sleep(1)
                     if process.poll() is None:
@@ -69,28 +81,40 @@ def execute_bash_script(bash_script: str, stream_output: bool = True, timeout: f
                         sys.stderr.flush()
                     break
 
-                readable, _, _ = select.select(streams, [], [], 1.0)
+                # Wait for output on either stream with timeout
+                # select.select returns empty lists if the timeout elapses
+                readable, _, _ = select.select(streams, [], [], min(1, remaining_time))
+
+                # If nothing was read but process is still running, continue the loop
                 if not readable and process.poll() is None:
                     continue
+
+                # If nothing was read and process exited, exit loop
                 if not readable and process.poll() is not None:
                     break
 
-                for s in readable:
-                    line = s.readline()
-                    if not line:
-                        streams.remove(s)
+                for stream in readable:
+                    line = stream.readline()
+                    if not line:  # EOF
+                        streams.remove(stream)
                         continue
-                    if s is process.stdout:
+
+                    # Handle stdout
+                    if stream == process.stdout:
                         stdout_chunks.append(line)
                         if stream_output:
-                            logger.model_info(line.rstrip())
+                            sys.stdout.write(line)
+                            sys.stdout.flush()
+                    # Handle stderr
                     else:
                         stderr_chunks.append(line)
                         if stream_output:
-                            logger.model_info(line.rstrip())
+                            sys.stderr.write(line)
+                            sys.stderr.flush()
 
             progress.update(task, completed=timeout)
 
+        # Wait for process to complete (should already be done, but just in case)
         if process.poll() is None:
             try:
                 process.wait(timeout=1)
@@ -149,17 +173,78 @@ def save_iteration_state(
 
 def run_agent(
     input_data_folder,
-    tutorial_link,
-    output_folder,
-    config_path,
+    output_folder=None,
+    tutorial_link=None,
+    config_path=None,
     max_iterations=5,
     need_user_input=False,
     initial_user_input=None,
+    extract_archives_to=None,
 ):
-    # Load config from YAML and merge with default
-    if not Path(config_path).exists():
-        raise FileNotFoundError(f"Config file not found: {config_path}")
-    config = OmegaConf.load(config_path)
+    # Get the directory of the current file
+    current_file_dir = Path(__file__).parent
+
+    if output_folder is None or not output_folder:
+        working_dir = os.path.join(current_file_dir.parent.parent.parent, "runs")
+        # Get current date in YYYYMMDD format
+        current_date = datetime.now().strftime("%Y%m%d")
+        # Generate a random UUID4
+        random_uuid = uuid.uuid4()
+        # Create the folder name using the pattern
+        folder_name = f"mlzero-{current_date}-{random_uuid}"
+
+        # Create the full path for the new folder
+        output_folder = os.path.join(working_dir, folder_name)
+
+    # Create output directory
+    output_dir = Path(output_folder)
+    output_dir.mkdir(parents=True, exist_ok=False)
+
+    if extract_archives_to is not None:
+        if extract_archives_to and extract_archives_to != input_data_folder:
+            import shutil
+
+            # Create the destination directory if it doesn't exist
+            os.makedirs(extract_archives_to, exist_ok=True)
+
+            # Walk through all files and directories in the source folder
+            for root, dirs, files in os.walk(input_data_folder):
+                # Calculate the relative path from the source folder
+                rel_path = os.path.relpath(root, input_data_folder)
+
+                # Create the corresponding directory structure in the destination
+                if rel_path != ".":
+                    dest_dir = os.path.join(extract_archives_to, rel_path)
+                    os.makedirs(dest_dir, exist_ok=True)
+                else:
+                    dest_dir = extract_archives_to
+
+                # Copy all files in the current directory
+                for file in files:
+                    src_file = os.path.join(root, file)
+                    dest_file = os.path.join(dest_dir, file)
+                    shutil.copy2(src_file, dest_file)  # copy2 preserves metadata
+
+            input_data_folder = extract_archives_to
+            print(
+                f"Note: we strongly recommend using data without archived files. Extracting archived files under {input_data_folder}..."
+            )
+            extract_archives(input_data_folder)
+
+    # Always load default config first
+    default_config_path = current_file_dir / "configs" / "default.yaml"
+    if not default_config_path.exists():
+        raise FileNotFoundError(f"Default config file not found: {default_config_path}")
+
+    config = OmegaConf.load(default_config_path)
+
+    # If config_path is provided, merge it with the default config
+    if config_path is not None:
+        if not Path(config_path).exists():
+            raise FileNotFoundError(f"Config file not found: {config_path}")
+
+        user_config = OmegaConf.load(config_path)
+        config = OmegaConf.merge(config, user_config)
 
     stream_output = config.stream_output
     per_execution_timeout = config.per_execution_timeout
