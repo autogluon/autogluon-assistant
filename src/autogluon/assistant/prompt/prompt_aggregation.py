@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import List
 
-from .data_prompt import generate_data_prompt_with_llm
+from ..agents import DataPerceptionAgent
 from .error_prompt import generate_error_prompt
 from .execution_prompt import generate_execution_prompt
 from .task_prompt import generate_task_prompt
@@ -86,10 +86,9 @@ class PromptGenerator:
         logger.info(f"Saved {prompt_type} prompt to {file_path}")
 
     def generate_initial_prompts(self):
-        data_prompt = generate_data_prompt_with_llm(
+        dp_agent = DataPerceptionAgent(config=self.config)
+        data_prompt = dp_agent(
             input_data_folder=self.input_data_folder,
-            max_chars_per_file=self.config.max_chars_per_file,
-            llm_config=self.config.file_reader,
         )
 
         task_prompt, self.selected_tool = generate_task_prompt(

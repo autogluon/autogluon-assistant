@@ -3,6 +3,10 @@
 stream_output: True
 per_execution_timeout: 86400
 
+# Data Perception
+max_file_group_size_to_show: 5
+num_example_files_to_show: 1
+
 max_chars_per_file: 1024
 max_num_tutorials: 5
 max_user_input_length: 2048
