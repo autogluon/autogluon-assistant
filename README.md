@@ -84,19 +84,19 @@ WIP
 The main script `run.py` provides a command-line interface with the following options:
 
 ```bash
-python run.py -i INPUT_DATA_FOLDER -o OUTPUT_DIR [-c CONFIG_PATH] [-n MAX_ITERATIONS] [--need_user_input]
+python run.py -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS] [--need_user_input]
 ```
 
 Arguments:
 - `-i, --input_data_folder`: Path to the folder containing input data (required)
-- `-o, --output_dir`: Path to the output directory for generated files (required)
+- `-o, --output_dir`: Path to the output directory for generated files (optional)
 - `-c, --config_path`: Path to the configuration file (optional, default config will be used if absence)
 - `-n, --max_iterations`: Maximum number of iterations for code generation (default: 5)
 - `--need_user_input`: Enable user input between iterations (optional flag)
 
 Example:
 ```bash
-python run.py -i ./data -o ./output
+python run.py -i ./data
 ```
 
 
@@ -105,4 +105,16 @@ You can always provide a config to override default config.
 
 
 ## Citation
-(Will be released soon) MLZero: A Multi-Agent System for End-to-end Machine Learning Automation
+If you use Autogluon Assistant (MLZero) in your research, please cite our paper:
+
+```bibtex
+@misc{fang2025mlzeromultiagentendtoendmachine,
+      title={MLZero: A Multi-Agent System for End-to-end Machine Learning Automation}, 
+      author={Haoyang Fang and Boran Han and Nick Erickson and Xiyuan Zhang and Su Zhou and Anirudh Dagar and Jiani Zhang and Ali Caner Turkmen and Cuixiong Hu and Huzefa Rangwala and Ying Nian Wu and Bernie Wang and George Karypis},
+      year={2025},
+      eprint={2505.13941},
+      archivePrefix={arXiv},
+      primaryClass={cs.MA},
+      url={https://arxiv.org/abs/2505.13941}, 
+}
+```
