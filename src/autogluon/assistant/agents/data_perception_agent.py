@@ -1,6 +1,14 @@
+import logging
+import os
 import random
+from collections import defaultdict
 
 from .base_agent import BaseAgent
+from ..reader import LLMFileReader
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 
 def get_all_files(folder_path):
@@ -126,7 +134,7 @@ class DataPerceptionAgent(BaseAgent):
         self.max_file_group_size_to_show = self.config.max_file_group_size_to_show
         self.num_example_files_to_show = self.config.num_example_files_to_show
 
-    def __call__():
+    def __call__(self,):
         llm_reader = LLMFileReader(llm_config=self.config.file_reader)
 
         # Get absolute path of the folder
