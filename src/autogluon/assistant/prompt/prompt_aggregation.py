@@ -10,7 +10,7 @@ from .tutorial_prompt import generate_tutorial_prompt
 from .user_prompt import generate_user_prompt
 
 # Basic configuration
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 
 # Create a logger
 logger = logging.getLogger(__name__)

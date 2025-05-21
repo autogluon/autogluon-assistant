@@ -1,22 +1,25 @@
+import logging
 import re
+
+logger = logging.getLogger(__name__)
 
 
 def write_code_script(script, output_code_file):
     if script:
         # Save the extracted script to the output file
         save_script(script, output_code_file)
-        print(f"Python script extracted and saved to {output_code_file}")
+        logger.brief(f"Python script extracted and saved to {output_code_file}")
     else:
-        print("No Python script found in the response.")
+        logger.brief("No Python script found in the response.")
 
 
 def write_retrieved_context(retrieved_context, output_context_path):
     if retrieved_context:
         # Save the extracted script to the output file
         save_retrieved_context(retrieved_context, output_context_path)
-        print(f"Context retrieved and saved to {output_context_path}")
+        logger.brief(f"Context retrieved and saved to {output_context_path}")
     else:
-        print("No retrieved context.")
+        logger.brief("No retrieved context.")
 
 
 def save_retrieved_context(retrieved_context, output_file):
@@ -38,7 +41,7 @@ def extract_python_script(response):
     if matches:
         return matches[0].strip()
     else:
-        print(f"No python script found in reponse, return the full response instead: {response}")
+        logger.brief(f"No python script found in reponse, return the full response instead: {response}")
         return response
 
 
@@ -49,7 +52,7 @@ def extract_bash_script(response):
     if matches:
         return matches[0].strip()
     else:
-        print(f"No bash script found in reponse, return the full response instead: {response}")
+        logger.brief(f"No bash script found in reponse, return the full response instead: {response}")
         return response
 
 

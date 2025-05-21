@@ -1,0 +1,11 @@
+[server]
+maxUploadSize = 4096
+enableStaticServing = true
+[theme]
+base = "light"
+primaryColor="#4C7DE7"
+backgroundColor="#FFFFFF"
+secondaryBackgroundColor="#fbfcfc"
+textColor="#404040"
+[client]
+showSidebarNavigation = true

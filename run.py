@@ -33,7 +33,6 @@ def main():
 
     args = parser.parse_args()
 
-
     # Generate and execute code
     run_agent(
         input_data_folder=args.input_data_folder,

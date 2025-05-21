@@ -288,7 +288,7 @@ def generate_task_prompt(data_prompt: str, output_folder: str, llm_config) -> st
 
     # Step 1: Find description files (just identifies files, doesn't read content)
     description_files, description_analysis = find_description_files(data_prompt, llm_find_description_files)
-    logger.info(f"Found {len(description_files)} potential description files: {description_files}")
+    logger.brief(f"Found {len(description_files)} potential description files: {description_files}")
 
     # Step 2: Generate task description (includes reading file contents)
     task_description = generate_task_description(
