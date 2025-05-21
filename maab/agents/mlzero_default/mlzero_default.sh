@@ -11,7 +11,7 @@ usage() {
 }
 
 # Default values
-CONDA_ENV="autogluon-assistant"
+CONDA_ENV="mlzero"
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do

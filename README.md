@@ -79,7 +79,7 @@ We support two ways of using AutoGluon Assistant: WebUI or CLI.
 ### Web UI
 WIP
 
-### CLI (WIP for Better CLI)
+### CLI
 
 The main script `run.py` provides a command-line interface with the following options:
 
@@ -101,7 +101,7 @@ Arguments:
 
 You can control the logging level via CLI flags:
 
-- `-v`: Enables `INFO` level logs
+- `-v`: Enables `INFO` level logs2 
 - `-vv`: Enables `DEBUG` level logs
 - `-m`, `--model-info`: Enables `MODEL_INFO` level logs (e.g., GPU usage, training details)
 - **No flags**: Defaults to `BRIEF`
