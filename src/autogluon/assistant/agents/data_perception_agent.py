@@ -3,8 +3,8 @@ import os
 import random
 from collections import defaultdict
 
-from .base_agent import BaseAgent
 from ..reader import LLMFileReader
+from .base_agent import BaseAgent
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -127,6 +127,7 @@ class DataPerceptionAgent(BaseAgent):
     Agent Output:
         str: Generated the data prompt
     """
+
     def __init__(self, config, input_data_folder):
         super().__init__(config=config)
         self.input_data_folder = input_data_folder
@@ -134,7 +135,9 @@ class DataPerceptionAgent(BaseAgent):
         self.max_file_group_size_to_show = self.config.max_file_group_size_to_show
         self.num_example_files_to_show = self.config.num_example_files_to_show
 
-    def __call__(self,):
+    def __call__(
+        self,
+    ):
         llm_reader = LLMFileReader(llm_config=self.config.file_reader)
 
         # Get absolute path of the folder
@@ -160,15 +163,15 @@ class DataPerceptionAgent(BaseAgent):
                 # For large groups, show specified number of examples
                 num_examples = min(self.num_example_files_to_show, len(group_files))
                 example_files = random.sample(group_files, num_examples)
-                
+
                 group_info = f"Group pattern: {pattern_path} (total {len(group_files)} files)\nExample files:"
-                
+
                 example_contents = []
                 for rel_path, abs_path in example_files:
                     logger.info(f"Reading example file: {abs_path}")
                     content = llm_reader(file_path=abs_path, max_chars=self.max_chars_per_file)
                     example_contents.append(f"Absolute path: {abs_path}\nContent:\n{content}")
-                
+
                 file_contents[group_info] = "\n" + ("-" * 5) + "\n".join(example_contents)
             else:
                 # For small groups, show all files

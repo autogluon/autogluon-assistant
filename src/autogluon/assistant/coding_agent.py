@@ -1,113 +1,15 @@
 import os
-import subprocess
-import sys
 import uuid
 from datetime import datetime
 from pathlib import Path
 
 from omegaconf import OmegaConf
 
+from .agents import ExecuterAgent
 from .coder import generate_coder, write_code_script, write_retrieved_context
 from .llm import ChatLLMFactory
-from .planner import get_planner
 from .prompt import PromptGenerator, write_prompt_to_file
 from .utils import extract_archives
-
-
-def execute_bash_script(bash_script, stream_output=True, timeout=3600 * 6):
-    """
-    Execute bash script with real-time output streaming and timeout.
-
-    Args:
-        bash_script (str): The bash script to execute
-        stream_output (bool): Whether to stream output in real-time
-        timeout (int): Maximum execution time in seconds before terminating the process
-
-    Returns:
-        tuple: (success, stdout, stderr)
-    """
-    import select
-    import time
-
-    try:
-        process = subprocess.Popen(
-            ["bash", "-c", bash_script],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,
-        )
-
-        stdout_chunks = []
-        stderr_chunks = []
-
-        # Set up tracking of both output streams
-        streams = [process.stdout, process.stderr]
-
-        # Track start time for timeout
-        start_time = time.time()
-
-        while streams:
-            # Calculate remaining time
-            elapsed_time = time.time() - start_time
-            remaining_time = max(0, timeout - elapsed_time)
-
-            # Check if we've exceeded timeout
-            if remaining_time == 0:
-                process.terminate()
-                time.sleep(10)  # Give it a moment to terminate gracefully
-                if process.poll() is None:  # If still running
-                    process.kill()  # Force kill
-                stderr_chunks.append(f"\nProcess timed out after {timeout} seconds\n")
-                if stream_output:
-                    sys.stderr.write(f"\nProcess timed out after {timeout} seconds\n")
-                    sys.stderr.flush()
-                break
-
-            # Wait for output on either stream with timeout
-            # select.select returns empty lists if the timeout elapses
-            readable, _, _ = select.select(streams, [], [], min(1, remaining_time))
-
-            # If nothing was read but process is still running, continue the loop
-            if not readable and process.poll() is None:
-                continue
-
-            # If nothing was read and process exited, exit loop
-            if not readable and process.poll() is not None:
-                break
-
-            for stream in readable:
-                line = stream.readline()
-                if not line:  # EOF
-                    streams.remove(stream)
-                    continue
-
-                # Handle stdout
-                if stream == process.stdout:
-                    stdout_chunks.append(line)
-                    if stream_output:
-                        sys.stdout.write(line)
-                        sys.stdout.flush()
-                # Handle stderr
-                else:
-                    stderr_chunks.append(line)
-                    if stream_output:
-                        sys.stderr.write(line)
-                        sys.stderr.flush()
-
-        # Wait for process to complete (should already be done, but just in case)
-        if process.poll() is None:
-            try:
-                process.wait(timeout=1)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                stderr_chunks.append("Process forcibly terminated after timeout\n")
-
-        success = process.returncode == 0
-        return success, "".join(stdout_chunks), "".join(stderr_chunks)
-
-    except Exception as e:
-        return False, "", f"Error executing bash script: {str(e)}"
 
 
 def save_iteration_state(
@@ -238,8 +140,16 @@ def run_agent(
     python_coder = generate_coder(llm_config=config.coder, tutorial_link_for_rag=tutorial_link)
     bash_coder = generate_coder(llm_config=config.coder, tutorial_link_for_rag=tutorial_link)
 
-    # Initialize log evaluation agent
-    planner = get_planner(config.planner)
+    # Initialize executer agent
+    # TODO: add executer_prompt_template in args
+    executer = ExecuterAgent(
+        config=config,
+        language="bash",
+        stream_output=stream_output,
+        timeout=per_execution_timeout,
+        executer_llm_config=config.executer,
+        executer_prompt_template=None,
+    )
 
     iteration = 0
     while iteration < max_iterations:
@@ -295,20 +205,9 @@ def run_agent(
 
         prompt_generator.update_bash_script(bash_script=generated_bash_script)
 
-        # Attempt to execute the generated code
-        success, stdout, stderr = execute_bash_script(
-            bash_script=generated_bash_script, stream_output=stream_output, timeout=per_execution_timeout
-        )
-
-        # Initialize log evaluation variables
-        planner_decision = None
-        planner_error_summary = None
-
-        # Even though execution succeeded, evaluate logs to check for issues or poor performance
-        planner_decision, planner_error_summary, planner_prompt = planner(
-            stdout=stdout,
-            stderr=stderr,
-            python_code=generated_python_code,
+        planner_decision, planner_error_summary, planner_prompt, stderr, stdout = executer(
+            code_to_execute=generated_bash_script,
+            code_to_analyze=generated_python_code,
             task_prompt=prompt_generator.task_prompt,
             data_prompt=prompt_generator.data_prompt,
         )

@@ -29,6 +29,7 @@ llm: &default_llm
   temperature: 0
   verbose: True
   multi_turn: False
+  template: null
 
 coder:
   <<: *default_llm  # Merge llm_config
@@ -37,7 +38,7 @@ coder:
   top_p: 1
   multi_turn: False
 
-planner:
+executer:
   <<: *default_llm  # Merge llm_config
   multi_turn: False
   max_stdout_length: 8192
