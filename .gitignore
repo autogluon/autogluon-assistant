@@ -183,4 +183,12 @@ cython_debug/
 aga-output-*.csv
 
 # ignore the MLAgent output folder
-/output/
+output/
+
+# MLZero Specific
+maab/datasets/
+runs/
+maab/runs/
+
+# OS specific
+*.DS_Store

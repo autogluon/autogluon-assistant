@@ -1,5 +1,6 @@
 VALID_CODING_LANGUAGES = ["python", "bash"]
 LOGO_PATH = "static/page_icon.png"
+DEMO_URL = "https://automl-mm-bench.s3.amazonaws.com/autogluon-assistant/aga-kaggle-demo.mp4"
 
 DEFAULT_SESSION_VALUES = {
     "config_overrides": [],

@@ -103,14 +103,18 @@ def execute_bash_script(bash_script: str, stream_output: bool = True, timeout: f
                     if stream == process.stdout:
                         stdout_chunks.append(line)
                         if stream_output:
-                            sys.stdout.write(line)
-                            sys.stdout.flush()
+                            # sys.stdout.write(line)
+                            # sys.stdout.flush()
+                            # Commented out due to excessive [nltk_data] messages.
+                            logger.model_info(line.rstrip())
                     # Handle stderr
                     else:
                         stderr_chunks.append(line)
                         if stream_output:
-                            sys.stderr.write(line)
-                            sys.stderr.flush()
+                            # sys.stderr.write(line)
+                            # sys.stderr.flush()
+                            # Commented out due to excessive [nltk_data] messages.
+                            logger.model_info(line.rstrip())
 
             progress.update(task, completed=timeout)
 
@@ -197,8 +201,9 @@ def run_agent(
         output_folder = os.path.join(working_dir, folder_name)
 
     # Create output directory
-    output_dir = Path(output_folder)
-    output_dir.mkdir(parents=True, exist_ok=False)
+    output_dir = Path(output_folder).expanduser().resolve()
+    output_dir.parent.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=False, exist_ok=True)
 
     if extract_archives_to is not None:
         if extract_archives_to and extract_archives_to != input_data_folder:
@@ -226,7 +231,7 @@ def run_agent(
                     shutil.copy2(src_file, dest_file)  # copy2 preserves metadata
 
             input_data_folder = extract_archives_to
-            print(
+            logger.warning(
                 f"Note: we strongly recommend using data without archived files. Extracting archived files under {input_data_folder}..."
             )
             extract_archives(input_data_folder)
@@ -276,7 +281,7 @@ def run_agent(
         if need_user_input:
             if iteration > 0:
                 previous_path = os.path.join(output_folder, f"iteration_{iteration-1}")
-                print(f"\n[bold green]Previous iteration files are in:[/bold green] {previous_path}")
+                logger.brief(f"\n[bold green]Previous iteration files are in:[/bold green] {previous_path}")
             if not user_input:
                 user_input = ""
             user_input += input("Enter your inputs for this iteration (press Enter to skip): ")
@@ -352,11 +357,11 @@ def run_agent(
             prompt_generator.update_error_message(error_message=error_message)
 
             # Let the user know we're continuing despite success
-            print(f"[bold red]Code generation failed in iteration[/bold red] {iteration}!")
+            logger.brief(f"[bold red]Code generation failed in iteration[/bold red] {iteration}!")
         else:
             if planner_decision != "FINISH":
-                print(f"[bold red]###INVALID Planner Output:[/bold red] {planner_decision}###")
-            print(f"[bold green]Code generation successful after[/bold green] {iteration + 1} iterations")
+                logger.brief(f"[bold red]###INVALID Planner Output:[/bold red] {planner_decision}###")
+            logger.brief(f"[bold green]Code generation successful after[/bold green] {iteration + 1} iterations")
             prompt_generator.update_error_message(error_message="")
             # Save the current state
             save_iteration_state(iteration_folder, prompt_generator, stdout, stderr)
@@ -372,7 +377,7 @@ def run_agent(
 
         iteration += 1
         if iteration >= max_iterations:
-            print(
+            logger.brief(
                 f"[bold yellow]Warning: Reached maximum iterations ([/bold yellow]{max_iterations}[bold yellow]) without success[/bold yellow]"
             )
 
