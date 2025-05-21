@@ -7,8 +7,8 @@ from streamlit_extras.add_vertical_space import add_vertical_space
 from autogluon.assistant.constants import DEMO_URL
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-static_dir  = os.path.join(current_dir, "static")
-bin_file    = os.path.join(static_dir, "background.png")
+static_dir = os.path.join(current_dir, "static")
+bin_file = os.path.join(static_dir, "background.png")
 
 
 def video():
@@ -118,7 +118,6 @@ def main():
     demo()
     add_vertical_space(5)
     st.markdown("---", unsafe_allow_html=True)
-
 
 
 if __name__ == "__main__":

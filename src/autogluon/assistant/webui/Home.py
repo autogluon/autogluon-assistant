@@ -7,7 +7,6 @@ import streamlit.components.v1 as components
 from autogluon.assistant.constants import DEFAULT_SESSION_VALUES, LOGO_PATH
 from autogluon.assistant.webui.start_page import main as start_page
 
-
 st.set_page_config(
     page_title="AutoGluon Assistant",
     page_icon=LOGO_PATH,
@@ -49,6 +48,7 @@ reload_warning = """
 
 components.html(reload_warning, height=0)
 
+
 def initial_session_state():
     """
     Initial Session State
@@ -59,9 +59,11 @@ def initial_session_state():
                 deepcopy(default_value) if isinstance(default_value, (dict, list)) else default_value
             )
 
+
 def main():
     initial_session_state()
     start_page()
+
 
 if __name__ == "__main__":
     main()

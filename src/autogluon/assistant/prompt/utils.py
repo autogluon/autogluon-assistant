@@ -1,7 +1,7 @@
+import logging
+
 from langchain.prompts.chat import ChatPromptTemplate
 from langchain_core.messages import HumanMessage, SystemMessage
-import logging
-from rich import print
 
 logger = logging.getLogger(__name__)
 

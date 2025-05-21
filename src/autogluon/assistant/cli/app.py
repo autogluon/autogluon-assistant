@@ -2,18 +2,18 @@
 from __future__ import annotations
 
 import logging
-import os
-from datetime import datetime
 from pathlib import Path
+
 import typer
 
 from autogluon.assistant.coding_agent import run_agent
+
+from .. import __file__ as assistant_file
 from .rich_logging import (
     BRIEF_LEVEL,
     MODEL_INFO_LEVEL,
     configure_logging,
 )
-from .. import __file__ as assistant_file
 
 PACKAGE_ROOT = Path(assistant_file).parent
 DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "configs" / "default.yaml"
@@ -24,9 +24,7 @@ app = typer.Typer(add_completion=False)
 @app.callback(invoke_without_command=True)
 def main(
     # === Run parameters ===
-    input_data_folder: str = typer.Option(
-        ..., "-i", "--input", help="Path to data folder"
-    ),
+    input_data_folder: str = typer.Option(..., "-i", "--input", help="Path to data folder"),
     output_dir: Path | None = typer.Option(
         None,
         "-o",
@@ -39,26 +37,15 @@ def main(
         "--config",
         help=f"YAML config file (default: {DEFAULT_CONFIG_PATH})",
     ),
-    max_iterations: int = typer.Option(
-        5, "-n", "--max-iterations", help="Max iteration count"
-    ),
-    need_user_input: bool = typer.Option(
-        False, "--need-user-input", help="Whether to prompt user each iteration"
-    ),
-    initial_user_input: str | None = typer.Option(
-        None, "-u", "--user-input", help="Initial user input"
-    ),
+    max_iterations: int = typer.Option(5, "-n", "--max-iterations", help="Max iteration count"),
+    need_user_input: bool = typer.Option(False, "--need-user-input", help="Whether to prompt user each iteration"),
+    initial_user_input: str | None = typer.Option(None, "-u", "--user-input", help="Initial user input"),
     extract_archives_to: str | None = typer.Option(
         None, "-e", "--extract-to", help="Directory in which to unpack any archives"
     ),
-
     # === Logging parameters ===
-    verbosity: int = typer.Option(
-        0, "-v", "--verbosity", count=True, help="-v => INFO, -vv => DEBUG"
-    ),
-    model_info: bool = typer.Option(
-        False, "-m", "--model-info", help="Show MODEL_INFO level logs"
-    ),
+    verbosity: int = typer.Option(0, "-v", "--verbosity", count=True, help="-v => INFO, -vv => DEBUG"),
+    model_info: bool = typer.Option(False, "-m", "--model-info", help="Show MODEL_INFO level logs"),
 ):
     """
     mlzero: a CLI for running the AutoMLAgent pipeline.
