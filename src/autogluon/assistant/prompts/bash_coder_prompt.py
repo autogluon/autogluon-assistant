@@ -1,0 +1,74 @@
+import logging
+from typing import Dict, Optional, Tuple
+
+from .base_prompt import BasePrompt
+from .utils import extract_bash_script
+
+logger = logging.getLogger(__name__)
+
+
+class BashCoderPrompt(BasePrompt):
+    """Handles prompts for code execution evaluation"""
+
+    def default_template(self) -> str:
+        return """Generate a minimal bash script that will:
+{environment_prompt}
+Execute the Python script: {python_file_path}
+
+### Python code in the script:
+{current_python}
+
+### Previous Error (ignore if it's an error in python code)
+{error_prompt}
+
+### Previous failed bash script:
+{previous_bash}
+
+Notes:
+- Generate a minimal, executable bash script
+- Focus on essential commands only
+- Handle environment and package only if asked or there were errors
+"""
+
+    def build(self, prompt_generator) -> str:
+        """Build a prompt for the LLM to evaluate execution logs."""
+
+        assert prompt_generator.time_step >= 0, "run prompt_generator.step(user_input) before retriving the prompt"
+
+        # TODO: remove the hard code for "install_packages" (add in tool registry if need installation)
+        environment_prompt = self.get_env_prompt(
+            create_venv=prompt_generator.config.create_venv, 
+            install_packages="machine learning" in prompt_generator.selected_tool, 
+            output_folder=prompt_generator.output_folder,
+        )
+
+        # Format the prompt using the template
+        return self.template.format(
+            environment_prompt=environment_prompt,
+            python_file_path=prompt_generator.python_file_path,
+            current_python=prompt_generator.python_code,
+            error_prompt=prompt_generator.previous_error_prompt,
+            previous_bash=prompt_generator.previous_bash_script,
+        )
+
+    def parse(self, response: Dict) -> Tuple[str, Optional[str]]:
+        """Parse the LLM's response to generated python code"""
+
+        generated_bash_script = extract_bash_script(response)
+
+        return generated_bash_script
+
+    def get_env_prompt(self, create_venv, install_packages, output_folder):
+        env_prompt = ""
+        if create_venv:
+            env_prompt = f"""
+Create and configure a conda environment in {output_folder}:
+    - Python version: 3.11
+    - Activate the environment
+    - Install required packages"""
+        elif install_packages:
+            env_prompt = "The environment may not be fully configured. Install any packages required in the python code."
+        else:
+            env_prompt = "The environment is already configured. Do not install or update any package."
+        
+        return env_prompt

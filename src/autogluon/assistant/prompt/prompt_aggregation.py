@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import List
 
 from ..agents import DataPerceptionAgent
+from ..tools_registry import registry
 from .error_prompt import generate_error_prompt
-from .execution_prompt import generate_execution_prompt
 from .task_prompt import generate_task_prompt
 from .tutorial_prompt import generate_tutorial_prompt
 from .user_prompt import generate_user_prompt
@@ -62,6 +62,7 @@ class PromptGenerator:
         self.error_messages: List[str] = []
         self.error_prompts: List[str] = []
         self.python_codes: List[str] = []
+        self.python_file_paths: List[str] = []
         self.bash_scripts: List[str] = []
         self.tutorial_prompts: List[str] = []
 
@@ -89,11 +90,20 @@ class PromptGenerator:
         dp_agent = DataPerceptionAgent(config=self.config, input_data_folder=self.input_data_folder)
         data_prompt = dp_agent()
 
-        task_prompt, self.selected_tool = generate_task_prompt(
+        task_prompt, self.selected_tool, self.task_description = generate_task_prompt(
             data_prompt=data_prompt,
             output_folder=self.output_folder,
             llm_config=self.config.llm,
         )
+
+        # Get tool-specific template and requirements if they exist
+        tool_info = registry.get_tool(self.selected_tool)
+        if not tool_info:
+            raise ValueError(f"Tool {self.selected_tool} not found in registry")
+        # Get tool-specific prompt
+        self.tool_prompt = tool_info.get("prompt_template", "")
+        if isinstance(self.tool_prompt, list):
+            self.tool_prompt = "\n".join(self.tool_prompt)
 
         return {"task_prompt": task_prompt, "data_prompt": data_prompt}
 
@@ -108,6 +118,12 @@ class PromptGenerator:
         assert self.time_step >= 0, "No python code because the prompt generator is not stepped yet."
         assert len(self.python_codes) == self.time_step + 1, "python code is not updated yet"
         return self.python_codes[self.time_step]
+
+    @property
+    def python_file_path(self) -> str:
+        assert self.time_step >= 0, "No python file path because the prompt generator is not stepped yet."
+        assert len(self.python_file_paths) == self.time_step + 1, "python file path is not updated yet"
+        return self.python_file_paths[self.time_step]
 
     @property
     def previous_python_code(self) -> str:
@@ -274,29 +290,13 @@ class PromptGenerator:
 
         return complete_prompt
 
-    def get_execution_prompt(self, python_file_path) -> str:
-        install_packages = "machine learning" in self.selected_tool
-        self.execution_prompt = generate_execution_prompt(
-            output_folder=self.output_folder,
-            python_file_path=python_file_path,
-            create_venv=self.config.create_venv,
-            install_packages=install_packages,
-            previous_bash=self.previous_bash_script,
-            previous_python=self.previous_python_code,
-            current_python=self.python_code,
-            error_message=self.previous_error_message,
-            max_error_message_length=self.config.max_error_message_length,
-        )
-
-        # Save the execution prompt
-        self._save_prompt("execution_prompt", self.execution_prompt, self.time_step)
-
-        return self.execution_prompt
-
-    def update_python_code(self, python_code: str):
+    def update_python_code(self, python_code: str, python_file_path: str):
         """Update the current Python code."""
         assert len(self.python_codes) == self.time_step
+        assert len(self.python_file_paths) == self.time_step
+
         self.python_codes.append(python_code)
+        self.python_file_paths.append(python_file_path)
 
     def update_bash_script(self, bash_script: str):
         """Update the current bash script."""

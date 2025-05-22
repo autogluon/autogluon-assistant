@@ -35,13 +35,6 @@ ERROR_SUMMARY: [Brief summary of errors if any, or "None" if no errors]
 The error summary should be brief but informative enough for another agent to understand what needs to be fixed.
 Even if the code executed without throwing errors, it might still have issues with logic or not meet all requirements."""
 
-    def _truncate_output(self, output: str, max_length: int) -> str:
-        """Helper method to truncate output if it exceeds max length"""
-        if len(output) > max_length:
-            truncated_text = f"\n[...TRUNCATED ({len(output) - max_length} characters)...]\n"
-            return truncated_text + output[-max_length:]
-        return output
-
     def build(self, stdout: str, stderr: str, python_code: str, task_prompt: str, data_prompt: str) -> str:
         """Build a prompt for the LLM to evaluate execution logs."""
 

@@ -124,16 +124,19 @@ class ExecuterAgent(BaseAgent):
     def __init__(self, config, language, stream_output, timeout, executer_llm_config, executer_prompt_template):
         super().__init__(config=config)
         assert language in ["bash", "python"]
+
         self.stream_output = stream_output
         self.timeout = timeout
         self.language = language
         self.executer_llm_config = executer_llm_config
+
         if executer_prompt_template is not None:
             self.executer_prompt_template = executer_prompt_template
         elif self.executer_llm_config.template is not None:
             self.executer_prompt_template = self.executer_llm_config.template
         else:
             self.executer_prompt_template = None
+
         if self.executer_llm_config.multi_turn:
             self.executer_llm = init_llm(
                 llm_config=self.executer_llm_config,

@@ -303,7 +303,7 @@ def generate_task_prompt(data_prompt: str, output_folder: str, llm_config) -> st
         data_prompt=data_prompt, description=task_description, llm=llm_tool_selection
     )
 
-    task_description = wrap_task_description(
+    task_context = wrap_task_description(
         task_description=task_description,
         output_folder=output_folder,
         tool_name=selected_tool,
@@ -327,7 +327,7 @@ def generate_task_prompt(data_prompt: str, output_folder: str, llm_config) -> st
     # Save generated task description
     task_path = os.path.join(output_folder, "task_description.txt")
     with open(task_path, "w") as f:
-        f.write(task_description)
+        f.write(task_context)
     logger.info(f"Generated task description saved to: {task_path}")
 
     # Save tool selection
@@ -338,4 +338,4 @@ def generate_task_prompt(data_prompt: str, output_folder: str, llm_config) -> st
         f.write(explanation)
     logger.info(f"Tool selection log is saved to: {tool_path}")
 
-    return task_description, selected_tool
+    return task_context, selected_tool, task_description

@@ -5,7 +5,7 @@ from pathlib import Path
 
 from omegaconf import OmegaConf
 
-from .agents import ExecuterAgent
+from .agents import CoderAgent, ExecuterAgent
 from .coder import generate_coder, write_code_script, write_retrieved_context
 from .llm import ChatLLMFactory
 from .prompt import PromptGenerator, write_prompt_to_file
@@ -137,8 +137,8 @@ def run_agent(
         output_folder=output_folder,
         config=config,
     )
-    python_coder = generate_coder(llm_config=config.coder, tutorial_link_for_rag=tutorial_link)
-    bash_coder = generate_coder(llm_config=config.coder, tutorial_link_for_rag=tutorial_link)
+    python_coder = CoderAgent(config=config, language="python", coding_mode="coder", llm_config=config.coder, prompt_template=None)  # TODO: support prompt_templates in arguments
+    bash_coder = CoderAgent(config=config, language="bash", coding_mode="coder", llm_config=config.coder, prompt_template=None)  # TODO: support prompt_templates in arguments
 
     # Initialize executer agent
     # TODO: add executer_prompt_template in args
@@ -171,33 +171,17 @@ def run_agent(
 
         prompt_generator.step(user_input=user_input)
 
-        # Generate and save the coding prompt
-        coding_prompt = prompt_generator.get_coding_prompt()
-        coding_prompt_path = os.path.join(iteration_folder, "coding_prompt.txt")
-        write_prompt_to_file(coding_prompt, coding_prompt_path)
-
         # Generate code
-        generated_content = python_coder(prompt=coding_prompt, language="python")
-        generated_python_code = generated_content["code_script"]
+        generated_python_code = python_coder(prompt_generator=prompt_generator)
 
         # Save the python code
         python_file_path = os.path.join(iteration_folder, "generated_code.py")
         write_code_script(generated_python_code, python_file_path)
 
-        # Write retrieved context if present
-        if "retrieved_context" in generated_content:
-            output_context_path = os.path.join(iteration_folder, "retrieved_context.txt")
-            write_retrieved_context(generated_content["retrieved_context"], output_context_path)
-
-        prompt_generator.update_python_code(python_code=generated_python_code)
-
-        # Generate and save the execution prompt
-        execution_prompt = prompt_generator.get_execution_prompt(python_file_path=python_file_path)
-        execution_prompt_path = os.path.join(iteration_folder, "execution_prompt.txt")
-        write_prompt_to_file(execution_prompt, execution_prompt_path)
+        prompt_generator.update_python_code(python_code=generated_python_code, python_file_path=python_file_path)
 
         # Generate bash code
-        generated_bash_script = bash_coder(prompt=execution_prompt, language="bash")["code_script"]
+        generated_bash_script = bash_coder(prompt_generator=prompt_generator)
 
         # Save the bash code
         bash_file_path = os.path.join(iteration_folder, "execution_script.sh")

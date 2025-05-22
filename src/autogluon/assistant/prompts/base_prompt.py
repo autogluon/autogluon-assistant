@@ -42,6 +42,13 @@ class BasePrompt(ABC):
         else:
             self.template = template
 
+    def _truncate_output(self, output: str, max_length: int) -> str:
+        """Helper method to truncate output if it exceeds max length"""
+        if len(output) > max_length:
+            truncated_text = f"\n[...TRUNCATED ({len(output) - max_length} characters)...]\n"
+            return truncated_text + output[-max_length:]
+        return output
+
     @abstractmethod
     def build(self) -> str:
         """Build the prompt string"""
