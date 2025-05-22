@@ -248,47 +248,6 @@ class PromptGenerator:
         assert len(self.tutorial_prompts) == self.time_step
         self.tutorial_prompts.append(tutorial_prompt)
 
-    def get_coding_prompt(self) -> str:
-        """Get the complete iterative prompt.
-
-        Returns:
-            str: The complete prompt combining task, data, user, error and tutorial prompts
-        """
-        assert self.time_step >= 0, "run PromptGenerator.step(user_input) before get the prompt"
-
-        prompt_parts = []
-
-        # if self.time_step == 0 or not self.coder_multi_turn:
-        #   prompt_parts.extend([self.task_prompt, self.data_prompt])
-        # else:
-        #    prompt_parts.append("Fix the error and return the FULL python script instead of only the correction.")  # TODO: A temp fix to avoid LLM only return code patch
-        prompt_parts.extend(
-            [self.task_prompt, self.data_prompt]
-        )  # TODO: Performance Degrade without providing init prompt
-
-        if self.user_input:
-            user_prompt = generate_user_prompt(
-                user_input=self.user_input,
-                max_user_input_length=self.config.max_user_input_length,
-            )
-            prompt_parts.append(user_prompt)
-
-        if self.time_step == 0 or not self.coder_multi_turn:
-            for error_prompt in self.error_prompts:
-                prompt_parts.append(error_prompt)
-        else:
-            prompt_parts.append(self.previous_error_prompt)
-
-        if self.tutorial_prompt:
-            prompt_parts.append(self.tutorial_prompt)
-
-        complete_prompt = "\n\n".join(prompt_parts)
-
-        # Save the complete coding prompt
-        self._save_prompt("complete_coding_prompt", complete_prompt, self.time_step)
-
-        return complete_prompt
-
     def update_python_code(self, python_code: str, python_file_path: str):
         """Update the current Python code."""
         assert len(self.python_codes) == self.time_step
