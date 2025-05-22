@@ -15,7 +15,6 @@ class ExecuterPrompt(BasePrompt):
 {task_prompt}
 {data_prompt}
 ## Python Code
-python
 {python_code}
 
 ## Execution Results

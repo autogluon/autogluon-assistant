@@ -2,9 +2,8 @@ import logging
 from pathlib import Path
 from typing import List
 
-from ..agents import DataPerceptionAgent
+from ..agents import DataPerceptionAgent, ErrorAnalyzerAgent
 from ..tools_registry import registry
-from .error_prompt import generate_error_prompt
 from .task_prompt import generate_task_prompt
 from .tutorial_prompt import generate_tutorial_prompt
 from .user_prompt import generate_user_prompt
@@ -66,6 +65,12 @@ class PromptGenerator:
         self.bash_scripts: List[str] = []
         self.tutorial_prompts: List[str] = []
 
+        self.error_analyzer = ErrorAnalyzerAgent(
+            config=self.config, 
+            llm_config=self.config.error_analyzer, 
+            prompt_template=None,  # TODO: Add prompt_template to argument
+        )
+
         self.time_step = -1
 
     def _save_prompt(self, prompt_type: str, content: str, step: int = None):
@@ -87,13 +92,14 @@ class PromptGenerator:
         logger.info(f"Saved {prompt_type} prompt to {file_path}")
 
     def generate_initial_prompts(self):
-        dp_agent = DataPerceptionAgent(
+        self.dp_agent = DataPerceptionAgent(
             config=self.config,
             input_data_folder=self.input_data_folder,
             reader_llm_config=self.config.reader,
             reader_prompt_template=None,  # TODO: add it to argument
         )
-        data_prompt = dp_agent()
+
+        data_prompt = self.dp_agent()
 
         task_prompt, self.selected_tool, self.task_description = generate_task_prompt(
             data_prompt=data_prompt,
@@ -206,22 +212,13 @@ class PromptGenerator:
         # Save user prompt
         if user_input:
             self._save_prompt("user_prompt", user_prompt, self.time_step)
+        
+        assert len(self.user_inputs) == self.time_step
+        self.user_inputs.append(user_input)
 
         if self.time_step > 0:
-            previous_error_prompt = generate_error_prompt(
-                task_prompt=self.task_prompt,
-                data_prompt=self.data_prompt,
-                user_prompt=user_prompt,
-                python_code=self.previous_python_code,
-                bash_script=self.previous_bash_script,
-                tutorial_prompt=self.previous_tutorial_prompt,
-                error_message=self.previous_error_message,
-                llm_config=self.config.llm,
-                output_folder=self.output_folder,
-                max_error_message_length=self.config.max_error_message_length,
-                error_summary=self.config.error_summary if hasattr(self.config, "error_summary") else True,
-                error_fix=self.config.error_fix if hasattr(self.config, "error_fix") else True,
-            )
+            previous_error_prompt = self.error_analyzer(self)
+
             assert len(self.error_prompts) == self.time_step - 1
             self.error_prompts.append(previous_error_prompt)
 
@@ -247,9 +244,6 @@ class PromptGenerator:
         # Save tutorial prompt
         if tutorial_prompt:
             self._save_prompt("tutorial_prompt", tutorial_prompt, self.time_step)
-
-        assert len(self.user_inputs) == self.time_step
-        self.user_inputs.append(user_input)
 
         assert len(self.tutorial_prompts) == self.time_step
         self.tutorial_prompts.append(tutorial_prompt)

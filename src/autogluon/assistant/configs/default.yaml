@@ -35,17 +35,16 @@ llm: &default_llm
 coder:
   <<: *default_llm  # Merge llm_config
   temperature: 0.5
-  max_tokens: 65536
   top_p: 1
-  multi_turn: False
 
 executer:
   <<: *default_llm  # Merge llm_config
-  multi_turn: False
   max_stdout_length: 8192
   max_stderr_length: 2048
 
 reader:
   <<: *default_llm  # Merge llm_config
-  multi_turn: False
   details: False
+
+error_analyzer:
+  <<: *default_llm  # Merge llm_config
