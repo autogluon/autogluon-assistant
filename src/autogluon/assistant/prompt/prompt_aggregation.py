@@ -9,7 +9,6 @@ from .task_prompt import generate_task_prompt
 from .tutorial_prompt import generate_tutorial_prompt
 from .user_prompt import generate_user_prompt
 
-
 # Create a logger
 logger = logging.getLogger(__name__)
 

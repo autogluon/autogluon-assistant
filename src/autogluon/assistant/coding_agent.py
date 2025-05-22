@@ -25,19 +25,24 @@ from .utils import extract_archives
 logger = logging.getLogger(__name__)
 
 MODEL_INFO_LEVEL = 19
-BRIEF_LEVEL      = 25
+BRIEF_LEVEL = 25
 logging.addLevelName(MODEL_INFO_LEVEL, "MODEL_INFO")
-logging.addLevelName(BRIEF_LEVEL,      "BRIEF")
+logging.addLevelName(BRIEF_LEVEL, "BRIEF")
+
 
 def model_info(self, msg, *args, **kw):
     if self.isEnabledFor(MODEL_INFO_LEVEL):
         self._log(MODEL_INFO_LEVEL, msg, args, **kw)
+
+
 def brief(self, msg, *args, **kw):
     if self.isEnabledFor(BRIEF_LEVEL):
         self._log(BRIEF_LEVEL, msg, args, **kw)
 
+
 logging.Logger.model_info = model_info  # type: ignore
-logging.Logger.brief      = brief       # type: ignore
+logging.Logger.brief = brief  # type: ignore
+
 
 def execute_bash_script(bash_script: str, stream_output: bool = True, timeout: float = 3600 * 6):
     """
@@ -201,10 +206,7 @@ def run_agent(
 ):
 
     if not logger.hasHandlers():
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s %(levelname)s [%(name)s] %(message)s"
-        )
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s [%(name)s] %(message)s")
 
     # Get the directory of the current file
     current_file_dir = Path(__file__).parent
