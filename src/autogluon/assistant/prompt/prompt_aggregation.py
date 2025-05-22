@@ -66,8 +66,8 @@ class PromptGenerator:
         self.tutorial_prompts: List[str] = []
 
         self.error_analyzer = ErrorAnalyzerAgent(
-            config=self.config, 
-            llm_config=self.config.error_analyzer, 
+            config=self.config,
+            llm_config=self.config.error_analyzer,
             prompt_template=None,  # TODO: Add prompt_template to argument
         )
 
@@ -212,7 +212,7 @@ class PromptGenerator:
         # Save user prompt
         if user_input:
             self._save_prompt("user_prompt", user_prompt, self.time_step)
-        
+
         assert len(self.user_inputs) == self.time_step
         self.user_inputs.append(user_input)
 

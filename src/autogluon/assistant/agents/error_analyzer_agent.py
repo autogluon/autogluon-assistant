@@ -22,16 +22,15 @@ class ErrorAnalyzerAgent(BaseAgent):
         self.error_analyzer_llm_config = llm_config
         self.error_analyzer_prompt_template = prompt_template
 
-
         self.error_analyzer_prompt = ErrorAnalyzerPrompt(
-            llm_config=self.error_analyzer_llm_config, 
+            llm_config=self.error_analyzer_llm_config,
             template=self.error_analyzer_prompt_template,
         )
 
         if self.error_analyzer_llm_config.multi_turn:
             self.error_analyzer_llm = init_llm(
                 llm_config=self.error_analyzer_llm_config,
-                agent_name=f"error_analyzer",
+                agent_name="error_analyzer",
                 multi_turn=self.error_analyzer_llm_config.multi_turn,
             )
 
@@ -43,7 +42,7 @@ class ErrorAnalyzerAgent(BaseAgent):
         if not self.error_analyzer_llm_config.multi_turn:
             self.error_analyzer_llm = init_llm(
                 llm_config=self.error_analyzer_llm_config,
-                agent_name=f"error_analyzer",
+                agent_name="error_analyzer",
                 multi_turn=self.error_analyzer_llm_config.multi_turn,
             )
 

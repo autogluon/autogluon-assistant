@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Dict, Optional, Tuple
+from typing import Optional
 
 from .base_prompt import BasePrompt
 
@@ -56,7 +56,7 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
         )
 
     def parse(self, response: str) -> Optional[str]:
-        analysis_match = re.search(r'ERROR_SUMMARY:\s*(.*)', response, re.DOTALL)
+        analysis_match = re.search(r"ERROR_SUMMARY:\s*(.*)", response, re.DOTALL)
         error_analysis
         if analysis_match:
             error_analysis = analysis_match.group(1).strip()
