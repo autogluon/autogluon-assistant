@@ -14,6 +14,7 @@ max_error_message_length: 2048
 max_tutorial_length: 8192
 create_venv: false
 condense_tutorials: True
+use_tutorial_summary: True
 
 # Default LLM Configuration
 # For each agent (coder, etc.) you can use a different one
@@ -47,4 +48,7 @@ reader:
   details: False
 
 error_analyzer:
+  <<: *default_llm  # Merge llm_config
+
+retriever:
   <<: *default_llm  # Merge llm_config

@@ -2,11 +2,9 @@ import logging
 from pathlib import Path
 from typing import List
 
-from ..agents import DataPerceptionAgent, ErrorAnalyzerAgent
+from ..agents import DataPerceptionAgent, ErrorAnalyzerAgent, RetrieverAgent
 from ..tools_registry import registry
 from .task_prompt import generate_task_prompt
-from .tutorial_prompt import generate_tutorial_prompt
-from .user_prompt import generate_user_prompt
 
 # Basic configuration
 logging.basicConfig(level=logging.INFO)
@@ -68,6 +66,12 @@ class PromptGenerator:
         self.error_analyzer = ErrorAnalyzerAgent(
             config=self.config,
             llm_config=self.config.error_analyzer,
+            prompt_template=None,  # TODO: Add prompt_template to argument
+        )
+
+        self.retriever = RetrieverAgent(
+            config=self.config,
+            llm_config=self.config.retriever,
             prompt_template=None,  # TODO: Add prompt_template to argument
         )
 
@@ -204,15 +208,6 @@ class PromptGenerator:
         """
         self.time_step += 1
 
-        user_prompt = generate_user_prompt(
-            user_input=user_input,
-            max_user_input_length=self.config.max_user_input_length,
-        )
-
-        # Save user prompt
-        if user_input:
-            self._save_prompt("user_prompt", user_prompt, self.time_step)
-
         assert len(self.user_inputs) == self.time_step
         self.user_inputs.append(user_input)
 
@@ -225,21 +220,7 @@ class PromptGenerator:
             # Save error prompt
             self._save_prompt("error_prompt", previous_error_prompt, self.time_step - 1)
 
-        tutorial_prompt = generate_tutorial_prompt(
-            task_prompt=self.task_prompt,
-            data_prompt=self.data_prompt,
-            user_prompt=user_prompt,
-            error_prompt=self.previous_error_prompt,
-            tool_name=self.selected_tool,
-            llm_config=self.config.llm,
-            output_folder=self.output_folder,
-            max_num_tutorials=self.config.max_num_tutorials,
-            max_tutorial_length=self.config.max_tutorial_length,
-            condense_tutorials=self.config.condense_tutorials,
-            use_tutorial_summary=(
-                self.config.use_tutorial_summary if hasattr(self.config, "use_tutorial_summary") else True
-            ),
-        )
+        tutorial_prompt = self.retriever(self)
 
         # Save tutorial prompt
         if tutorial_prompt:
