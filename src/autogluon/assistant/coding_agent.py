@@ -43,7 +43,7 @@ def save_iteration_state(
         "error_message.txt": prompt_generator.error_message or "",
         "tutorial_prompt.txt": prompt_generator.tutorial_prompt or "",
         "data_prompt.txt": prompt_generator.data_prompt or "",
-        "task_prompt.txt": prompt_generator.task_prompt or "",
+        "task_description.txt": prompt_generator.task_description or "",
         "stdout.txt": stdout or "",
         "stderr.txt": stderr or "",
     }
@@ -196,7 +196,7 @@ def run_agent(
         planner_decision, planner_error_summary, planner_prompt, stderr, stdout = executer(
             code_to_execute=generated_bash_script,
             code_to_analyze=generated_python_code,
-            task_prompt=prompt_generator.task_prompt,
+            task_description=prompt_generator.task_description,
             data_prompt=prompt_generator.data_prompt,
         )
 

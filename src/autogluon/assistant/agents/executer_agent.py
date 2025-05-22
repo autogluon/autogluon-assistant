@@ -147,7 +147,7 @@ class ExecuterAgent(BaseAgent):
             llm_config=self.executer_llm_config, template=self.executer_prompt_template
         )
 
-    def __call__(self, code_to_execute, code_to_analyze=None, task_prompt=None, data_prompt=None):
+    def __call__(self, code_to_execute, code_to_analyze=None, task_description=None, data_prompt=None):
         if code_to_analyze is None:
             code_to_analyze = code_to_execute
 
@@ -167,7 +167,7 @@ class ExecuterAgent(BaseAgent):
             stdout=stdout,
             stderr=stderr,
             python_code=code_to_analyze,
-            task_prompt=task_prompt,
+            task_description=task_description,
             data_prompt=data_prompt,
         )
 

@@ -12,9 +12,14 @@ class ExecuterPrompt(BasePrompt):
     def default_template(self) -> str:
         """Default template for code execution evaluation"""
         return """You are an expert code evaluator. Analyze the execution results of the following Python code and determine if the execution was successful or if issues need to be fixed.
-{task_prompt}
+
+### Task Descriptions
+{task_description}
+
+### Data Structure
 {data_prompt}
-## Python Code
+
+### Python Code
 {python_code}
 
 ## Execution Results
@@ -35,7 +40,7 @@ ERROR_SUMMARY: [Brief summary of errors if any, or "None" if no errors]
 The error summary should be brief but informative enough for another agent to understand what needs to be fixed.
 Even if the code executed without throwing errors, it might still have issues with logic or not meet all requirements."""
 
-    def build(self, stdout: str, stderr: str, python_code: str, task_prompt: str, data_prompt: str) -> str:
+    def build(self, stdout: str, stderr: str, python_code: str, task_description: str, data_prompt: str) -> str:
         """Build a prompt for the LLM to evaluate execution logs."""
 
         # Truncate outputs if they exceed max length
@@ -44,7 +49,7 @@ Even if the code executed without throwing errors, it might still have issues wi
 
         # Format the prompt using the template
         return self.template.format(
-            task_prompt=task_prompt,
+            task_description=task_description,
             data_prompt=data_prompt,
             python_code=python_code,
             stdout=stdout or "No standard output",

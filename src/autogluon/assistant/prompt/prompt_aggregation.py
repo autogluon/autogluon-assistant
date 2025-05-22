@@ -47,12 +47,10 @@ class PromptGenerator:
         self.coder_multi_turn = config.coder.multi_turn
 
         # Initialize prompts
-        initial_prompts = self.generate_initial_prompts()
-        self.task_prompt = initial_prompts["task_prompt"]
-        self.data_prompt = initial_prompts["data_prompt"]
+        self.generate_initial_prompts()
 
         # Save initial prompts
-        self._save_prompt("task_prompt", self.task_prompt)
+        self._save_prompt("task_description", self.task_description)
         self._save_prompt("data_prompt", self.data_prompt)
 
         self.user_inputs: List[str] = []
@@ -103,10 +101,10 @@ class PromptGenerator:
             reader_prompt_template=None,  # TODO: add it to argument
         )
 
-        data_prompt = self.dp_agent()
+        self.data_prompt = self.dp_agent()
 
-        task_prompt, self.selected_tool, self.task_description = generate_task_prompt(
-            data_prompt=data_prompt,
+        self.selected_tool, self.task_description = generate_task_prompt(
+            data_prompt=self.data_prompt,
             output_folder=self.output_folder,
             llm_config=self.config.llm,
         )
@@ -120,7 +118,6 @@ class PromptGenerator:
         if isinstance(self.tool_prompt, list):
             self.tool_prompt = "\n".join(self.tool_prompt)
 
-        return {"task_prompt": task_prompt, "data_prompt": data_prompt}
 
     @property
     def user_input(self) -> str:

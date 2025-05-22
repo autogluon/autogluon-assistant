@@ -201,64 +201,6 @@ Do not add assumptions or infer unstated information.
         return f"Error generating task description: {str(e)}"
 
 
-def wrap_task_description(task_description: str, output_folder: str, tool_name: str, registry) -> str:
-    """
-    Wraps the task description with standard instructions and tool-specific requirements.
-
-    Args:
-        task_description: Generated description of the data science task
-        output_folder: Path where outputs should be saved
-        tool_name: Name of the selected tool
-        registry: Tool registry containing tool-specific information
-
-    Returns:
-        str: Complete task prompt including general and tool-specific instructions
-    """
-    # Get tool-specific template and requirements if they exist
-    tool_info = registry.get_tool(tool_name)
-    if not tool_info:
-        raise ValueError(f"Tool {tool_name} not found in registry")
-
-    # Get tool-specific template or use default format
-    tool_prompt = tool_info.get("prompt_template", "")
-    if isinstance(tool_prompt, list):
-        tool_prompt = "\n".join(tool_prompt)
-
-    return f"""
-As an AutoML Agent, you will be given a folder containing data and description files. Please generate Python code using {tool_name} to train a predictor and make predictions on test data. Follow these specifications:
-
-ONLY save files to the working directory: {output_folder}.
-
-1. Data preprocessing:
-   - Remove training data samples without valid labels (drop NA values from training dataset ONLY, NOT from test dataset) unless explicitly instructed otherwise.
-   - Remove the unneccesary index column (if applicable)
-
-2. Model training:
-   - Use {tool_name} with appropriate parameters for the task
-   - If a model is trained, save it in a folder with random timestamp within {output_folder}
-
-3. Prediction:
-   - Make predictions on the test data
-   - Save the predicted results to {output_folder}, result file name should be "results", the format and extension should be same as the test data file
-   - Output column names must exactly match those in the training or sample submission files without adding "predicted_" prefixes or creating any new columns.
-
-4. Documentation:
-   - Add a brief docstring at the beginning of the script explaining its purpose and usage
-   - Also include additional installation steps with comments at the beginning of the script
-   - Include comments explaining any complex operations or design decisions
-
-5. Others:
-   - To avoid DDP errors, wrap the code in: if __name__ == "__main__":
-   - Ensure errors are propagated up and not silently caught - do not use try/except blocks unless you explicitly re-raise the exception.
-
-{tool_prompt}
-
-Please provide the complete Python script that accomplishes these tasks, ensuring it's ready to run given the appropriate data inputs.
-
-Task Description: {task_description}
-"""
-
-
 def generate_task_prompt(data_prompt: str, output_folder: str, llm_config) -> str:
     """
     Main function to generate task prompt following two-step process.
@@ -303,39 +245,4 @@ def generate_task_prompt(data_prompt: str, output_folder: str, llm_config) -> st
         data_prompt=data_prompt, description=task_description, llm=llm_tool_selection
     )
 
-    task_context = wrap_task_description(
-        task_description=task_description,
-        output_folder=output_folder,
-        tool_name=selected_tool,
-        registry=registry,
-    )
-
-    # Save results in separate files
-    # Save description file names
-    files_path = os.path.join(output_folder, "description_files.txt")
-    with open(files_path, "w") as f:
-        for filename in description_files:
-            f.write(f"{filename}\n")
-    logger.info(f"Description files list saved to: {files_path}")
-
-    # Save description analysis
-    analysis_path = os.path.join(output_folder, "description_analysis.txt")
-    with open(analysis_path, "w") as f:
-        f.write(description_analysis)
-    logger.info(f"Description analysis saved to: {analysis_path}")
-
-    # Save generated task description
-    task_path = os.path.join(output_folder, "task_description.txt")
-    with open(task_path, "w") as f:
-        f.write(task_context)
-    logger.info(f"Generated task description saved to: {task_path}")
-
-    # Save tool selection
-    tool_path = os.path.join(output_folder, "tool_selection.txt")
-    with open(tool_path, "w") as f:
-        f.write(selected_tool)
-        f.write("\n\n")
-        f.write(explanation)
-    logger.info(f"Tool selection log is saved to: {tool_path}")
-
-    return task_context, selected_tool, task_description
+    return selected_tool, task_description
