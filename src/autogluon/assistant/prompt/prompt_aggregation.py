@@ -87,7 +87,12 @@ class PromptGenerator:
         logger.info(f"Saved {prompt_type} prompt to {file_path}")
 
     def generate_initial_prompts(self):
-        dp_agent = DataPerceptionAgent(config=self.config, input_data_folder=self.input_data_folder)
+        dp_agent = DataPerceptionAgent(
+            config=self.config, 
+            input_data_folder=self.input_data_folder,
+            reader_llm_config=self.config.reader,
+            reader_prompt_template=None,  # TODO: add it to argument
+        )
         data_prompt = dp_agent()
 
         task_prompt, self.selected_tool, self.task_description = generate_task_prompt(

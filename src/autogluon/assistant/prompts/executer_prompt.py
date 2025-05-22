@@ -12,7 +12,8 @@ class ExecuterPrompt(BasePrompt):
     def default_template(self) -> str:
         """Default template for code execution evaluation"""
         return """You are an expert code evaluator. Analyze the execution results of the following Python code and determine if the execution was successful or if issues need to be fixed.
-{task_prompt}{data_prompt}
+{task_prompt}
+{data_prompt}
 ## Python Code
 python
 {python_code}

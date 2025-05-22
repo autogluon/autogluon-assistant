@@ -2,7 +2,7 @@ import logging
 from typing import Dict, Optional, Tuple
 
 from .base_prompt import BasePrompt
-from .utils import extract_bash_script
+from .utils import extract_code
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ Notes:
         )
 
         # Format the prompt using the template
-        return self.template.format(
+        prompt = self.template.format(
             environment_prompt=environment_prompt,
             python_file_path=prompt_generator.python_file_path,
             current_python=prompt_generator.python_code,
@@ -51,12 +51,19 @@ Notes:
             previous_bash=prompt_generator.previous_bash_script,
         )
 
+        # Add format instruction if configured
+        if self.llm_config.add_coding_format_instruction:
+            format_instruction = (
+                "Please format your response with the code in a ```bash``` code block to make it easily extractable."
+            )
+            prompt = f"{prompt}\n\n{format_instruction}"
+
+        return prompt
+
     def parse(self, response: Dict) -> Tuple[str, Optional[str]]:
-        """Parse the LLM's response to generated python code"""
+        """Parse the LLM's response to generated bash code"""
 
-        generated_bash_script = extract_bash_script(response)
-
-        return generated_bash_script
+        return extract_code(response=response, language="bash")
 
     def get_env_prompt(self, create_venv, install_packages, output_folder):
         env_prompt = ""

@@ -3,8 +3,10 @@ import os
 import random
 from collections import defaultdict
 
-from ..reader import LLMFileReader
+from ..prompts import PythonReaderPrompt
 from .base_agent import BaseAgent
+from .executer_agent import ExecuterAgent
+from .utils import init_llm
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -128,18 +130,83 @@ class DataPerceptionAgent(BaseAgent):
         str: Generated the data prompt
     """
 
-    def __init__(self, config, input_data_folder):
+    def __init__(self, config, input_data_folder, reader_llm_config, reader_prompt_template):
         super().__init__(config=config)
         self.input_data_folder = input_data_folder
         self.max_chars_per_file = self.config.max_chars_per_file
         self.max_file_group_size_to_show = self.config.max_file_group_size_to_show
         self.num_example_files_to_show = self.config.num_example_files_to_show
 
+        self.reader_llm_config = reader_llm_config  
+        
+        if reader_prompt_template is not None:
+            self.reader_prompt_template = reader_prompt_template
+        elif self.reader_llm_config.template is not None:
+            self.reader_prompt_template = self.reader_llm_config.template
+        else:
+            self.reader_prompt_template = None
+
+        if self.reader_llm_config.multi_turn:
+            self.reader_llm = init_llm(
+                llm_config=self.reader_llm_config,
+                agent_name=f"{language}_reader",
+                multi_turn=self.reader_llm_config.multi_turn,
+            )
+
+        self.language = "python"
+
+        self.python_reader_prompt = PythonReaderPrompt(
+            llm_config=self.reader_llm_config, template=self.reader_prompt_template
+        )
+
+        self.executer = ExecuterAgent(
+            config=self.config,
+            language="python",
+            stream_output=False,  # TODO: make it configurable
+            timeout=60,  # TODO: make it configurable
+            executer_llm_config=config.executer,
+            executer_prompt_template=None,
+        )
+
+    def read_file(self, file_path, max_chars):
+        #0. init llm
+        if not self.reader_llm_config.multi_turn:
+            self.reader_llm = init_llm(
+                llm_config=self.reader_llm_config,
+                agent_name=f"{self.language}_reader",
+                multi_turn=self.reader_llm_config.multi_turn,
+            )
+
+        #1. generate prompt
+        prompt = self.python_reader_prompt.build(file_path=file_path,max_chars=max_chars)
+
+        #2. generate code
+        response = self.reader_llm.assistant_chat(prompt)
+        generated_python_code = self.python_reader_prompt.parse(response)
+
+        #3. execute code
+        # TODO: add iterative calls if failed
+        planner_decision, planner_error_summary, planner_prompt, stderr, stdout = self.executer(
+            code_to_execute=generated_python_code,
+            code_to_analyze=generated_python_code,
+            task_prompt=prompt,  # use reader's task
+            data_prompt=f"file location: {file_path}",
+        )
+
+        if stdout:
+            result = stdout
+            # Truncate if too long
+            if len(result) > max_chars:
+                result = result[: max_chars - 3] + "..."
+        else:
+            logger.error(f"Error reading file {file_path}: {stderr}")
+            result = f"Error reading file: {stderr}"
+        
+        return result
+
     def __call__(
         self,
     ):
-        llm_reader = LLMFileReader(llm_config=self.config.file_reader)
-
         # Get absolute path of the folder
         abs_folder_path = os.path.abspath(self.input_data_folder)
         logger.info(f"Analyzing folder: {abs_folder_path}")
@@ -169,7 +236,7 @@ class DataPerceptionAgent(BaseAgent):
                 example_contents = []
                 for rel_path, abs_path in example_files:
                     logger.info(f"Reading example file: {abs_path}")
-                    content = llm_reader(file_path=abs_path, max_chars=self.max_chars_per_file)
+                    content = self.read_file(file_path=abs_path, max_chars=self.max_chars_per_file)
                     example_contents.append(f"Absolute path: {abs_path}\nContent:\n{content}")
 
                 file_contents[group_info] = "\n" + ("-" * 5) + "\n".join(example_contents)
@@ -180,7 +247,8 @@ class DataPerceptionAgent(BaseAgent):
 
                     # Use LLM to read file content
                     logger.info(f"Reading file: {abs_path}")
-                    file_contents[file_info] = llm_reader(file_path=abs_path, max_chars=self.max_chars_per_file)
+
+                    file_contents[file_info] = self.read_file(file_path=abs_path, max_chars=self.max_chars_per_file)
 
         # Generate the prompt
         prompt = f"Absolute path to the folder: {abs_folder_path}\n\nFiles structures:\n\n{'-' * 10}\n\n"

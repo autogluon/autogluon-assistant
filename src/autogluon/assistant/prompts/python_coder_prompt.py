@@ -2,7 +2,7 @@ import logging
 from typing import Dict, Optional, Tuple
 
 from .base_prompt import BasePrompt
-from .utils import extract_python_script
+from .utils import extract_code
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ ONLY save files to the working directory: {output_folder}.
    - Output column names must exactly match those in the training or sample submission files without adding "predicted_" prefixes or creating any new columns.
 
 4. Documentation:
-   - Add a brief docstring at the beginning of the script explaining its purpose and usage
+   - Add a brief docstring at the beginning of the script explaining its purpose
    - Also include additional installation steps with comments at the beginning of the script
    - Include comments explaining any complex operations or design decisions
 
@@ -70,7 +70,7 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             user_prompt = "N/A"
 
         # Format the prompt using the template
-        return self.template.format(
+        prompt = self.template.format(
             output_folder=prompt_generator.output_folder,
             selected_tool=prompt_generator.selected_tool,
             tool_prompt=prompt_generator.tool_prompt,
@@ -81,9 +81,16 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             tutorial_prompt=prompt_generator.tutorial_prompt,
         )
 
+        # Add format instruction if configured
+        if self.llm_config.add_coding_format_instruction:
+            format_instruction = (
+                "Please format your response with the code in a ```python``` code block to make it easily extractable."
+            )
+            prompt = f"{prompt}\n\n{format_instruction}"
+
+        return prompt
+
     def parse(self, response: Dict) -> Tuple[str, Optional[str]]:
         """Parse the LLM's response to generated python code"""
 
-        generated_python_code = extract_python_script(response)
-
-        return generated_python_code
+        return extract_code(response=response, language="python")

@@ -1,33 +1,45 @@
 import re
 
 
-def extract_python_script(response):
+def _extract_python_script(response):
     # Look for Python code blocks in the response
-    pattern = r"```python\n(.*?)```"
+    pattern = r"```python\s*\n(.*?)```"
     matches = re.findall(pattern, response, re.DOTALL)
-
     if matches:
         return matches[0].strip()
     else:
-        print(f"No python script found in reponse, return the full response instead: {response}")
-        return response
+        return None
 
-
-def extract_bash_script(response):
+def _extract_bash_script(response):
     # Look for Bash code blocks in the response
-    pattern = r"```bash\n(.*?)```"
+    pattern = r"```bash\s*\n(.*?)```"
     matches = re.findall(pattern, response, re.DOTALL)
     if matches:
         return matches[0].strip()
     else:
-        print(f"No bash script found in reponse, return the full response instead: {response}")
-        return response
+        return None
 
-
-def extract_script(response, language):
+def extract_code(response, language):
+    result = None
+    
     if language == "python":
-        return extract_python_script(response)
+        result = _extract_python_script(response)
     elif language == "bash":
-        return extract_bash_script(response)
+        result = _extract_bash_script(response)
     else:
-        raise ValueError(f"Unsupported mode: {language}")
+        raise ValueError(f"Unsupported language: {language}")
+    
+    # If language-specific extraction failed, fallback to generic code blocks
+    if result is None:
+        print(f"No code block found for {language}, looking for the code wrapped without language specified")
+        pattern = r"```\s*\n(.*?)```"
+        matches = re.findall(pattern, response, re.DOTALL)
+        if matches:
+            result = matches[0].strip()
+    
+    # If still nothing found, return the full response
+    if result is None:
+        print(f"No code block found, return the full response instead: {response}")
+        result = response
+    
+    return result
