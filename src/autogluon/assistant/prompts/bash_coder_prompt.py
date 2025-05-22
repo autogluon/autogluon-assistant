@@ -37,8 +37,8 @@ Notes:
 
         # TODO: remove the hard code for "install_packages" (add in tool registry if need installation)
         environment_prompt = self.get_env_prompt(
-            create_venv=prompt_generator.config.create_venv, 
-            install_packages="machine learning" in prompt_generator.selected_tool, 
+            create_venv=prompt_generator.config.create_venv,
+            install_packages="machine learning" in prompt_generator.selected_tool,
             output_folder=prompt_generator.output_folder,
         )
 
@@ -74,8 +74,10 @@ Create and configure a conda environment in {output_folder}:
     - Activate the environment
     - Install required packages"""
         elif install_packages:
-            env_prompt = "The environment may not be fully configured. Install any packages required in the python code."
+            env_prompt = (
+                "The environment may not be fully configured. Install any packages required in the python code."
+            )
         else:
             env_prompt = "The environment is already configured. Do not install or update any package."
-        
+
         return env_prompt

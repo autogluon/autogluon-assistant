@@ -137,8 +137,8 @@ class DataPerceptionAgent(BaseAgent):
         self.max_file_group_size_to_show = self.config.max_file_group_size_to_show
         self.num_example_files_to_show = self.config.num_example_files_to_show
 
-        self.reader_llm_config = reader_llm_config  
-        
+        self.reader_llm_config = reader_llm_config
+
         if reader_prompt_template is not None:
             self.reader_prompt_template = reader_prompt_template
         elif self.reader_llm_config.template is not None:
@@ -169,7 +169,7 @@ class DataPerceptionAgent(BaseAgent):
         )
 
     def read_file(self, file_path, max_chars):
-        #0. init llm
+        # 0. init llm
         if not self.reader_llm_config.multi_turn:
             self.reader_llm = init_llm(
                 llm_config=self.reader_llm_config,
@@ -177,14 +177,14 @@ class DataPerceptionAgent(BaseAgent):
                 multi_turn=self.reader_llm_config.multi_turn,
             )
 
-        #1. generate prompt
-        prompt = self.python_reader_prompt.build(file_path=file_path,max_chars=max_chars)
+        # 1. generate prompt
+        prompt = self.python_reader_prompt.build(file_path=file_path, max_chars=max_chars)
 
-        #2. generate code
+        # 2. generate code
         response = self.reader_llm.assistant_chat(prompt)
         generated_python_code = self.python_reader_prompt.parse(response)
 
-        #3. execute code
+        # 3. execute code
         # TODO: add iterative calls if failed
         planner_decision, planner_error_summary, planner_prompt, stderr, stdout = self.executer(
             code_to_execute=generated_python_code,
@@ -201,7 +201,7 @@ class DataPerceptionAgent(BaseAgent):
         else:
             logger.error(f"Error reading file {file_path}: {stderr}")
             result = f"Error reading file: {stderr}"
-        
+
         return result
 
     def __call__(

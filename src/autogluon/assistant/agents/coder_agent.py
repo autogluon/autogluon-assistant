@@ -26,9 +26,14 @@ class CoderAgent(BaseAgent):
         self.coder_llm_config = llm_config
         self.coder_prompt_template = prompt_template
 
-        prompt_mapping = {"bash": {"reader": None, "coder": BashCoderPrompt}, "python": {"reader": None, "coder": PythonCoderPrompt}}
+        prompt_mapping = {
+            "bash": {"reader": None, "coder": BashCoderPrompt},
+            "python": {"reader": None, "coder": PythonCoderPrompt},
+        }
 
-        self.coder_prompt = prompt_mapping[language][coding_mode](llm_config=self.coder_llm_config, template=self.coder_prompt_template)
+        self.coder_prompt = prompt_mapping[language][coding_mode](
+            llm_config=self.coder_llm_config, template=self.coder_prompt_template
+        )
 
         if self.coder_llm_config.multi_turn:
             self.coder_llm = init_llm(
@@ -41,7 +46,6 @@ class CoderAgent(BaseAgent):
 
         # Build prompt for evaluating execution results
         prompt = self.coder_prompt.build(prompt_generator)
-
 
         if not self.coder_llm_config.multi_turn:
             self.coder_llm = init_llm(

@@ -6,9 +6,9 @@ from pathlib import Path
 from omegaconf import OmegaConf
 
 from .agents import CoderAgent, ExecuterAgent
-from .coder import generate_coder, write_code_script, write_retrieved_context
+from .coder import write_code_script
 from .llm import ChatLLMFactory
-from .prompt import PromptGenerator, write_prompt_to_file
+from .prompt import PromptGenerator
 from .utils import extract_archives
 
 
@@ -137,8 +137,12 @@ def run_agent(
         output_folder=output_folder,
         config=config,
     )
-    python_coder = CoderAgent(config=config, language="python", coding_mode="coder", llm_config=config.coder, prompt_template=None)  # TODO: support prompt_templates in arguments
-    bash_coder = CoderAgent(config=config, language="bash", coding_mode="coder", llm_config=config.coder, prompt_template=None)  # TODO: support prompt_templates in arguments
+    python_coder = CoderAgent(
+        config=config, language="python", coding_mode="coder", llm_config=config.coder, prompt_template=None
+    )  # TODO: support prompt_templates in arguments
+    bash_coder = CoderAgent(
+        config=config, language="bash", coding_mode="coder", llm_config=config.coder, prompt_template=None
+    )  # TODO: support prompt_templates in arguments
 
     # Initialize executer agent
     # TODO: add executer_prompt_template in args

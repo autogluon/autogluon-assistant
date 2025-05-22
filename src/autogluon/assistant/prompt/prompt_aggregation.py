@@ -88,7 +88,7 @@ class PromptGenerator:
 
     def generate_initial_prompts(self):
         dp_agent = DataPerceptionAgent(
-            config=self.config, 
+            config=self.config,
             input_data_folder=self.input_data_folder,
             reader_llm_config=self.config.reader,
             reader_prompt_template=None,  # TODO: add it to argument
