@@ -1,5 +1,9 @@
 import logging
 import os
+import select
+import subprocess
+import sys
+import time
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -9,11 +13,28 @@ from omegaconf import OmegaConf
 from .managers import Manager
 from .utils import extract_archives
 
-# Basic configuration
-logging.basicConfig(level=logging.INFO)
 
-# Create a logger
 logger = logging.getLogger(__name__)
+
+
+MODEL_INFO_LEVEL = 19
+BRIEF_LEVEL = 25
+logging.addLevelName(MODEL_INFO_LEVEL, "MODEL_INFO")
+logging.addLevelName(BRIEF_LEVEL, "BRIEF")
+
+
+def model_info(self, msg, *args, **kw):
+    if self.isEnabledFor(MODEL_INFO_LEVEL):
+        self._log(MODEL_INFO_LEVEL, msg, args, **kw)
+
+
+def brief(self, msg, *args, **kw):
+    if self.isEnabledFor(BRIEF_LEVEL):
+        self._log(BRIEF_LEVEL, msg, args, **kw)
+
+
+logging.Logger.model_info = model_info  # type: ignore
+logging.Logger.brief = brief  # type: ignore
 
 
 def run_agent(
@@ -26,6 +47,10 @@ def run_agent(
     initial_user_input=None,
     extract_archives_to=None,
 ):
+
+    if not logger.hasHandlers():
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s [%(name)s] %(message)s")
+
     # Get the directory of the current file
     current_file_dir = Path(__file__).parent
 
@@ -42,8 +67,9 @@ def run_agent(
         output_folder = os.path.join(working_dir, folder_name)
 
     # Create output directory
-    output_dir = Path(output_folder)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = Path(output_folder).expanduser().resolve()
+    output_dir.parent.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=False, exist_ok=True)
 
     if extract_archives_to is not None:
         if extract_archives_to and extract_archives_to != input_data_folder:

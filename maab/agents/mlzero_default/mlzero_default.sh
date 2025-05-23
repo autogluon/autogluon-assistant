@@ -4,9 +4,9 @@
 usage() {
     echo "Usage: $0 -training_path <path_to_training_data> -output_dir <path_to_output_folder> [-env <conda_environment>]"
     echo "Options:"
-    echo " -training_path Path to the training data"
-    echo " -output_dir Path to output directory"
-    echo " -env Conda environment name (default: mlzero)"
+    echo "  -training_path  Path to the training data"
+    echo "  -output_dir     Path to output directory"
+    echo "  -env            Conda environment name (default: mlzero)"
     exit 1
 }
 
@@ -54,7 +54,7 @@ if ! conda activate "$CONDA_ENV"; then
 fi
 
 # Run the agent with integrated code generation and execution
-python3 /media/agent/autogluon-assistant/run.py \
+mlzero \
     -i "$TRAINING_PATH" \
     -o "$OUTPUT_DIR" \
     -n 5 \

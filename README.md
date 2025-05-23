@@ -79,24 +79,46 @@ We support two ways of using AutoGluon Assistant: WebUI or CLI.
 ### Web UI
 WIP
 
-### CLI (WIP for Better CLI)
+### CLI
 
 The main script `run.py` provides a command-line interface with the following options:
 
 ```bash
-python run.py -i INPUT_DATA_FOLDER -o OUTPUT_DIR [-c CONFIG_PATH] [-n MAX_ITERATIONS] [--need_user_input]
+mlzero -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS] [--need_user_input] [-u INITIAL_USER_INPUT] [-e EXTRACT_TO] [-v|-vv] [-m]
 ```
 
 Arguments:
-- `-i, --input_data_folder`: Path to the folder containing input data (required)
-- `-o, --output_dir`: Path to the output directory for generated files (required)
-- `-c, --config_path`: Path to the configuration file (optional, default config will be used if absence)
-- `-n, --max_iterations`: Maximum number of iterations for code generation (default: 5)
-- `--need_user_input`: Enable user input between iterations (optional flag)
+
+- `-i, --input`: Path to the folder containing input data (required)
+- `-o, --output`: Path to the output directory for generated files (optional; if omitted, will be auto-created under runs/)
+- `-c, --config`: Path to the configuration YAML file (optional; default is configs/default.yaml)
+- `-n, --max-iterations`: Maximum number of iterations for code generation (default: 5)
+- `--need-user-input`: Enable user input between iterations (optional flag)
+- `-u, --user-input`: Initial user input at the beginning (optional)
+- `-e, --extract-to`: Extract archive files to a separate directory (optional)
+- `-v, --verbosity`: Set verbosity to INFO; use -vv for DEBUG
+- `-m, --model-info`: Show MODEL_INFO level logs
+
+You can control the logging level via CLI flags:
+
+- `-v`: Enables `INFO` level logs2 
+- `-vv`: Enables `DEBUG` level logs
+- `-m`, `--model-info`: Enables `MODEL_INFO` level logs (e.g., GPU usage, training details)
+- **No flags**: Defaults to `BRIEF`
+
+> **Note**: `-v`/`-vv` and `-m` are **mutually exclusive** — only one can be used at a time.
+> ⚠️ **Note**: `--model-info` and `-vv` (debug mode) are still under development and may produce excessive or unfiltered output.
 
 Example:
 ```bash
-python run.py -i ./data -o ./output
+mlzero \
+  -i ./datasets/airbnb_melbourne/training \
+  -o ./output \
+  -c ./my_config.yaml \
+  -n 5 \
+  --need-user-input
+
+mlzero -i ./data_path -o ./output -n 3 -v
 ```
 
 
@@ -105,4 +127,16 @@ You can always provide a config to override default config.
 
 
 ## Citation
-(Will be released soon) MLZero: A Multi-Agent System for End-to-end Machine Learning Automation
+If you use Autogluon Assistant (MLZero) in your research, please cite our paper:
+
+```bibtex
+@misc{fang2025mlzeromultiagentendtoendmachine,
+      title={MLZero: A Multi-Agent System for End-to-end Machine Learning Automation}, 
+      author={Haoyang Fang and Boran Han and Nick Erickson and Xiyuan Zhang and Su Zhou and Anirudh Dagar and Jiani Zhang and Ali Caner Turkmen and Cuixiong Hu and Huzefa Rangwala and Ying Nian Wu and Bernie Wang and George Karypis},
+      year={2025},
+      eprint={2505.13941},
+      archivePrefix={arXiv},
+      primaryClass={cs.MA},
+      url={https://arxiv.org/abs/2505.13941}, 
+}
+```
