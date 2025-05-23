@@ -18,12 +18,13 @@ class RetrieverAgent(BaseAgent):
     Agent Output: Formatted tutorial prompt with selected relevant tutorials
     """
 
-    def __init__(self, config, llm_config, prompt_template):
-        super().__init__(config=config)
+    def __init__(self, config, manager, llm_config, prompt_template):
+        super().__init__(config=config, manager=manager)
         self.retrieval_llm_config = llm_config
         self.retrieval_prompt_template = prompt_template
         self.retrieval_prompt = RetrieverPrompt(
             llm_config=self.retrieval_llm_config,
+            manager=self.manager,
             template=self.retrieval_prompt_template,
         )
 
@@ -34,10 +35,10 @@ class RetrieverAgent(BaseAgent):
                 multi_turn=self.retrieval_llm_config.multi_turn,
             )
 
-    def __call__(self, manager):
+    def __call__(self):
         """Select relevant tutorials and format them into a prompt."""
         # Build prompt for tutorial selection
-        prompt = self.retrieval_prompt.build(manager)
+        prompt = self.retrieval_prompt.build()
 
         if not self.retrieval_llm_config.multi_turn:
             self.retrieval_llm = init_llm(
@@ -98,7 +99,7 @@ class RetrieverAgent(BaseAgent):
             return ""
 
         # Save results if output folder is specified
-        output_folder = self.config.output_folder
+        output_folder = self.manager.output_folder
         if output_folder:
             self._save_selection_results(Path(output_folder), selected_tutorials, formatted_tutorials)
 

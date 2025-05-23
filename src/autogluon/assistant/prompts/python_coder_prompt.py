@@ -58,27 +58,27 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
 {tutorial_prompt}
 """
 
-    def build(self, manager) -> str:
+    def build(self) -> str:
         """Build a prompt for the LLM to evaluate execution logs."""
 
-        assert manager.time_step >= 0, "run manager.step(user_input) before retriving the prompt"
+        assert self.manager.time_step >= 0, "run manager.step(user_input) before retriving the prompt"
 
         # Truncate outputs if they exceed max length
-        if manager.user_input:
-            user_prompt = self._truncate_output(manager.user_input, self.config.max_user_input_length)
+        if self.manager.user_input:
+            user_prompt = self._truncate_output(self.manager.user_input, self.config.max_user_input_length)
         else:
             user_prompt = "N/A"
 
         # Format the prompt using the template
         prompt = self.template.format(
-            output_folder=manager.output_folder,
-            selected_tool=manager.selected_tool,
-            tool_prompt=manager.tool_prompt,
-            task_description=manager.task_description,  # TODO: add task_description in manager
-            data_prompt=manager.data_prompt,
+            output_folder=self.manager.output_folder,
+            selected_tool=self.manager.selected_tool,
+            tool_prompt=self.manager.tool_prompt,
+            task_description=self.manager.task_description,  # TODO: add task_description in manager
+            data_prompt=self.manager.data_prompt,
             user_prompt=user_prompt,
-            error_prompt=manager.previous_error_prompt,
-            tutorial_prompt=manager.tutorial_prompt,
+            error_prompt=self.manager.previous_error_prompt,
+            tutorial_prompt=self.manager.tutorial_prompt,
         )
 
         # Add format instruction if configured

@@ -41,18 +41,18 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
 {tutorial_prompt}
 """
 
-    def build(self, manager) -> str:
+    def build(self) -> str:
         """Build a prompt for the LLM to analyze errors."""
 
         # Format the prompt using the template
         return self.template.format(
-            error_message=manager.previous_error_message,
-            task_description=manager.task_description,
-            data_prompt=manager.data_prompt,
-            user_input=manager.user_input,
-            python_code=manager.previous_python_code,
-            bash_script=manager.previous_bash_script,
-            tutorial_prompt=manager.previous_tutorial_prompt,
+            error_message=self.manager.previous_error_message,
+            task_description=self.manager.task_description,
+            data_prompt=self.manager.data_prompt,
+            user_input=self.manager.user_input,
+            python_code=self.manager.previous_python_code,
+            bash_script=self.manager.previous_bash_script,
+            tutorial_prompt=self.manager.previous_tutorial_prompt,
         )
 
     def parse(self, response: str) -> Optional[str]:

@@ -16,8 +16,8 @@ class CoderAgent(BaseAgent):
     Agent Output:
     """
 
-    def __init__(self, config, language, coding_mode, llm_config, prompt_template):
-        super().__init__(config=config)
+    def __init__(self, config, manager, language, coding_mode, llm_config, prompt_template):
+        super().__init__(config=config, manager=manager)
         assert language in ["bash", "python"]
         assert coding_mode in ["reader", "coder"]
         self.language = language
@@ -32,7 +32,7 @@ class CoderAgent(BaseAgent):
         }
 
         self.coder_prompt = prompt_mapping[language][coding_mode](
-            llm_config=self.coder_llm_config, template=self.coder_prompt_template
+            llm_config=self.coder_llm_config, manager=self.manager, template=self.coder_prompt_template
         )
 
         if self.coder_llm_config.multi_turn:
@@ -42,10 +42,10 @@ class CoderAgent(BaseAgent):
                 multi_turn=self.coder_llm_config.multi_turn,
             )
 
-    def __call__(self, manager):
+    def __call__(self):
 
         # Build prompt for evaluating execution results
-        prompt = self.coder_prompt.build(manager)
+        prompt = self.coder_prompt.build()
 
         if not self.coder_llm_config.multi_turn:
             self.coder_llm = init_llm(

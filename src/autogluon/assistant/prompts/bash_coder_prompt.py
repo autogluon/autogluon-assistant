@@ -30,25 +30,25 @@ Notes:
 - Handle environment and package only if asked or there were errors
 """
 
-    def build(self, manager) -> str:
+    def build(self) -> str:
         """Build a prompt for the LLM to evaluate execution logs."""
 
-        assert manager.time_step >= 0, "run manager.step(user_input) before retriving the prompt"
+        assert self.manager.time_step >= 0, "run manager.step(user_input) before retriving the prompt"
 
         # TODO: remove the hard code for "install_packages" (add in tool registry if need installation)
         environment_prompt = self.get_env_prompt(
-            create_venv=manager.config.create_venv,
-            install_packages="machine learning" in manager.selected_tool,
-            output_folder=manager.output_folder,
+            create_venv=self.manager.config.create_venv,
+            install_packages="machine learning" in self.manager.selected_tool,
+            output_folder=self.manager.output_folder,
         )
 
         # Format the prompt using the template
         prompt = self.template.format(
             environment_prompt=environment_prompt,
-            python_file_path=manager.python_file_path,
-            current_python=manager.python_code,
-            error_prompt=manager.previous_error_prompt,
-            previous_bash=manager.previous_bash_script,
+            python_file_path=self.manager.python_file_path,
+            current_python=self.manager.python_code,
+            error_prompt=self.manager.previous_error_prompt,
+            previous_bash=self.manager.previous_bash_script,
         )
 
         # Add format instruction if configured

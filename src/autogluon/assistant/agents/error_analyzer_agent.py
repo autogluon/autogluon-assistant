@@ -16,14 +16,15 @@ class ErrorAnalyzerAgent(BaseAgent):
     Agent Output:
     """
 
-    def __init__(self, config, llm_config, prompt_template):
-        super().__init__(config=config)
+    def __init__(self, config, manager, llm_config, prompt_template):
+        super().__init__(config=config, manager=manager)
 
         self.error_analyzer_llm_config = llm_config
         self.error_analyzer_prompt_template = prompt_template
 
         self.error_analyzer_prompt = ErrorAnalyzerPrompt(
             llm_config=self.error_analyzer_llm_config,
+            manager=self.manager,
             template=self.error_analyzer_prompt_template,
         )
 
@@ -34,10 +35,10 @@ class ErrorAnalyzerAgent(BaseAgent):
                 multi_turn=self.error_analyzer_llm_config.multi_turn,
             )
 
-    def __call__(self, manager):
+    def __call__(self):
 
         # Build prompt for evaluating execution results
-        prompt = self.error_analyzer_prompt.build(manager)
+        prompt = self.error_analyzer_prompt.build()
 
         if not self.error_analyzer_llm_config.multi_turn:
             self.error_analyzer_llm = init_llm(

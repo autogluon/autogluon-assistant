@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class BasePrompt(ABC):
     """Abstract base class for prompt handling"""
 
-    def __init__(self, llm_config, template=None):
+    def __init__(self, llm_config, manager, template=None):
         """
         Initialize prompt handler with configuration and optional template.
 
@@ -20,7 +20,20 @@ class BasePrompt(ABC):
                      - A string: use as template directly
         """
         self.llm_config = llm_config
+        self.manager = manager
         self.set_template(template)
+
+    def _load_template(self, template_str_or_path):
+        if isinstance(template_str_or_path, str) and template_str_or_path.endswith(".txt"):
+            try:
+                logger.info(f"Loading template from file {template_str_or_path}")
+                with open(template_str_or_path, "r") as f:
+                    self.template = f.read()
+            except Exception as e:
+                logger.warning(f"Failed to load template from file {template}: {e}")
+                self.template = self.default_template()
+        else:
+            self.template = template_str_or_path
 
     def set_template(self, template):
         """
@@ -29,18 +42,12 @@ class BasePrompt(ABC):
         Args:
             template: Can be a file path ending in .txt or a template string
         """
-        if template is None:
-            self.template = self.default_template()
-        elif isinstance(template, str) and template.endswith(".txt"):
-            try:
-                logger.info(f"Loading template from file {template}")
-                with open(template, "r") as f:
-                    self.template = f.read()
-            except Exception as e:
-                logger.warning(f"Failed to load template from file {template}: {e}")
-                self.template = self.default_template()
+        if template is not None:
+            self._load_template(template)
+        elif self.llm_config.template is not None:
+            self._load_template(self.llm_config.template)
         else:
-            self.template = template
+            self.template = self.default_template()
 
     def _truncate_output(self, output: str, max_length: int) -> str:
         """Helper method to truncate output if it exceeds max length"""

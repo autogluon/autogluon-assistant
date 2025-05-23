@@ -130,21 +130,15 @@ class DataPerceptionAgent(BaseAgent):
         str: Generated the data prompt
     """
 
-    def __init__(self, config, input_data_folder, reader_llm_config, reader_prompt_template):
-        super().__init__(config=config)
+    def __init__(self, config, manager, input_data_folder, reader_llm_config, reader_prompt_template):
+        super().__init__(config=config, manager=manager)
         self.input_data_folder = input_data_folder
         self.max_chars_per_file = self.config.max_chars_per_file
         self.max_file_group_size_to_show = self.config.max_file_group_size_to_show
         self.num_example_files_to_show = self.config.num_example_files_to_show
 
         self.reader_llm_config = reader_llm_config
-
-        if reader_prompt_template is not None:
-            self.reader_prompt_template = reader_prompt_template
-        elif self.reader_llm_config.template is not None:
-            self.reader_prompt_template = self.reader_llm_config.template
-        else:
-            self.reader_prompt_template = None
+        self.reader_prompt_template = reader_prompt_template
 
         if self.reader_llm_config.multi_turn:
             self.reader_llm = init_llm(
@@ -156,11 +150,12 @@ class DataPerceptionAgent(BaseAgent):
         self.language = "python"
 
         self.python_reader_prompt = PythonReaderPrompt(
-            llm_config=self.reader_llm_config, template=self.reader_prompt_template
+            llm_config=self.reader_llm_config, manager=self.manager, template=self.reader_prompt_template
         )
 
         self.executer = ExecuterAgent(
             config=self.config,
+            manager=self.manager,
             language="python",
             stream_output=False,  # TODO: make it configurable
             timeout=60,  # TODO: make it configurable

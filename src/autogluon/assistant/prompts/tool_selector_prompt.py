@@ -55,13 +55,13 @@ Selected Library: [library name ONLY]
 Explanation: [detailed explanation of why this library is the best choice, including specific features that match the task requirements]
 """
 
-    def build(self, manager) -> str:
+    def build(self) -> str:
         """Build a prompt for the LLM to select appropriate library."""
 
         # Format the prompt using the template
         return self.template.format(
-            task_description=manager.task_description,
-            data_prompt=manager.data_prompt,
+            task_description=self.manager.task_description,
+            data_prompt=self.manager.data_prompt,
             tools_info=_format_tools_info(registry.tools),
         )
 

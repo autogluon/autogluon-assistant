@@ -18,16 +18,16 @@ Look for files like README, documentation files, or task description files.
 ### Data Structure
 {data_prompt}
 
-Format your response as follows:
+Format your response as follows, do not give explanations:
 Description Files: [list ONLY the absolute path, one per line]
 """
 
-    def build(self, manager) -> str:
+    def build(self) -> str:
         """Build a prompt for the LLM to identify description files."""
 
         # Format the prompt using the template
         return self.template.format(
-            data_prompt=manager.data_prompt,
+            data_prompt=self.manager.data_prompt,
         )
 
     def parse(self, response: str) -> List[str]:

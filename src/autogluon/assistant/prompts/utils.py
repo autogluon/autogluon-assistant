@@ -33,7 +33,7 @@ def extract_code(response, language):
 
     # If language-specific extraction failed, fallback to generic code blocks
     if result is None:
-        print(f"No code block found for {language}, looking for the code wrapped without language specified")
+        logger.warning(f"No code block found for {language}, looking for the code wrapped without language specified")
         pattern = r"```\s*\n(.*?)```"
         matches = re.findall(pattern, response, re.DOTALL)
         if matches:
@@ -41,7 +41,7 @@ def extract_code(response, language):
 
     # If still nothing found, return the full response
     if result is None:
-        print(f"No code block found, return the full response instead: {response}")
+        logger.warning(f"No code block found, return the full response instead: {response}")
         result = response
 
     return result

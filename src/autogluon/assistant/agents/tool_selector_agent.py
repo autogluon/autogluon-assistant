@@ -20,14 +20,15 @@ class ToolSelectorAgent(BaseAgent):
     - str: Selected tool name
     """
 
-    def __init__(self, config, llm_config, prompt_template):
-        super().__init__(config=config)
+    def __init__(self, config, manager, llm_config, prompt_template):
+        super().__init__(config=config, manager=manager)
 
         self.tool_selector_llm_config = llm_config
         self.tool_selector_prompt_template = prompt_template
 
         self.tool_selector_prompt = ToolSelectorPrompt(
             llm_config=self.tool_selector_llm_config,
+            manager=self.manager,
             template=self.tool_selector_prompt_template,
         )
 
@@ -38,10 +39,10 @@ class ToolSelectorAgent(BaseAgent):
                 multi_turn=self.tool_selector_llm_config.multi_turn,
             )
 
-    def __call__(self, manager) -> Tuple[str, str]:
+    def __call__(self) -> Tuple[str, str]:
 
         # Build prompt for tool selection
-        prompt = self.tool_selector_prompt.build(manager)
+        prompt = self.tool_selector_prompt.build()
 
         if not self.tool_selector_llm_config.multi_turn:
             self.tool_selector_llm = init_llm(

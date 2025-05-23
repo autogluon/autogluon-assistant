@@ -1,15 +1,19 @@
 import logging
+import os
 from pathlib import Path
 from typing import List
 
 from ..agents import (
+    CoderAgent,
     DataPerceptionAgent,
     DescriptionFileRetrieverAgent,
     ErrorAnalyzerAgent,
+    ExecuterAgent,
     RetrieverAgent,
     TaskDescriptorAgent,
     ToolSelectorAgent,
 )
+from ..llm import ChatLLMFactory
 from ..tools_registry import registry
 
 # Basic configuration
@@ -54,6 +58,7 @@ class Manager:
 
         self.dp_agent = DataPerceptionAgent(
             config=self.config,
+            manager=self,
             input_data_folder=self.input_data_folder,
             reader_llm_config=self.config.reader,
             reader_prompt_template=None,  # TODO: add it to argument
@@ -61,18 +66,21 @@ class Manager:
 
         self.dfr_agent = DescriptionFileRetrieverAgent(
             config=self.config,
+            manager=self,
             llm_config=self.config.description_file_retriever,
             prompt_template=None,  # TODO: add it to argument
         )
 
         self.td_agent = TaskDescriptorAgent(
             config=self.config,
+            manager=self,
             llm_config=self.config.task_descriptor,
             prompt_template=None,  # TODO: add it to argument
         )
 
         self.ts_agent = ToolSelectorAgent(
             config=self.config,
+            manager=self,
             llm_config=self.config.tool_selector,
             prompt_template=None,  # TODO: add it to argument
         )
@@ -94,15 +102,34 @@ class Manager:
 
         self.error_analyzer = ErrorAnalyzerAgent(
             config=self.config,
+            manager=self,
             llm_config=self.config.error_analyzer,
             prompt_template=None,  # TODO: Add prompt_template to argument
         )
 
         self.retriever = RetrieverAgent(
             config=self.config,
+            manager=self,
             llm_config=self.config.retriever,
             prompt_template=None,  # TODO: Add prompt_template to argument
         )
+
+        self.python_coder = CoderAgent(
+            config=self.config, manager=self, language="python", coding_mode="coder", llm_config=self.config.coder, prompt_template=None
+        )  # TODO: Add prompt_template to argument
+        self.bash_coder = CoderAgent(
+            config=self.config, manager=self, language="bash", coding_mode="coder", llm_config=self.config.coder, prompt_template=None
+        )  # TODO: Add prompt_template to argument
+
+        self.executer = ExecuterAgent(
+            config=self.config,
+            manager=self,
+            language="bash",
+            stream_output=self.config.stream_output,
+            timeout=self.config.per_execution_timeout,
+            executer_llm_config=self.config.executer,
+            executer_prompt_template=None,
+        )  # TODO: Add prompt_template to argument
 
         self.time_step = -1
 
@@ -127,11 +154,11 @@ class Manager:
     def generate_initial_prompts(self):
         self.data_prompt = self.dp_agent()
 
-        self.description_files = self.dfr_agent(manager=self)
+        self.description_files = self.dfr_agent()
 
-        self.task_description = self.td_agent(manager=self)
+        self.task_description = self.td_agent()
 
-        self.selected_tool = self.ts_agent(manager=self)
+        self.selected_tool = self.ts_agent()
 
         # Get tool-specific template and requirements if they exist
         tool_info = registry.get_tool(self.selected_tool)
@@ -219,6 +246,12 @@ class Manager:
         else:
             return ""
 
+    @property
+    def iteration_folder(self) -> str:
+        iter_folder = os.path.join(self.output_folder, f"iteration_{self.time_step}")
+        os.makedirs(iter_folder, exist_ok=True)
+        return iter_folder
+
     def step(self, user_input=None):
         """Step the prompt generator forward.
 
@@ -232,7 +265,7 @@ class Manager:
         self.user_inputs.append(user_input)
 
         if self.time_step > 0:
-            previous_error_prompt = self.error_analyzer(self)
+            previous_error_prompt = self.error_analyzer()
 
             assert len(self.error_prompts) == self.time_step - 1
             self.error_prompts.append(previous_error_prompt)
@@ -240,7 +273,7 @@ class Manager:
             # Save error prompt
             self._save_prompt("error_prompt", previous_error_prompt, self.time_step - 1)
 
-        tutorial_prompt = self.retriever(self)
+        tutorial_prompt = self.retriever()
 
         # Save tutorial prompt
         if tutorial_prompt:
@@ -253,25 +286,70 @@ class Manager:
         with open(output_code_file, "w") as file:
             file.write(script)
 
-    def update_python_code(self, python_code: str, python_file_path: str):
+    def update_python_code(self):
         """Update the current Python code."""
         assert len(self.python_codes) == self.time_step
         assert len(self.python_file_paths) == self.time_step
+
+        python_code = self.python_coder()
+
+        python_file_path = os.path.join(self.iteration_folder, "generated_code.py")
 
         self.write_code_script(python_code, python_file_path)
 
         self.python_codes.append(python_code)
         self.python_file_paths.append(python_file_path)
 
-    def update_bash_script(self, bash_script: str, bash_file_path: str):
+    def update_bash_script(self):
         """Update the current bash script."""
         assert len(self.bash_scripts) == self.time_step
+
+        bash_script = self.bash_coder()
+
+        bash_file_path = os.path.join(self.iteration_folder, "execution_script.sh")
 
         self.write_code_script(bash_script, bash_file_path)
 
         self.bash_scripts.append(bash_script)
 
+    def execute_code(self):
+        planner_decision, planner_error_summary, planner_prompt, stderr, stdout = self.executer(
+            code_to_execute=self.bash_script,
+            code_to_analyze=self.python_code,
+            task_description=self.task_description,
+            data_prompt=self.data_prompt,
+        )
+
+        if planner_decision == "FIX":
+            logger.info(f"Code generation failed in iteration {self.time_step}!")
+            # Add suggestions to the error message to guide next iteration
+            error_message = f"stderr: {stderr}\n\n" if stderr else ""
+            error_message += (
+                f"Error summary from planner (the error can appear in stdout if it's catched): {planner_error_summary}"
+            )
+            self.update_error_message(error_message=error_message)
+            return False
+        elif planner_decision == "FINISH":
+            logger.info(f"Code generation successful after {self.time_step + 1} iterations")
+            self.update_error_message(error_message="")
+            return True
+        else:
+            logger.warning(f"###INVALID Planner Output: {planner_decision}###")
+            self.update_error_message(error_message="")
+            return False
+
     def update_error_message(self, error_message: str):
         """Update the current error message."""
         assert len(self.error_messages) == self.time_step
         self.error_messages.append(error_message)
+
+    def save_state(self, content, save_name, per_iteration=False):
+        logger.info(f"Saving {output_file}...")
+        if per_iteration:
+            output_file = os.path.join(self.iteration_folder, save_name)
+        with open(output_file, "w") as file:
+            file.write(content)
+
+    def report_token_usage(self):
+        token_usage_path = os.path.join(self.output_folder, "token_usage.json")
+        logger.info(f"Token Usage:\n{ChatLLMFactory.get_total_token_usage(save_path=token_usage_path)}")

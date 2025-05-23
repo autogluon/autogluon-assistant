@@ -76,13 +76,13 @@ For example: "1,3,4" or "2,5" or just "1" if only one is relevant.
 DO NOT include any other text, explanation, or formatting in your response.
 """
 
-    def build(self, manager) -> str:
+    def build(self) -> str:
         """Build a prompt for the LLM to select relevant tutorials."""
 
         # Get tutorial information
-        selected_tool = manager.selected_tool
-        condense_tutorials = manager.config.condense_tutorials
-        use_tutorial_summary = manager.config.use_tutorial_summary
+        selected_tool = self.manager.selected_tool
+        condense_tutorials = self.manager.config.condense_tutorials
+        use_tutorial_summary = self.manager.config.use_tutorial_summary
 
         # Get all available tutorials
         self.tutorials = get_all_tutorials(selected_tool, condensed=condense_tutorials)
@@ -99,12 +99,12 @@ DO NOT include any other text, explanation, or formatting in your response.
 
         # Format the prompt using the template
         return self.template.format(
-            task_description=manager.task_description,
-            data_prompt=manager.data_prompt,
-            user_input=manager.user_input,
-            error_analysis=manager.previous_error_prompt,
+            task_description=self.manager.task_description,
+            data_prompt=self.manager.data_prompt,
+            user_input=self.manager.user_input,
+            error_analysis=self.manager.previous_error_prompt,
             tutorials_info=tutorials_info,
-            max_num_tutorials=manager.config.max_num_tutorials,
+            max_num_tutorials=self.manager.config.max_num_tutorials,
         )
 
     def parse(self, response: str) -> List[int]:
@@ -130,10 +130,10 @@ DO NOT include any other text, explanation, or formatting in your response.
             selected_tutorials = []
             for idx in selected_indices:
                 if 0 <= idx < len(self.tutorials):
-                    selected_tutorials.append(tutorials[idx])
+                    selected_tutorials.append(self.tutorials[idx])
 
-            if len(selected_tutorials) > max_num_tutorials:
-                selected_tutorials = selected_tutorials[:max_num_tutorials]
+            if len(selected_tutorials) > self.manager.config.max_num_tutorials:
+                selected_tutorials = selected_tutorials[:self.manager.config.max_num_tutorials]
             return selected_tutorials
 
         except Exception as e:

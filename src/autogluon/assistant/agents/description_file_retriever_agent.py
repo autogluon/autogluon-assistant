@@ -20,14 +20,15 @@ class DescriptionFileRetrieverAgent(BaseAgent):
     - List[str]: List of identified description filenames
     """
 
-    def __init__(self, config, llm_config, prompt_template):
-        super().__init__(config=config)
+    def __init__(self, config, manager, llm_config, prompt_template):
+        super().__init__(config=config, manager=manager)
 
         self.description_file_retriever_llm_config = llm_config
         self.description_file_retriever_prompt_template = prompt_template
 
         self.description_file_retriever_prompt = DescriptionFileRetrieverPrompt(
             llm_config=self.description_file_retriever_llm_config,
+            manager=self.manager,
             template=self.description_file_retriever_prompt_template,
         )
 
@@ -38,10 +39,10 @@ class DescriptionFileRetrieverAgent(BaseAgent):
                 multi_turn=self.description_file_retriever_llm_config.multi_turn,
             )
 
-    def __call__(self, manager) -> List[str]:
+    def __call__(self) -> List[str]:
 
         # Build prompt for identifying description files
-        prompt = self.description_file_retriever_prompt.build(manager)
+        prompt = self.description_file_retriever_prompt.build()
 
         if not self.description_file_retriever_llm_config.multi_turn:
             self.description_file_retriever_llm = init_llm(

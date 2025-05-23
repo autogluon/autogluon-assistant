@@ -22,11 +22,11 @@ Based ONLY on the information explicitly stated in the provided data structure a
 {description_file_contents}
 """
 
-    def build(self, manager) -> str:
+    def build(self) -> str:
         """Build a prompt for the LLM to generate task description."""
 
         file_contents = []
-        for filename in manager.description_files:
+        for filename in self.manager.description_files:
             try:
                 with open(filename, "r") as f:
                     content = f.read()
@@ -41,7 +41,7 @@ Based ONLY on the information explicitly stated in the provided data structure a
 
         # Format the prompt using the template
         return self.template.format(
-            data_prompt=manager.data_prompt,
+            data_prompt=self.manager.data_prompt,
             description_file_contents=description_file_contents,
         )
 

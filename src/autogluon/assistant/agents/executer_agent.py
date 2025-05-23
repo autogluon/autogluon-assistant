@@ -121,8 +121,8 @@ class ExecuterAgent(BaseAgent):
     Agent Output:
     """
 
-    def __init__(self, config, language, stream_output, timeout, executer_llm_config, executer_prompt_template):
-        super().__init__(config=config)
+    def __init__(self, config, manager, language, stream_output, timeout, executer_llm_config, executer_prompt_template):
+        super().__init__(config=config, manager=manager)
         assert language in ["bash", "python"]
 
         self.stream_output = stream_output
@@ -144,7 +144,7 @@ class ExecuterAgent(BaseAgent):
                 multi_turn=self.executer_llm_config.multi_turn,
             )
         self.executer_prompt = ExecuterPrompt(
-            llm_config=self.executer_llm_config, template=self.executer_prompt_template
+            llm_config=self.executer_llm_config, manager=manager, template=self.executer_prompt_template
         )
 
     def __call__(self, code_to_execute, code_to_analyze=None, task_description=None, data_prompt=None):

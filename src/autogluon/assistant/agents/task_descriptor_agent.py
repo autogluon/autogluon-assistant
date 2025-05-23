@@ -20,14 +20,15 @@ class TaskDescriptorAgent(BaseAgent):
     - Generated task description string
     """
 
-    def __init__(self, config, llm_config, prompt_template):
-        super().__init__(config=config)
+    def __init__(self, config, manager, llm_config, prompt_template):
+        super().__init__(config=config, manager=manager)
 
         self.task_descriptor_llm_config = llm_config
         self.task_descriptor_prompt_template = prompt_template
 
         self.task_descriptor_prompt = TaskDescriptorPrompt(
             llm_config=self.task_descriptor_llm_config,
+            manager=self.manager,
             template=self.task_descriptor_prompt_template,
         )
 
@@ -38,19 +39,15 @@ class TaskDescriptorAgent(BaseAgent):
                 multi_turn=self.task_descriptor_llm_config.multi_turn,
             )
 
-    def __call__(self, manager):
+    def __call__(self,):
         """
         Generate task description based on provided data and analysis.
-
-        Args:
-            manager: Object containing data_prompt, description_files,
-                            and description_analysis attributes
 
         Returns:
             str: Generated task description
         """
         # Build prompt for generating task description
-        prompt = self.task_descriptor_prompt.build(manager)
+        prompt = self.task_descriptor_prompt.build()
 
         if not self.task_descriptor_llm_config.multi_turn:
             self.task_descriptor_llm = init_llm(
