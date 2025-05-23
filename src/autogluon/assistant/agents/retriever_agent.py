@@ -123,15 +123,5 @@ class RetrieverAgent(BaseAgent):
                 for tutorial in selected_tutorials
             ]
 
-            with open(output_folder / "selected_tutorials.json", "w", encoding="utf-8") as f:
-                json.dump(selection_data, f, indent=2)
-
-            contents_folder = output_folder / "tutorial_contents"
-            contents_folder.mkdir(exist_ok=True)
-
-            for i, content in enumerate(formatted_tutorials, 1):
-                with open(contents_folder / f"tutorial_{i}.md", "w", encoding="utf-8") as f:
-                    f.write(content)
-
         except Exception as e:
             logger.error(f"Error saving selection results: {e}")

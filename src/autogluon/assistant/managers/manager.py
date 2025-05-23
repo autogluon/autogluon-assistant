@@ -49,10 +49,6 @@ class Manager:
         # Create output folder if it doesn't exist
         Path(output_folder).mkdir(parents=True, exist_ok=True)
 
-        # Create prompts folder
-        self.prompts_folder = Path(output_folder) / "prompts"
-        self.prompts_folder.mkdir(parents=True, exist_ok=True)
-
         self.config = config
         self.coder_multi_turn = config.coder.multi_turn
 
@@ -87,10 +83,6 @@ class Manager:
 
         # Initialize prompts
         self.generate_initial_prompts()
-
-        # Save initial prompts
-        self._save_prompt("task_description", self.task_description)
-        self._save_prompt("data_prompt", self.data_prompt)
 
         self.user_inputs: List[str] = []
         self.error_messages: List[str] = []
@@ -142,24 +134,6 @@ class Manager:
         )  # TODO: Add prompt_template to argument
 
         self.time_step = -1
-
-    def _save_prompt(self, prompt_type: str, content: str, step: int = None):
-        """Save a prompt to the prompts folder.
-
-        Args:
-            prompt_type: Type of the prompt (e.g., 'task', 'data', 'user')
-            content: The prompt content to save
-            step: Optional step number for iterative prompts
-        """
-        if step is not None:
-            filename = f"{prompt_type}_step_{step}.txt"
-        else:
-            filename = f"{prompt_type}.txt"
-
-        file_path = self.prompts_folder / filename
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(content)
-        logger.info(f"Saved {prompt_type} prompt to {file_path}")
 
     def generate_initial_prompts(self):
         self.data_prompt = self.dp_agent()
@@ -280,14 +254,7 @@ class Manager:
             assert len(self.error_prompts) == self.time_step - 1
             self.error_prompts.append(previous_error_prompt)
 
-            # Save error prompt
-            self._save_prompt("error_prompt", previous_error_prompt, self.time_step - 1)
-
         tutorial_prompt = self.retriever()
-
-        # Save tutorial prompt
-        if tutorial_prompt:
-            self._save_prompt("tutorial_prompt", tutorial_prompt, self.time_step)
 
         assert len(self.tutorial_prompts) == self.time_step
         self.tutorial_prompts.append(tutorial_prompt)
