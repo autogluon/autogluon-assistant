@@ -34,10 +34,10 @@ class ErrorAnalyzerAgent(BaseAgent):
                 multi_turn=self.error_analyzer_llm_config.multi_turn,
             )
 
-    def __call__(self, prompt_generator):
+    def __call__(self, manager):
 
         # Build prompt for evaluating execution results
-        prompt = self.error_analyzer_prompt.build(prompt_generator)
+        prompt = self.error_analyzer_prompt.build(manager)
 
         if not self.error_analyzer_llm_config.multi_turn:
             self.error_analyzer_llm = init_llm(

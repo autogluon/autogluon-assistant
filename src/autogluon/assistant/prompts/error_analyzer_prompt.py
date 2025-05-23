@@ -41,23 +41,23 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
 {tutorial_prompt}
 """
 
-    def build(self, prompt_generator) -> str:
+    def build(self, manager) -> str:
         """Build a prompt for the LLM to analyze errors."""
 
         # Format the prompt using the template
         return self.template.format(
-            error_message=prompt_generator.previous_error_message,
-            task_description=prompt_generator.task_description,
-            data_prompt=prompt_generator.data_prompt,
-            user_input=prompt_generator.user_input,
-            python_code=prompt_generator.previous_python_code,
-            bash_script=prompt_generator.previous_bash_script,
-            tutorial_prompt=prompt_generator.previous_tutorial_prompt,
+            error_message=manager.previous_error_message,
+            task_description=manager.task_description,
+            data_prompt=manager.data_prompt,
+            user_input=manager.user_input,
+            python_code=manager.previous_python_code,
+            bash_script=manager.previous_bash_script,
+            tutorial_prompt=manager.previous_tutorial_prompt,
         )
 
     def parse(self, response: str) -> Optional[str]:
         analysis_match = re.search(r"ERROR_SUMMARY:\s*(.*)", response, re.DOTALL)
-        error_analysis
+
         if analysis_match:
             error_analysis = analysis_match.group(1).strip()
         else:

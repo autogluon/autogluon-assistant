@@ -6,15 +6,14 @@ from pathlib import Path
 from omegaconf import OmegaConf
 
 from .agents import CoderAgent, ExecuterAgent
-from .coder import write_code_script
 from .llm import ChatLLMFactory
-from .prompt import PromptGenerator
+from .managers import Manager
 from .utils import extract_archives
 
 
 def save_iteration_state(
     iteration_folder,
-    prompt_generator,
+    manager,
     stdout,
     stderr,
     planner_decision=None,
@@ -25,7 +24,7 @@ def save_iteration_state(
 
     Args:
         iteration_folder (str): Path to the current iteration folder
-        prompt_generator (PromptGenerator): Current prompt generator instance
+        manager (Manager): Current prompt generator instance
         stdout (str): Standard output from execution
         stderr (str): Standard error from execution
         planner_decision (str, optional): Decision from log evaluation (planner agent)
@@ -37,13 +36,13 @@ def save_iteration_state(
 
     # Save each state component to a separate file
     state_files = {
-        "user_input.txt": prompt_generator.user_input or "",
-        "python_code.py": prompt_generator.python_code or "",
-        "bash_script.sh": prompt_generator.bash_script or "",
-        "error_message.txt": prompt_generator.error_message or "",
-        "tutorial_prompt.txt": prompt_generator.tutorial_prompt or "",
-        "data_prompt.txt": prompt_generator.data_prompt or "",
-        "task_description.txt": prompt_generator.task_description or "",
+        "user_input.txt": manager.user_input or "",
+        "python_code.py": manager.python_code or "",
+        "bash_script.sh": manager.bash_script or "",
+        "error_message.txt": manager.error_message or "",
+        "tutorial_prompt.txt": manager.tutorial_prompt or "",
+        "data_prompt.txt": manager.data_prompt or "",
+        "task_description.txt": manager.task_description or "",
         "stdout.txt": stdout or "",
         "stderr.txt": stderr or "",
     }
@@ -132,7 +131,7 @@ def run_agent(
     stream_output = config.stream_output
     per_execution_timeout = config.per_execution_timeout
 
-    prompt_generator = PromptGenerator(
+    manager = Manager(
         input_data_folder=input_data_folder,
         output_folder=output_folder,
         config=config,
@@ -173,31 +172,29 @@ def run_agent(
                 print(f"\nPrevious iteration files are in: {os.path.join(output_folder, f'iteration_{iteration-1}')}")
             user_input += input("Enter your inputs for this iteration (press Enter to skip): ")
 
-        prompt_generator.step(user_input=user_input)
+        manager.step(user_input=user_input)
 
         # Generate code
-        generated_python_code = python_coder(prompt_generator=prompt_generator)
+        generated_python_code = python_coder(manager=manager)
 
-        # Save the python code
+        # TODO: ask manager the file path
         python_file_path = os.path.join(iteration_folder, "generated_code.py")
-        write_code_script(generated_python_code, python_file_path)
 
-        prompt_generator.update_python_code(python_code=generated_python_code, python_file_path=python_file_path)
+        manager.update_python_code(python_code=generated_python_code, python_file_path=python_file_path)
 
         # Generate bash code
-        generated_bash_script = bash_coder(prompt_generator=prompt_generator)
+        generated_bash_script = bash_coder(manager=manager)
 
-        # Save the bash code
+        # TODO: ask manager the file path
         bash_file_path = os.path.join(iteration_folder, "execution_script.sh")
-        write_code_script(generated_bash_script, bash_file_path)
 
-        prompt_generator.update_bash_script(bash_script=generated_bash_script)
+        manager.update_bash_script(bash_script=generated_bash_script, bash_file_path=bash_file_path)
 
         planner_decision, planner_error_summary, planner_prompt, stderr, stdout = executer(
             code_to_execute=generated_bash_script,
             code_to_analyze=generated_python_code,
-            task_description=prompt_generator.task_description,
-            data_prompt=prompt_generator.data_prompt,
+            task_description=manager.task_description,
+            data_prompt=manager.data_prompt,
         )
 
         # Save planner results
@@ -214,7 +211,7 @@ def run_agent(
             error_message += (
                 f"Error summary from planner (the error can appear in stdout if it's catched): {planner_error_summary}"
             )
-            prompt_generator.update_error_message(error_message=error_message)
+            manager.update_error_message(error_message=error_message)
 
             # Let the user know we're continuing despite success
             print(f"Code generation failed in iteration {iteration}!")
@@ -222,15 +219,15 @@ def run_agent(
             if planner_decision != "FINISH":
                 print(f"###INVALID Planner Output: {planner_decision}###")
             print(f"Code generation successful after {iteration + 1} iterations")
-            prompt_generator.update_error_message(error_message="")
+            manager.update_error_message(error_message="")
             # Save the current state
-            save_iteration_state(iteration_folder, prompt_generator, stdout, stderr)
+            save_iteration_state(iteration_folder, manager, stdout, stderr)
             break
 
         # Save the current state
         save_iteration_state(
             iteration_folder,
-            prompt_generator,
+            manager,
             stdout,
             stderr,
         )

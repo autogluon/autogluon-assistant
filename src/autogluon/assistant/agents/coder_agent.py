@@ -42,10 +42,10 @@ class CoderAgent(BaseAgent):
                 multi_turn=self.coder_llm_config.multi_turn,
             )
 
-    def __call__(self, prompt_generator):
+    def __call__(self, manager):
 
         # Build prompt for evaluating execution results
-        prompt = self.coder_prompt.build(prompt_generator)
+        prompt = self.coder_prompt.build(manager)
 
         if not self.coder_llm_config.multi_turn:
             self.coder_llm = init_llm(

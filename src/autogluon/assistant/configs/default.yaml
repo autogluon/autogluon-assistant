@@ -52,3 +52,12 @@ error_analyzer:
 
 retriever:
   <<: *default_llm  # Merge llm_config
+
+description_file_retriever:
+  <<: *default_llm  # Merge llm_config
+
+task_descriptor:
+  <<: *default_llm  # Merge llm_config
+
+tool_selector:
+  <<: *default_llm  # Merge llm_config

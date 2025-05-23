@@ -2,9 +2,8 @@ import logging
 from pathlib import Path
 from typing import List
 
-from ..agents import DataPerceptionAgent, ErrorAnalyzerAgent, RetrieverAgent
+from ..agents import DataPerceptionAgent, DescriptionFileRetrieverAgent, ErrorAnalyzerAgent, RetrieverAgent, TaskDescriptorAgent, ToolSelectorAgent
 from ..tools_registry import registry
-from .task_prompt import generate_task_prompt
 
 # Basic configuration
 logging.basicConfig(level=logging.INFO)
@@ -13,14 +12,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class PromptGenerator:
+class Manager:
     def __init__(
         self,
         input_data_folder: str,
         output_folder: str,
         config: str,
     ):
-        """Initialize PromptGenerator with required paths and config from YAML file.
+        """Initialize Manager with required paths and config from YAML file.
 
         Args:
             input_data_folder: Path to input data directory
@@ -45,6 +44,31 @@ class PromptGenerator:
 
         self.config = config
         self.coder_multi_turn = config.coder.multi_turn
+
+        self.dp_agent = DataPerceptionAgent(
+            config=self.config,
+            input_data_folder=self.input_data_folder,
+            reader_llm_config=self.config.reader,
+            reader_prompt_template=None,  # TODO: add it to argument
+        )
+
+        self.dfr_agent = DescriptionFileRetrieverAgent(
+            config=self.config,
+            llm_config=self.config.description_file_retriever,
+            prompt_template=None,  # TODO: add it to argument
+        )
+
+        self.td_agent = TaskDescriptorAgent(
+            config=self.config,
+            llm_config=self.config.task_descriptor,
+            prompt_template=None,  # TODO: add it to argument
+        )
+
+        self.ts_agent = ToolSelectorAgent(
+            config=self.config,
+            llm_config=self.config.tool_selector,
+            prompt_template=None,  # TODO: add it to argument
+        )
 
         # Initialize prompts
         self.generate_initial_prompts()
@@ -94,20 +118,13 @@ class PromptGenerator:
         logger.info(f"Saved {prompt_type} prompt to {file_path}")
 
     def generate_initial_prompts(self):
-        self.dp_agent = DataPerceptionAgent(
-            config=self.config,
-            input_data_folder=self.input_data_folder,
-            reader_llm_config=self.config.reader,
-            reader_prompt_template=None,  # TODO: add it to argument
-        )
-
         self.data_prompt = self.dp_agent()
 
-        self.selected_tool, self.task_description = generate_task_prompt(
-            data_prompt=self.data_prompt,
-            output_folder=self.output_folder,
-            llm_config=self.config.llm,
-        )
+        self.description_files = self.dfr_agent(manager=self)
+
+        self.task_description = self.td_agent(manager=self)
+
+        self.selected_tool = self.ts_agent(manager=self)
 
         # Get tool-specific template and requirements if they exist
         tool_info = registry.get_tool(self.selected_tool)
@@ -226,17 +243,26 @@ class PromptGenerator:
         assert len(self.tutorial_prompts) == self.time_step
         self.tutorial_prompts.append(tutorial_prompt)
 
+    def write_code_script(self, script, output_code_file):
+        with open(output_code_file, "w") as file:
+            file.write(script)
+
     def update_python_code(self, python_code: str, python_file_path: str):
         """Update the current Python code."""
         assert len(self.python_codes) == self.time_step
         assert len(self.python_file_paths) == self.time_step
 
+        self.write_code_script(python_code, python_file_path)
+
         self.python_codes.append(python_code)
         self.python_file_paths.append(python_file_path)
 
-    def update_bash_script(self, bash_script: str):
+    def update_bash_script(self, bash_script: str, bash_file_path: str):
         """Update the current bash script."""
         assert len(self.bash_scripts) == self.time_step
+
+        self.write_code_script(bash_script, bash_file_path)
+
         self.bash_scripts.append(bash_script)
 
     def update_error_message(self, error_message: str):

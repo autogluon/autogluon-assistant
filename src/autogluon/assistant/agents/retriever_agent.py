@@ -34,10 +34,10 @@ class RetrieverAgent(BaseAgent):
                 multi_turn=self.retrieval_llm_config.multi_turn,
             )
     
-    def __call__(self, prompt_generator):
+    def __call__(self, manager):
         """Select relevant tutorials and format them into a prompt."""
         # Build prompt for tutorial selection
-        prompt = self.retrieval_prompt.build(prompt_generator)
+        prompt = self.retrieval_prompt.build(manager)
         
         if not self.retrieval_llm_config.multi_turn:
             self.retrieval_llm = init_llm(

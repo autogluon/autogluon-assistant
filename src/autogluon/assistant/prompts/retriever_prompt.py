@@ -77,13 +77,13 @@ For example: "1,3,4" or "2,5" or just "1" if only one is relevant.
 DO NOT include any other text, explanation, or formatting in your response.
 """
     
-    def build(self, prompt_generator) -> str:
+    def build(self, manager) -> str:
         """Build a prompt for the LLM to select relevant tutorials."""
         
         # Get tutorial information
-        selected_tool = prompt_generator.selected_tool
-        condense_tutorials = prompt_generator.config.condense_tutorials
-        use_tutorial_summary = prompt_generator.config.use_tutorial_summary
+        selected_tool = manager.selected_tool
+        condense_tutorials = manager.config.condense_tutorials
+        use_tutorial_summary = manager.config.use_tutorial_summary
         
         # Get all available tutorials
         self.tutorials = get_all_tutorials(selected_tool, condensed=condense_tutorials)
@@ -100,12 +100,12 @@ DO NOT include any other text, explanation, or formatting in your response.
         
         # Format the prompt using the template
         return self.template.format(
-            task_description=prompt_generator.task_description,
-            data_prompt=prompt_generator.data_prompt,
-            user_input=prompt_generator.user_input,
-            error_analysis=prompt_generator.previous_error_prompt,
+            task_description=manager.task_description,
+            data_prompt=manager.data_prompt,
+            user_input=manager.user_input,
+            error_analysis=manager.previous_error_prompt,
             tutorials_info=tutorials_info,
-            max_num_tutorials=prompt_generator.config.max_num_tutorials,
+            max_num_tutorials=manager.config.max_num_tutorials,
         )
     
     def parse(self, response: str) -> List[int]:
