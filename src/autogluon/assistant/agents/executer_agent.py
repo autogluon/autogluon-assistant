@@ -1,5 +1,11 @@
 import logging
 
+from rich.progress import (
+    BarColumn,
+    Progress,
+    TextColumn,
+)
+
 from ..prompts import ExecuterPrompt
 from .base_agent import BaseAgent
 from .utils import init_llm
@@ -59,7 +65,7 @@ def execute_code(code, language, stream_output, timeout):
             while streams:
                 # Calculate remaining time
                 elapsed_time = time.time() - start_time
-                progress.update(task, completed=min(elapsed, timeout))
+                progress.update(task, completed=min(elapsed_time, timeout))
                 remaining_time = max(0, timeout - elapsed_time)
 
                 # Check if we've exceeded timeout
