@@ -133,7 +133,7 @@ DO NOT include any other text, explanation, or formatting in your response.
                     selected_tutorials.append(self.tutorials[idx])
 
             if len(selected_tutorials) > self.manager.config.max_num_tutorials:
-                selected_tutorials = selected_tutorials[:self.manager.config.max_num_tutorials]
+                selected_tutorials = selected_tutorials[: self.manager.config.max_num_tutorials]
             return selected_tutorials
 
         except Exception as e:

@@ -39,7 +39,9 @@ class TaskDescriptorAgent(BaseAgent):
                 multi_turn=self.task_descriptor_llm_config.multi_turn,
             )
 
-    def __call__(self,):
+    def __call__(
+        self,
+    ):
         """
         Generate task description based on provided data and analysis.
 

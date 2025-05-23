@@ -121,7 +121,9 @@ class ExecuterAgent(BaseAgent):
     Agent Output:
     """
 
-    def __init__(self, config, manager, language, stream_output, timeout, executer_llm_config, executer_prompt_template):
+    def __init__(
+        self, config, manager, language, stream_output, timeout, executer_llm_config, executer_prompt_template
+    ):
         super().__init__(config=config, manager=manager)
         assert language in ["bash", "python"]
 

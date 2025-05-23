@@ -115,10 +115,20 @@ class Manager:
         )
 
         self.python_coder = CoderAgent(
-            config=self.config, manager=self, language="python", coding_mode="coder", llm_config=self.config.coder, prompt_template=None
+            config=self.config,
+            manager=self,
+            language="python",
+            coding_mode="coder",
+            llm_config=self.config.coder,
+            prompt_template=None,
         )  # TODO: Add prompt_template to argument
         self.bash_coder = CoderAgent(
-            config=self.config, manager=self, language="bash", coding_mode="coder", llm_config=self.config.coder, prompt_template=None
+            config=self.config,
+            manager=self,
+            language="bash",
+            coding_mode="coder",
+            llm_config=self.config.coder,
+            prompt_template=None,
         )  # TODO: Add prompt_template to argument
 
         self.executer = ExecuterAgent(

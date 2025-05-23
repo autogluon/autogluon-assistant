@@ -108,7 +108,9 @@ def run_agent(
         # Get per iter user inputs if needed
         if need_user_input:
             if manager.time_step + 1 > 0:
-                logger.info(f"\nPrevious iteration files are in: {os.path.join(output_folder, f'iteration_{manager.time_step}')}")
+                logger.info(
+                    f"\nPrevious iteration files are in: {os.path.join(output_folder, f'iteration_{manager.time_step}')}"
+                )
             user_input += input("Enter your inputs for this iteration (press Enter to skip): ")
 
         manager.step(user_input=user_input)
