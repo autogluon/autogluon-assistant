@@ -18,7 +18,7 @@ Execute the Python script: {python_file_path}
 ### Python code in the script:
 {current_python}
 
-### Previous Error (ignore if it's an error in python code)
+### Previous Error
 {error_prompt}
 
 ### Previous failed bash script:
@@ -58,12 +58,19 @@ Notes:
             )
             prompt = f"{prompt}\n\n{format_instruction}"
 
+        self.manager.save_and_log_states(content=prompt, save_name="bash_coder_prompt.txt", per_iteration=True, add_uuid=False)
+
         return prompt
 
     def parse(self, response: Dict) -> Tuple[str, Optional[str]]:
         """Parse the LLM's response to generated bash code"""
 
-        return extract_code(response=response, language="bash")
+        extracted_bash_script = extract_code(response=response, language="bash")
+
+        self.manager.save_and_log_states(content=response, save_name="bash_coder_response.txt", per_iteration=True, add_uuid=False)
+        self.manager.save_and_log_states(content=extracted_bash_script, save_name="extracted_bash_script.sh", per_iteration=True, add_uuid=False)
+
+        return extracted_bash_script
 
     def get_env_prompt(self, create_venv, install_packages, output_folder):
         env_prompt = ""
@@ -78,6 +85,6 @@ Create and configure a conda environment in {output_folder}:
                 "The environment may not be fully configured. Install any packages required in the python code."
             )
         else:
-            env_prompt = "The environment is already configured. Do not install or update any package."
+            env_prompt = "The environment is already configured. Do not install or update any package unless there is an error due to the missing package."
 
         return env_prompt

@@ -45,7 +45,7 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
         """Build a prompt for the LLM to analyze errors."""
 
         # Format the prompt using the template
-        return self.template.format(
+        prompt = self.template.format(
             error_message=self.manager.previous_error_message,
             task_description=self.manager.task_description,
             data_prompt=self.manager.data_prompt,
@@ -55,6 +55,10 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
             tutorial_prompt=self.manager.previous_tutorial_prompt,
         )
 
+        self.manager.save_and_log_states(content=prompt, save_name="error_analyzer_prompt.txt", per_iteration=True, add_uuid=False)
+
+        return prompt
+
     def parse(self, response: str) -> Optional[str]:
         analysis_match = re.search(r"ERROR_SUMMARY:\s*(.*)", response, re.DOTALL)
 
@@ -62,4 +66,8 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
             error_analysis = analysis_match.group(1).strip()
         else:
             error_analysis = "Failed to extract error analysis from LLM response."
+
+        self.manager.save_and_log_states(content=response, save_name="error_analyzer_response.txt", per_iteration=True, add_uuid=False)
+        self.manager.save_and_log_states(content=error_analysis, save_name="error_analysis.txt", per_iteration=True, add_uuid=False)
+
         return error_analysis

@@ -1,5 +1,6 @@
 import logging
 import os
+import uuid
 from pathlib import Path
 from typing import List
 
@@ -37,6 +38,8 @@ class Manager:
             output_folder: Path to output directory
             config_path: Path to YAML configuration file
         """
+        self.time_step = -1
+
         # Store required paths
         self.input_data_folder = input_data_folder
         self.output_folder = output_folder
@@ -132,8 +135,6 @@ class Manager:
             executer_llm_config=self.config.executer,
             executer_prompt_template=None,
         )  # TODO: Add prompt_template to argument
-
-        self.time_step = -1
 
     def generate_initial_prompts(self):
         self.data_prompt = self.dp_agent()
@@ -232,7 +233,10 @@ class Manager:
 
     @property
     def iteration_folder(self) -> str:
-        iter_folder = os.path.join(self.output_folder, f"iteration_{self.time_step}")
+        if self.time_step >= 0:
+            iter_folder = os.path.join(self.output_folder, f"generation_iter_{self.time_step}")
+        else:
+            iter_folder = os.path.join(self.output_folder, f"initialization")
         os.makedirs(iter_folder, exist_ok=True)
         return iter_folder
 
@@ -320,12 +324,32 @@ class Manager:
         assert len(self.error_messages) == self.time_step
         self.error_messages.append(error_message)
 
-    def save_state(self, content, save_name, per_iteration=False):
-        logger.info(f"Saving {output_file}...")
+    def save_and_log_states(self, content, save_name, per_iteration=False, add_uuid=False):
+        if add_uuid:
+            # Split filename and extension
+            name, ext = os.path.splitext(save_name)
+            # Generate 4-digit UUID (using first 4 characters of hex)
+            uuid_suffix = str(uuid.uuid4()).replace('-', '')[:4]
+            save_name = f"{name}_{uuid_suffix}{ext}"
+        
         if per_iteration:
-            output_file = os.path.join(self.iteration_folder, save_name)
+            states_dir = os.path.join(self.iteration_folder, "states")
+        else:
+            states_dir = os.path.join(self.output_folder, "states")
+        os.makedirs(states_dir, exist_ok=True)
+        output_file = os.path.join(states_dir, save_name)
+
+        logger.info(f"Saving {output_file}...")
         with open(output_file, "w") as file:
-            file.write(content)
+            if content is not None:
+                if isinstance(content, list):
+                    # Join list elements with newlines
+                    file.write('\n'.join(str(item) for item in content))
+                else:
+                    # Handle as string (original behavior)
+                    file.write(content)
+            else:
+                file.write("<None>")
 
     def report_token_usage(self):
         token_usage_path = os.path.join(self.output_folder, "token_usage.json")

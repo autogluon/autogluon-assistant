@@ -40,10 +40,14 @@ Based ONLY on the information explicitly stated in the provided data structure a
         )
 
         # Format the prompt using the template
-        return self.template.format(
+        prompt = self.template.format(
             data_prompt=self.manager.data_prompt,
             description_file_contents=description_file_contents,
         )
+
+        self.manager.save_and_log_states(content=prompt, save_name="task_descriptor_prompt.txt", per_iteration=False, add_uuid=False)
+
+        return prompt
 
     def parse(self, response: str) -> Optional[str]:
         """
@@ -58,6 +62,11 @@ Based ONLY on the information explicitly stated in the provided data structure a
         # For task description, we typically want the entire response
         # as it should be the complete task description
         if response and response.strip():
-            return response.strip()
+            task_description = response.strip()
         else:
-            return "Failed to generate task description from LLM response."
+            task_description = "Failed to generate task description from LLM response."
+        
+        self.manager.save_and_log_states(content=response, save_name="task_descriptor_response.txt", per_iteration=False, add_uuid=False)
+        self.manager.save_and_log_states(content=task_description, save_name="task_description.txt", per_iteration=False, add_uuid=False)
+
+        return task_description

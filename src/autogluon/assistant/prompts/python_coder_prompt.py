@@ -88,9 +88,16 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             )
             prompt = f"{prompt}\n\n{format_instruction}"
 
+        self.manager.save_and_log_states(content=prompt, save_name="python_coder_prompt.txt", per_iteration=True, add_uuid=False)
+
         return prompt
 
     def parse(self, response: Dict) -> Tuple[str, Optional[str]]:
         """Parse the LLM's response to generated python code"""
 
-        return extract_code(response=response, language="python")
+        python_code = extract_code(response=response, language="python")
+
+        self.manager.save_and_log_states(content=response, save_name="python_coder_response.txt", per_iteration=True, add_uuid=False)
+        self.manager.save_and_log_states(content=python_code, save_name="python_code.py", per_iteration=True, add_uuid=False)
+
+        return python_code

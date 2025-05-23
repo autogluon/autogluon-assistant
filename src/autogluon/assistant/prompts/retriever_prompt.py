@@ -98,7 +98,7 @@ DO NOT include any other text, explanation, or formatting in your response.
         )
 
         # Format the prompt using the template
-        return self.template.format(
+        prompt = self.template.format(
             task_description=self.manager.task_description,
             data_prompt=self.manager.data_prompt,
             user_input=self.manager.user_input,
@@ -107,8 +107,15 @@ DO NOT include any other text, explanation, or formatting in your response.
             max_num_tutorials=self.manager.config.max_num_tutorials,
         )
 
+        self.manager.save_and_log_states(content=prompt, save_name="retriever_prompt.txt", per_iteration=True, add_uuid=False)
+
+        return prompt
+
     def parse(self, response: str) -> List[int]:
         """Parse the LLM response to extract selected tutorial indices."""
+
+        self.manager.save_and_log_states(content=response, save_name="retriever_response.txt", per_iteration=True, add_uuid=False)
+
         try:
             # Clean the response - take first line and keep only digits and commas
             content = response.split("\n")[0]
@@ -134,6 +141,8 @@ DO NOT include any other text, explanation, or formatting in your response.
 
             if len(selected_tutorials) > self.manager.config.max_num_tutorials:
                 selected_tutorials = selected_tutorials[: self.manager.config.max_num_tutorials]
+
+            self.manager.save_and_log_states(content=selected_tutorials, save_name="selected_tutorials.txt", per_iteration=True, add_uuid=False)
             return selected_tutorials
 
         except Exception as e:

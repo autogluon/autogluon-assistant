@@ -48,13 +48,17 @@ Even if the code executed without throwing errors, it might still have issues wi
         stderr = self._truncate_output(stderr, self.llm_config.max_stderr_length)
 
         # Format the prompt using the template
-        return self.template.format(
+        prompt = self.template.format(
             task_description=task_description,
             data_prompt=data_prompt,
             python_code=python_code,
             stdout=stdout or "No standard output",
             stderr=stderr or "No standard error",
         )
+
+        self.manager.save_and_log_states(content=prompt, save_name="executer_prompt.txt", per_iteration=True, add_uuid=True)
+
+        return prompt
 
     def parse(self, response: Dict) -> Tuple[str, Optional[str]]:
         """Parse the LLM's response to extract decision and error summary."""
@@ -86,5 +90,9 @@ Even if the code executed without throwing errors, it might still have issues wi
             error_summary = error_summary_parts.split("\n\n")[0].strip()
             if error_summary.lower() == "none" or not error_summary:
                 error_summary = None
+
+        self.manager.save_and_log_states(content=response, save_name="executer_prompt.txt", per_iteration=True, add_uuid=True)
+        self.manager.save_and_log_states(content=decision, save_name="decision.txt", per_iteration=True, add_uuid=True)
+        self.manager.save_and_log_states(content=error_summary, save_name="error_summary.txt", per_iteration=True, add_uuid=True)
 
         return decision, error_summary

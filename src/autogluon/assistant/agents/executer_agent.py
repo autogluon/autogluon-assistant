@@ -158,6 +158,7 @@ class ExecuterAgent(BaseAgent):
                 agent_name=f"{language}_executer",
                 multi_turn=self.executer_llm_config.multi_turn,
             )
+
         self.executer_prompt = ExecuterPrompt(
             llm_config=self.executer_llm_config, manager=manager, template=self.executer_prompt_template
         )
