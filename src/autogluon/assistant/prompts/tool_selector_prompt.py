@@ -1,9 +1,8 @@
 import logging
-import re
 from typing import Dict, Tuple
 
-from .base_prompt import BasePrompt
 from ..tools_registry import registry
+from .base_prompt import BasePrompt
 
 logger = logging.getLogger(__name__)
 
@@ -68,13 +67,13 @@ Explanation: [detailed explanation of why this library is the best choice, inclu
 
     def parse(self, response: str) -> Tuple[str, str]:
         """Parse the library selection response from LLM."""
-        
+
         selected_tool = ""
         explanation = ""
-        
+
         lines = response.split("\n")
         in_explanation = False
-        
+
         for line in lines:
             line = line.strip()
             if line.lower().startswith("selected library:"):
@@ -84,15 +83,15 @@ Explanation: [detailed explanation of why this library is the best choice, inclu
                 explanation = line.split(":", 1)[1].strip()
             elif in_explanation and line:
                 explanation += " " + line
-        
+
         # Validate that we got both components
         # TODO: Fall back to default library?
         if not selected_tool:
             logger.warning("Failed to extract selected tool from LLM response")
             selected_tool = "Failed to extract selected tool from LLM response."
-        
+
         if not explanation:
             logger.warning("Failed to extract explanation from LLM response")
             explanation = "Failed to extract explanation from LLM response."
-        
+
         return selected_tool

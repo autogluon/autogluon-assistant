@@ -1,5 +1,4 @@
 import logging
-import re
 from typing import List
 
 from .base_prompt import BasePrompt
@@ -33,15 +32,15 @@ Description Files: [list ONLY the absolute path, one per line]
 
     def parse(self, response: str) -> List[str]:
         """Parse the LLM response to extract description files."""
-        
+
         # Extract filenames from the response
         description_files = []
         lines = response.split("\n")
         in_files_section = False
-        
+
         for line in lines:
             line_stripped = line.strip()
-            
+
             if "description files:" in line_stripped.lower():
                 in_files_section = True
                 continue
@@ -49,5 +48,5 @@ Description Files: [list ONLY the absolute path, one per line]
                 filename = line_stripped.strip("- []").strip()
                 if filename:
                     description_files.append(filename)
-            
+
         return description_files

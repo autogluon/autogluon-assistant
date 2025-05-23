@@ -2,7 +2,14 @@ import logging
 from pathlib import Path
 from typing import List
 
-from ..agents import DataPerceptionAgent, DescriptionFileRetrieverAgent, ErrorAnalyzerAgent, RetrieverAgent, TaskDescriptorAgent, ToolSelectorAgent
+from ..agents import (
+    DataPerceptionAgent,
+    DescriptionFileRetrieverAgent,
+    ErrorAnalyzerAgent,
+    RetrieverAgent,
+    TaskDescriptorAgent,
+    ToolSelectorAgent,
+)
 from ..tools_registry import registry
 
 # Basic configuration
@@ -134,7 +141,6 @@ class Manager:
         self.tool_prompt = tool_info.get("prompt_template", "")
         if isinstance(self.tool_prompt, list):
             self.tool_prompt = "\n".join(self.tool_prompt)
-
 
     @property
     def user_input(self) -> str:

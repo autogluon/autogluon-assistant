@@ -3,7 +3,6 @@ from typing import NamedTuple
 
 from .registry import ToolsRegistry
 
-
 # Create singleton instance
 registry = ToolsRegistry()
 
@@ -21,6 +20,7 @@ register_tool = registry.register_tool
 unregister_tool = registry.unregister_tool
 update_tool = registry.update_tool
 add_tool_tutorials = registry.add_tool_tutorials
+
 
 class TutorialInfo(NamedTuple):
     """Stores information about a tutorial"""

@@ -48,10 +48,10 @@ Based ONLY on the information explicitly stated in the provided data structure a
     def parse(self, response: str) -> Optional[str]:
         """
         Parse the LLM response to extract task description.
-        
+
         Args:
             response: Raw LLM response
-            
+
         Returns:
             str: Parsed task description or error message
         """

@@ -1,9 +1,8 @@
 import logging
-import re
-from typing import List, Optional
+from typing import List
 
+from ..tools_registry import TutorialInfo, get_tool_tutorials_folder
 from .base_prompt import BasePrompt
-from ..tools_registry import get_tool_tutorials_folder, TutorialInfo
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +50,7 @@ def get_all_tutorials(selected_tool: str, condensed: bool = False) -> List[Tutor
 
 class RetrieverPrompt(BasePrompt):
     """Handles prompts for tutorial retrieval and selection"""
-    
+
     def default_template(self) -> str:
         """Default template for tutorial selection"""
         return """
@@ -76,28 +75,28 @@ IMPORTANT: Respond ONLY with the numbers of the selected tutorials (up to {max_n
 For example: "1,3,4" or "2,5" or just "1" if only one is relevant.
 DO NOT include any other text, explanation, or formatting in your response.
 """
-    
+
     def build(self, manager) -> str:
         """Build a prompt for the LLM to select relevant tutorials."""
-        
+
         # Get tutorial information
         selected_tool = manager.selected_tool
         condense_tutorials = manager.config.condense_tutorials
         use_tutorial_summary = manager.config.use_tutorial_summary
-        
+
         # Get all available tutorials
         self.tutorials = get_all_tutorials(selected_tool, condensed=condense_tutorials)
-        
+
         if not self.tutorials:
             logger.warning(f"No tutorials found for {selected_tool}")
             return ""
-        
+
         # Format tutorials info for selection
         tutorials_info = "\n".join(
             f"{i+1}. Title: {tutorial.title}\n   Summary: {tutorial.summary if use_tutorial_summary and tutorial.summary else '(No summary available)'}"
             for i, tutorial in enumerate(self.tutorials)
         )
-        
+
         # Format the prompt using the template
         return self.template.format(
             task_description=manager.task_description,
@@ -107,18 +106,18 @@ DO NOT include any other text, explanation, or formatting in your response.
             tutorials_info=tutorials_info,
             max_num_tutorials=manager.config.max_num_tutorials,
         )
-    
+
     def parse(self, response: str) -> List[int]:
         """Parse the LLM response to extract selected tutorial indices."""
         try:
             # Clean the response - take first line and keep only digits and commas
             content = response.split("\n")[0]
             content = "".join(char for char in content if char.isdigit() or char == ",")
-            
+
             if not content:
                 logger.warning("No valid indices found in LLM response")
                 return []
-            
+
             # Parse comma-separated indices
             selected_indices = []
             try:
@@ -127,7 +126,7 @@ DO NOT include any other text, explanation, or formatting in your response.
             except ValueError as e:
                 logger.warning(f"Error parsing indices from LLM response: {e}")
                 return []
-                
+
             selected_tutorials = []
             for idx in selected_indices:
                 if 0 <= idx < len(self.tutorials):
@@ -136,7 +135,7 @@ DO NOT include any other text, explanation, or formatting in your response.
             if len(selected_tutorials) > max_num_tutorials:
                 selected_tutorials = selected_tutorials[:max_num_tutorials]
             return selected_tutorials
-            
+
         except Exception as e:
             logger.warning(f"Error parsing tutorial selection response: {e}")
             return []

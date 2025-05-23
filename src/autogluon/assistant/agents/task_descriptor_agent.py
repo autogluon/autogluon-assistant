@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 from ..prompts import TaskDescriptorPrompt
 from .base_agent import BaseAgent
@@ -42,11 +41,11 @@ class TaskDescriptorAgent(BaseAgent):
     def __call__(self, manager):
         """
         Generate task description based on provided data and analysis.
-        
+
         Args:
-            manager: Object containing data_prompt, description_files, 
+            manager: Object containing data_prompt, description_files,
                             and description_analysis attributes
-        
+
         Returns:
             str: Generated task description
         """
