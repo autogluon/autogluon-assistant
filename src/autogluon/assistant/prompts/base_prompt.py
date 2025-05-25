@@ -49,11 +49,21 @@ class BasePrompt(ABC):
         else:
             self.template = self.default_template()
 
-    def _truncate_output(self, output: str, max_length: int) -> str:
-        """Helper method to truncate output if it exceeds max length"""
+    def _truncate_output_end(self, output: str, max_length: int) -> str:
+        """Helper method to truncate output from the end if it exceeds max length"""
         if len(output) > max_length:
             truncated_text = f"\n[...TRUNCATED ({len(output) - max_length} characters)...]\n"
-            return truncated_text + output[-max_length:]
+            return output[:max_length] + truncated_text
+        return output
+
+    def _truncate_output_mid(self, output: str, max_length: int) -> str:
+        """Helper method to truncate output from the middle if it exceeds max length"""
+        if len(output) > max_length:
+            half_size = max_length // 2
+            start_part = output[:half_size]
+            end_part = output[-half_size:]
+            truncated_text = f"\n[...TRUNCATED ({len(output) - max_length} characters)...]\n"
+            return start_part + truncated_text + end_part
         return output
 
     @abstractmethod

@@ -44,9 +44,13 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
     def build(self) -> str:
         """Build a prompt for the LLM to analyze errors."""
 
+        previous_error_message = self._truncate_output_mid(
+            output=self.manager.previous_error_message, max_length=self.manager.config.max_error_message_length
+        )
+
         # Format the prompt using the template
         prompt = self.template.format(
-            error_message=self.manager.previous_error_message,
+            error_message=previous_error_message,
             task_description=self.manager.task_description,
             data_prompt=self.manager.data_prompt,
             user_input=self.manager.user_input,
@@ -55,7 +59,9 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
             tutorial_prompt=self.manager.previous_tutorial_prompt,
         )
 
-        self.manager.save_and_log_states(content=prompt, save_name="error_analyzer_prompt.txt", per_iteration=True, add_uuid=False)
+        self.manager.save_and_log_states(
+            content=prompt, save_name="error_analyzer_prompt.txt", per_iteration=True, add_uuid=False
+        )
 
         return prompt
 
@@ -67,7 +73,11 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
         else:
             error_analysis = "Failed to extract error analysis from LLM response."
 
-        self.manager.save_and_log_states(content=response, save_name="error_analyzer_response.txt", per_iteration=True, add_uuid=False)
-        self.manager.save_and_log_states(content=error_analysis, save_name="error_analysis.txt", per_iteration=True, add_uuid=False)
+        self.manager.save_and_log_states(
+            content=response, save_name="error_analyzer_response.txt", per_iteration=True, add_uuid=False
+        )
+        self.manager.save_and_log_states(
+            content=error_analysis, save_name="error_analysis.txt", per_iteration=True, add_uuid=False
+        )
 
         return error_analysis

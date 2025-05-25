@@ -58,7 +58,9 @@ Notes:
             )
             prompt = f"{prompt}\n\n{format_instruction}"
 
-        self.manager.save_and_log_states(content=prompt, save_name="bash_coder_prompt.txt", per_iteration=True, add_uuid=False)
+        self.manager.save_and_log_states(
+            content=prompt, save_name="bash_coder_prompt.txt", per_iteration=True, add_uuid=False
+        )
 
         return prompt
 
@@ -67,8 +69,12 @@ Notes:
 
         extracted_bash_script = extract_code(response=response, language="bash")
 
-        self.manager.save_and_log_states(content=response, save_name="bash_coder_response.txt", per_iteration=True, add_uuid=False)
-        self.manager.save_and_log_states(content=extracted_bash_script, save_name="extracted_bash_script.sh", per_iteration=True, add_uuid=False)
+        self.manager.save_and_log_states(
+            content=response, save_name="bash_coder_response.txt", per_iteration=True, add_uuid=False
+        )
+        self.manager.save_and_log_states(
+            content=extracted_bash_script, save_name="extracted_bash_script.sh", per_iteration=True, add_uuid=False
+        )
 
         return extracted_bash_script
 

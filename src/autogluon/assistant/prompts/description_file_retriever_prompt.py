@@ -30,7 +30,9 @@ Description Files: [list ONLY the absolute path, one per line]
             data_prompt=self.manager.data_prompt,
         )
 
-        self.manager.save_and_log_states(content=prompt, save_name="description_file_retriever_prompt.txt", per_iteration=False, add_uuid=False)
+        self.manager.save_and_log_states(
+            content=prompt, save_name="description_file_retriever_prompt.txt", per_iteration=False, add_uuid=False
+        )
 
         return prompt
 
@@ -53,7 +55,11 @@ Description Files: [list ONLY the absolute path, one per line]
                 if filename:
                     description_files.append(filename)
 
-        self.manager.save_and_log_states(content=response, save_name="description_file_retriever_response.txt", per_iteration=False, add_uuid=False)
-        self.manager.save_and_log_states(content=description_files, save_name="description_files.txt", per_iteration=False, add_uuid=False)
+        self.manager.save_and_log_states(
+            content=response, save_name="description_file_retriever_response.txt", per_iteration=False, add_uuid=False
+        )
+        self.manager.save_and_log_states(
+            content=description_files, save_name="description_files.txt", per_iteration=False, add_uuid=False
+        )
 
         return description_files

@@ -65,7 +65,7 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
 
         # Truncate outputs if they exceed max length
         if self.manager.user_input:
-            user_prompt = self._truncate_output(self.manager.user_input, self.config.max_user_input_length)
+            user_prompt = self._truncate_output_end(self.manager.user_input, self.config.max_user_input_length)
         else:
             user_prompt = "N/A"
 
@@ -88,7 +88,9 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             )
             prompt = f"{prompt}\n\n{format_instruction}"
 
-        self.manager.save_and_log_states(content=prompt, save_name="python_coder_prompt.txt", per_iteration=True, add_uuid=False)
+        self.manager.save_and_log_states(
+            content=prompt, save_name="python_coder_prompt.txt", per_iteration=True, add_uuid=False
+        )
 
         return prompt
 
@@ -97,7 +99,11 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
 
         python_code = extract_code(response=response, language="python")
 
-        self.manager.save_and_log_states(content=response, save_name="python_coder_response.txt", per_iteration=True, add_uuid=False)
-        self.manager.save_and_log_states(content=python_code, save_name="python_code.py", per_iteration=True, add_uuid=False)
+        self.manager.save_and_log_states(
+            content=response, save_name="python_coder_response.txt", per_iteration=True, add_uuid=False
+        )
+        self.manager.save_and_log_states(
+            content=python_code, save_name="python_code.py", per_iteration=True, add_uuid=False
+        )
 
         return python_code

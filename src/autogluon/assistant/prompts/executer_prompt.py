@@ -44,8 +44,8 @@ Even if the code executed without throwing errors, it might still have issues wi
         """Build a prompt for the LLM to evaluate execution logs."""
 
         # Truncate outputs if they exceed max length
-        stdout = self._truncate_output(stdout, self.llm_config.max_stdout_length)
-        stderr = self._truncate_output(stderr, self.llm_config.max_stderr_length)
+        stdout = self._truncate_output_mid(stdout, self.llm_config.max_stdout_length)
+        stderr = self._truncate_output_mid(stderr, self.llm_config.max_stderr_length)
 
         # Format the prompt using the template
         prompt = self.template.format(
@@ -56,7 +56,9 @@ Even if the code executed without throwing errors, it might still have issues wi
             stderr=stderr or "No standard error",
         )
 
-        self.manager.save_and_log_states(content=prompt, save_name="executer_prompt.txt", per_iteration=True, add_uuid=True)
+        self.manager.save_and_log_states(
+            content=prompt, save_name="executer_prompt.txt", per_iteration=True, add_uuid=True
+        )
 
         return prompt
 
@@ -91,8 +93,12 @@ Even if the code executed without throwing errors, it might still have issues wi
             if error_summary.lower() == "none" or not error_summary:
                 error_summary = None
 
-        self.manager.save_and_log_states(content=response, save_name="executer_prompt.txt", per_iteration=True, add_uuid=True)
+        self.manager.save_and_log_states(
+            content=response, save_name="executer_prompt.txt", per_iteration=True, add_uuid=True
+        )
         self.manager.save_and_log_states(content=decision, save_name="decision.txt", per_iteration=True, add_uuid=True)
-        self.manager.save_and_log_states(content=error_summary, save_name="error_summary.txt", per_iteration=True, add_uuid=True)
+        self.manager.save_and_log_states(
+            content=error_summary, save_name="error_summary.txt", per_iteration=True, add_uuid=True
+        )
 
         return decision, error_summary

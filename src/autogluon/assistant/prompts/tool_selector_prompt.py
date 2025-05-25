@@ -65,7 +65,9 @@ Explanation: [detailed explanation of why this library is the best choice, inclu
             tools_info=_format_tools_info(registry.tools),
         )
 
-        self.manager.save_and_log_states(content=prompt, save_name="tool_selector_prompt.txt", per_iteration=False, add_uuid=False)
+        self.manager.save_and_log_states(
+            content=prompt, save_name="tool_selector_prompt.txt", per_iteration=False, add_uuid=False
+        )
 
         return prompt
 
@@ -80,9 +82,9 @@ Explanation: [detailed explanation of why this library is the best choice, inclu
 
         for line in lines:
             line = line.strip()
-            if line.lower().startswith("selected library:"):
+            if "selected library:" in line.lower():
                 selected_tool = line.split(":", 1)[1].strip()
-            elif line.lower().startswith("explanation:"):
+            elif "explanation:" in line.lower():
                 in_explanation = True
                 explanation = line.split(":", 1)[1].strip()
             elif in_explanation and line:
@@ -97,10 +99,15 @@ Explanation: [detailed explanation of why this library is the best choice, inclu
         if not explanation:
             logger.warning("Failed to extract explanation from LLM response")
             explanation = "Failed to extract explanation from LLM response."
-        
 
-        self.manager.save_and_log_states(content=response, save_name="tool_selector_response.txt", per_iteration=False, add_uuid=False)
-        self.manager.save_and_log_states(content=selected_tool, save_name="selected_tool.txt", per_iteration=False, add_uuid=False)
-        self.manager.save_and_log_states(content=explanation, save_name="tool_selector_explanation.txt", per_iteration=False, add_uuid=False)
+        self.manager.save_and_log_states(
+            content=response, save_name="tool_selector_response.txt", per_iteration=False, add_uuid=False
+        )
+        self.manager.save_and_log_states(
+            content=selected_tool, save_name="selected_tool.txt", per_iteration=False, add_uuid=False
+        )
+        self.manager.save_and_log_states(
+            content=explanation, save_name="tool_selector_explanation.txt", per_iteration=False, add_uuid=False
+        )
 
         return selected_tool

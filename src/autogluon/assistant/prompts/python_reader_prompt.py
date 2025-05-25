@@ -54,7 +54,9 @@ Return ONLY the Python code, no explanations. The code should be self-contained 
             )
             prompt = f"{prompt}\n\n{format_instruction}"
 
-        self.manager.save_and_log_states(content=prompt, save_name="python_reader_prompt.txt", per_iteration=True, add_uuid=True)
+        self.manager.save_and_log_states(
+            content=prompt, save_name="python_reader_prompt.txt", per_iteration=True, add_uuid=True
+        )
 
         return prompt
 
@@ -63,7 +65,11 @@ Return ONLY the Python code, no explanations. The code should be self-contained 
 
         python_reader_code = extract_code(response=response, language="python")
 
-        self.manager.save_and_log_states(content=response, save_name="python_reader_response.txt", per_iteration=True, add_uuid=True)
-        self.manager.save_and_log_states(content=python_reader_code, save_name="python_reader_code.py", per_iteration=True, add_uuid=True)
-    
+        self.manager.save_and_log_states(
+            content=response, save_name="python_reader_response.txt", per_iteration=True, add_uuid=True
+        )
+        self.manager.save_and_log_states(
+            content=python_reader_code, save_name="python_reader_code.py", per_iteration=True, add_uuid=True
+        )
+
         return python_reader_code

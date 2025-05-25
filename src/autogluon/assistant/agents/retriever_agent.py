@@ -109,7 +109,6 @@ class RetrieverAgent(BaseAgent):
         self, output_folder: Path, selected_tutorials: List, formatted_tutorials: List[str]
     ) -> None:
         """Save selection results to output folder."""
-        import json
 
         try:
             output_folder.mkdir(parents=True, exist_ok=True)

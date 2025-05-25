@@ -236,7 +236,7 @@ class Manager:
         if self.time_step >= 0:
             iter_folder = os.path.join(self.output_folder, f"generation_iter_{self.time_step}")
         else:
-            iter_folder = os.path.join(self.output_folder, f"initialization")
+            iter_folder = os.path.join(self.output_folder, "initialization")
         os.makedirs(iter_folder, exist_ok=True)
         return iter_folder
 
@@ -329,9 +329,9 @@ class Manager:
             # Split filename and extension
             name, ext = os.path.splitext(save_name)
             # Generate 4-digit UUID (using first 4 characters of hex)
-            uuid_suffix = str(uuid.uuid4()).replace('-', '')[:4]
+            uuid_suffix = str(uuid.uuid4()).replace("-", "")[:4]
             save_name = f"{name}_{uuid_suffix}{ext}"
-        
+
         if per_iteration:
             states_dir = os.path.join(self.iteration_folder, "states")
         else:
@@ -344,7 +344,7 @@ class Manager:
             if content is not None:
                 if isinstance(content, list):
                     # Join list elements with newlines
-                    file.write('\n'.join(str(item) for item in content))
+                    file.write("\n".join(str(item) for item in content))
                 else:
                     # Handle as string (original behavior)
                     file.write(content)
