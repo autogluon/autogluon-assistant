@@ -30,7 +30,7 @@ class BasePrompt(ABC):
                 with open(template_str_or_path, "r") as f:
                     self.template = f.read()
             except Exception as e:
-                logger.warning(f"Failed to load template from file {template}: {e}")
+                logger.warning(f"Failed to load template from file {template_str_or_path}: {e}")
                 self.template = self.default_template()
         else:
             self.template = template_str_or_path

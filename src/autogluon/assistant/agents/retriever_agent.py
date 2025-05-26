@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 from typing import List
 
 from ..prompts import RetrieverPrompt
@@ -98,29 +97,4 @@ class RetrieverAgent(BaseAgent):
         if not formatted_tutorials:
             return ""
 
-        # Save results if output folder is specified
-        output_folder = self.manager.output_folder
-        if output_folder:
-            self._save_selection_results(Path(output_folder), selected_tutorials, formatted_tutorials)
-
         return "\n\n".join(formatted_tutorials)
-
-    def _save_selection_results(
-        self, output_folder: Path, selected_tutorials: List, formatted_tutorials: List[str]
-    ) -> None:
-        """Save selection results to output folder."""
-
-        try:
-            output_folder.mkdir(parents=True, exist_ok=True)
-
-            selection_data = [
-                {
-                    "path": str(tutorial.path),
-                    "title": tutorial.title,
-                    "summary": tutorial.summary,
-                }
-                for tutorial in selected_tutorials
-            ]
-
-        except Exception as e:
-            logger.error(f"Error saving selection results: {e}")

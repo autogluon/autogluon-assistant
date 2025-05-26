@@ -137,17 +137,17 @@ class DataPerceptionAgent(BaseAgent):
         self.max_file_group_size_to_show = self.config.max_file_group_size_to_show
         self.num_example_files_to_show = self.config.num_example_files_to_show
 
+        self.language = "python"
+
         self.reader_llm_config = reader_llm_config
         self.reader_prompt_template = reader_prompt_template
 
         if self.reader_llm_config.multi_turn:
             self.reader_llm = init_llm(
                 llm_config=self.reader_llm_config,
-                agent_name=f"{language}_reader",
+                agent_name=f"{self.language}_reader",
                 multi_turn=self.reader_llm_config.multi_turn,
             )
-
-        self.language = "python"
 
         self.python_reader_prompt = PythonReaderPrompt(
             llm_config=self.reader_llm_config, manager=self.manager, template=self.reader_prompt_template
