@@ -1,6 +1,6 @@
-import streamlit as st
-from pathlib import Path
 from datetime import datetime
+
+import streamlit as st
 
 # -------------------- 页面配置 --------------------
 st.set_page_config(
@@ -50,17 +50,17 @@ st.markdown(
 
 # -------------------- 侧边栏上传区 --------------------
 with st.sidebar:
-    st.markdown("## 📁 Upload Data")
-    # 1) 本地路径输入
-    data_path = st.text_input("Folder path", placeholder="/path/to/data", key="input_path")
-    st.markdown("---")
-    st.markdown("<div style='text-align:center; color:#888'>OR</div>", unsafe_allow_html=True)
-    st.markdown("---")
-    # 2) ZIP 上传
-    uploaded_zip = st.file_uploader("Upload ZIP", type="zip", key="uploaded_zip")
+    # with st.expander("## 📁 Upload Data (necessary)", expanded=False):
+    #     # 1) 本地路径输入
+    #     data_path = st.text_input("Folder path", placeholder="/path/to/data", key="input_path")
+    #     # st.markdown("---")
+    #     st.markdown("<div style='text-align:center; color:#888'>OR</div>", unsafe_allow_html=True)
+    #     # st.markdown("---")
+    #     # 2) ZIP 上传
+    #     uploaded_zip = st.file_uploader("Upload ZIP", type="zip", key="uploaded_zip")
 
-    st.markdown("---")
-    with st.expander("⚙️ Advanced Settings", expanded=False):
+    # st.markdown("---")
+    with st.expander("⚙️ Advanced Settings (optional)", expanded=False):
         out_dir = st.text_input("Output directory", value="runs/", key="output_dir")
         config_options = ["configs/default.yaml", "configs/custom.yaml"]
         config_path = st.selectbox("Config file", options=config_options, key="config_path")
@@ -68,15 +68,17 @@ with st.sidebar:
         init_prompt = st.text_area("Initial prompt", placeholder="（optional）", key="initial_prompt", height=80)
         control = st.checkbox("Manual prompts between iterations", key="control_prompts")
         extract_zip = st.checkbox("Extract ZIP to separate dir", key="extract_check")
-        extract_dir = st.text_input("Extraction dir", placeholder="extract_to/", key="extract_dir", disabled=not extract_zip)
+        extract_dir = st.text_input(
+            "Extraction dir", placeholder="extract_to/", key="extract_dir", disabled=not extract_zip
+        )
         log_level = st.select_slider(
             "Log verbosity",
             options=["DEBUG", "MODEL_INFO", "DETAILED_INFO", "BRIEF_INFO"],
             value="DETAILED_INFO",
             key="log_verbosity",
         )
-    st.markdown("---")
-    run_button = st.button("▶️ Run Agent", use_container_width=True)
+    # st.markdown("---")
+    # run_button = st.button("▶️ Run Agent", use_container_width=True)
 
 # -------------------- 聊天主区 --------------------
 st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
@@ -84,7 +86,7 @@ st.markdown("### 💬 AutoMLAgent Chat")
 # 消息存储
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "bot", "text": "Hello! upload your data on the left, then chat to start AutoML."}
+        {"role": "bot", "text": "Hello! Drag a folder into the chat box below, then chat to start MLZero."}
     ]
 
 # 渲染历史消息
@@ -95,13 +97,13 @@ for msg in st.session_state.messages:
         st.markdown(f"<div class='botBubble'>{msg['text']}</div>", unsafe_allow_html=True)
 
 # 用户输入框
-user_input = st.chat_input("Type a message…")
+user_input = st.chat_input(placeholder="Type your initial prompt or press ENTER to start", accept_file="multiple",key="u_input",max_chars=10000,on_submit=run)
 if user_input:
     st.session_state.messages.append({"role": "user", "text": user_input})
     st.rerun()
 
 # 处理 Run 按钮或用户输入后的逻辑
-if run_button or (st.session_state.messages and st.session_state.messages[-1]["role"] == "user"):
+if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
     # 校验至少提供了一种数据源
     if not data_path and not uploaded_zip:
         error = "⚠️ Please provide folder path or upload a ZIP."

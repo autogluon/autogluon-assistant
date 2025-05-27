@@ -6,10 +6,11 @@ from pathlib import Path
 
 from omegaconf import OmegaConf
 
+from autogluon.assistant.constants import BRIEF_LEVEL, MODEL_INFO_LEVEL
+from autogluon.assistant.rich_logging import attach_file_logger
+
 from .managers import Manager
 from .utils import extract_archives
-from autogluon.assistant.constants import MODEL_INFO_LEVEL, BRIEF_LEVEL
-from autogluon.assistant.rich_logging import configure_logging, attach_file_logger
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +130,9 @@ def run_agent(
         # Get per iter user inputs if needed
         if need_user_input:
             if manager.time_step + 1 > 0:
-                logger.brief(f"\n[bold green]Previous iteration files are in:[/bold green] {os.path.join(output_folder, f'iteration_{manager.time_step}')}")
+                logger.brief(
+                    f"\n[bold green]Previous iteration files are in:[/bold green] {os.path.join(output_folder, f'iteration_{manager.time_step}')}"
+                )
             user_input += input("Enter your inputs for this iteration (press Enter to skip): ")
 
         manager.step(user_input=user_input)
@@ -143,6 +146,8 @@ def run_agent(
             break
 
         if manager.time_step + 1 >= max_iterations:
-            logger.warning(f"[bold red]Warning: Reached maximum iterations ({max_iterations}) without success[/bold red]")
+            logger.warning(
+                f"[bold red]Warning: Reached maximum iterations ({max_iterations}) without success[/bold red]"
+            )
 
     manager.report_token_usage()

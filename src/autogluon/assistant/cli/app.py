@@ -7,9 +7,9 @@ from pathlib import Path
 import typer
 
 from autogluon.assistant.coding_agent import run_agent
+from autogluon.assistant.constants import BRIEF_LEVEL, MODEL_INFO_LEVEL
 
 from .. import __file__ as assistant_file
-from autogluon.assistant.constants import MODEL_INFO_LEVEL, BRIEF_LEVEL
 from ..rich_logging import configure_logging
 
 PACKAGE_ROOT = Path(assistant_file).parent

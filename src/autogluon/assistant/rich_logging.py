@@ -3,7 +3,8 @@ from pathlib import Path
 
 from rich.console import Console
 from rich.logging import RichHandler
-from autogluon.assistant.constants import MODEL_INFO_LEVEL, BRIEF_LEVEL
+
+from autogluon.assistant.constants import BRIEF_LEVEL, MODEL_INFO_LEVEL
 
 # ── Custom log levels ─────────────────────────────
 logging.addLevelName(MODEL_INFO_LEVEL, "MODEL_INFO")
@@ -36,6 +37,7 @@ def configure_logging(level: int) -> None:
         handlers=[RichHandler(console=console, markup=True, rich_tracebacks=True)],
         force=True,  # Ensure override
     )
+
 
 def attach_file_logger(output_dir: Path):
     """
