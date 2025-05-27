@@ -21,11 +21,11 @@ from .llm import ChatLLMFactory
 from .planner import get_planner
 from .prompt import PromptGenerator, write_prompt_to_file
 from .utils import extract_archives
+from autogluon.assistant.constants import MODEL_INFO_LEVEL, BRIEF_LEVEL
+from autogluon.assistant.rich_logging import configure_logging, attach_file_logger
 
 logger = logging.getLogger(__name__)
 
-MODEL_INFO_LEVEL = 19
-BRIEF_LEVEL = 25
 logging.addLevelName(MODEL_INFO_LEVEL, "MODEL_INFO")
 logging.addLevelName(BRIEF_LEVEL, "BRIEF")
 
@@ -204,7 +204,6 @@ def run_agent(
     initial_user_input=None,
     extract_archives_to=None,
 ):
-
     if not logger.hasHandlers():
         logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s [%(name)s] %(message)s")
 
@@ -227,6 +226,7 @@ def run_agent(
     output_dir = Path(output_folder).expanduser().resolve()
     output_dir.parent.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=False, exist_ok=True)
+    attach_file_logger(output_dir)
 
     if extract_archives_to is not None:
         if extract_archives_to and extract_archives_to != input_data_folder:
