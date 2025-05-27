@@ -58,6 +58,7 @@ mlzero \
     -i "$TRAINING_PATH" \
     -o "$OUTPUT_DIR" \
     -n 5 \
+    -vv \
     2>&1 | tee "${OUTPUT_DIR}/log.txt"
 
 # Check if the process was successful
