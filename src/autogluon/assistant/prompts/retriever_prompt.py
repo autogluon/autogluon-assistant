@@ -102,7 +102,7 @@ DO NOT include any other text, explanation, or formatting in your response.
             task_description=self.manager.task_description,
             data_prompt=self.manager.data_prompt,
             user_input=self.manager.user_input,
-            error_analysis=self.manager.previous_error_prompt,
+            error_analysis=self.manager.all_previous_error_prompts,
             tutorials_info=tutorials_info,
             max_num_tutorials=self.manager.config.max_num_tutorials,
         )

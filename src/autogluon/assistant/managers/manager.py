@@ -219,6 +219,13 @@ class Manager:
             return ""
 
     @property
+    def all_previous_error_prompts(self) -> str:
+        if self.time_step >= 1:
+            return "\n".join(self.error_prompts[: self.time_step])
+        else:
+            return ""
+
+    @property
     def tutorial_prompt(self) -> str:
         assert self.time_step >= 0, "No tutorial prompt because the prompt generator is not stepped yet."
         assert len(self.tutorial_prompts) == self.time_step + 1, "tutorial prompt is not updated yet"

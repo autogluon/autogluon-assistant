@@ -22,9 +22,7 @@ Based ONLY on the information explicitly stated in the provided data structure a
 {description_file_contents}
 """
 
-    def build(self) -> str:
-        """Build a prompt for the LLM to generate task description."""
-
+    def get_description_files_contents(self):
         file_contents = []
         for filename in self.manager.description_files:
             try:
@@ -38,6 +36,12 @@ Based ONLY on the information explicitly stated in the provided data structure a
         description_file_contents = (
             "\n".join(file_contents) if file_contents else "No description file contents could be read."
         )
+        return description_file_contents
+
+    def build(self) -> str:
+        """Build a prompt for the LLM to generate task description."""
+
+        description_file_contents = self.get_description_files_contents()
 
         # Format the prompt using the template
         prompt = self.template.format(
