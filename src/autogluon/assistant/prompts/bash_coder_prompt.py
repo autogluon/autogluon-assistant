@@ -47,7 +47,7 @@ Notes:
             environment_prompt=environment_prompt,
             python_file_path=self.manager.python_file_path,
             current_python=self.manager.python_code,
-            error_prompt=self.manager.previous_error_prompt,
+            error_prompt=self.manager.all_previous_error_prompts,
             previous_bash=self.manager.previous_bash_script,
         )
 

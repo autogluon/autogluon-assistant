@@ -77,7 +77,7 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             task_description=self.manager.task_description,  # TODO: add task_description in manager
             data_prompt=self.manager.data_prompt,
             user_prompt=user_prompt,
-            error_prompt=self.manager.previous_error_prompt,
+            error_prompt=self.manager.all_previous_error_prompts,
             tutorial_prompt=self.manager.tutorial_prompt,
         )
 

@@ -48,7 +48,14 @@ class TaskDescriptorAgent(BaseAgent):
         Returns:
             str: Generated task description
         """
-        # Build prompt for generating task description
+
+        # Use description file directly if within certain length
+        description_files_contents = self.task_descriptor_prompt.get_description_files_contents()
+
+        if len(description_files_contents) <= self.manager.config.task_descriptor.max_description_files_length:
+            return description_files_contents
+
+        # Otherwise generate condensed task description
         prompt = self.task_descriptor_prompt.build()
 
         if not self.task_descriptor_llm_config.multi_turn:
