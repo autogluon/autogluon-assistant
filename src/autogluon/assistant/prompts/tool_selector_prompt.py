@@ -72,10 +72,7 @@ Do not include any other formatting or additional sections in your response.
         )
 
         self.manager.save_and_log_states(
-            content=prompt,
-            save_name="tool_selector_prompt.txt",
-            per_iteration=False,
-            add_uuid=False
+            content=prompt, save_name="tool_selector_prompt.txt", per_iteration=False, add_uuid=False
         )
 
         return prompt
@@ -83,10 +80,10 @@ Do not include any other formatting or additional sections in your response.
     def parse(self, response: str) -> Tuple[str, str]:
         """
         Parse the library selection response from LLM with improved robustness.
-        
+
         Args:
             response: The raw response from the LLM
-            
+
         Returns:
             Tuple[str, str]: (selected_tool, explanation)
         """
@@ -99,30 +96,20 @@ Do not include any other formatting or additional sections in your response.
 
         # Try different parsing strategies
         # Strategy 1: Look for exact headers
-        selected_library_match = re.search(
-            r"SELECTED_LIBRARY:[\s]*(.+?)(?:\n|$)",
-            response,
-            re.IGNORECASE
-        )
+        selected_library_match = re.search(r"SELECTED_LIBRARY:[\s]*(.+?)(?:\n|$)", response, re.IGNORECASE)
         explanation_match = re.search(
-            r"EXPLANATION:[\s]*(.+?)(?=SELECTED_LIBRARY:|$)",
-            response,
-            re.IGNORECASE | re.DOTALL
+            r"EXPLANATION:[\s]*(.+?)(?=SELECTED_LIBRARY:|$)", response, re.IGNORECASE | re.DOTALL
         )
 
         # Strategy 2: Fallback to more lenient parsing
         if not selected_library_match:
             selected_library_match = re.search(
-                r"(?:selected|chosen|recommended).*?(?:library|tool):[\s]*(.+?)(?:\n|$)",
-                response,
-                re.IGNORECASE
+                r"(?:selected|chosen|recommended).*?(?:library|tool):[\s]*(.+?)(?:\n|$)", response, re.IGNORECASE
             )
 
         if not explanation_match:
             explanation_match = re.search(
-                r"(?:explanation|reasoning|rationale):[\s]*(.+?)(?=$)",
-                response,
-                re.IGNORECASE | re.DOTALL
+                r"(?:explanation|reasoning|rationale):[\s]*(.+?)(?=$)", response, re.IGNORECASE | re.DOTALL
             )
 
         # Extract and clean the matches
@@ -135,10 +122,10 @@ Do not include any other formatting or additional sections in your response.
         available_tools = set(registry.tools.keys())
         if selected_tool and selected_tool not in available_tools:
             # Try to find the closest match
-            closest_match = min(available_tools, 
-                              key=lambda x: len(set(x.lower()) ^ set(selected_tool.lower())))
-            logger.warning(f"Selected tool '{selected_tool}' not in available tools. "
-                         f"Using closest match: '{closest_match}'")
+            closest_match = min(available_tools, key=lambda x: len(set(x.lower()) ^ set(selected_tool.lower())))
+            logger.warning(
+                f"Selected tool '{selected_tool}' not in available tools. " f"Using closest match: '{closest_match}'"
+            )
             selected_tool = closest_match
 
         # Final validation
@@ -159,20 +146,11 @@ Do not include any other formatting or additional sections in your response.
     def _log_results(self, response: str, selected_tool: str, explanation: str):
         """Log the parsing results."""
         self.manager.save_and_log_states(
-            content=response,
-            save_name="tool_selector_response.txt",
-            per_iteration=False,
-            add_uuid=False
+            content=response, save_name="tool_selector_response.txt", per_iteration=False, add_uuid=False
         )
         self.manager.save_and_log_states(
-            content=selected_tool,
-            save_name="selected_tool.txt",
-            per_iteration=False,
-            add_uuid=False
+            content=selected_tool, save_name="selected_tool.txt", per_iteration=False, add_uuid=False
         )
         self.manager.save_and_log_states(
-            content=explanation,
-            save_name="tool_selector_explanation.txt",
-            per_iteration=False,
-            add_uuid=False
+            content=explanation, save_name="tool_selector_explanation.txt", per_iteration=False, add_uuid=False
         )
