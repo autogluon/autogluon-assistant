@@ -36,7 +36,9 @@ class ErrorAnalyzerAgent(BaseAgent):
             )
 
     def __call__(self):
-        self.manager.log_agent_start("ErrorAnalyzerAgent: analyzing previous error and preparing debugging suggestions.")
+        self.manager.log_agent_start(
+            "ErrorAnalyzerAgent: analyzing previous error and preparing debugging suggestions."
+        )
 
         # Build prompt for evaluating execution results
         prompt = self.error_analyzer_prompt.build()
