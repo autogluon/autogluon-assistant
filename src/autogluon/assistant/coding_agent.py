@@ -6,30 +6,12 @@ from pathlib import Path
 
 from omegaconf import OmegaConf
 
-from autogluon.assistant.constants import BRIEF_LEVEL, MODEL_INFO_LEVEL
 from autogluon.assistant.rich_logging import attach_file_logger
 
 from .managers import Manager
 from .utils import extract_archives
 
 logger = logging.getLogger(__name__)
-
-logging.addLevelName(MODEL_INFO_LEVEL, "MODEL_INFO")
-logging.addLevelName(BRIEF_LEVEL, "BRIEF")
-
-
-def model_info(self, msg, *args, **kw):
-    if self.isEnabledFor(MODEL_INFO_LEVEL):
-        self._log(MODEL_INFO_LEVEL, msg, args, **kw)
-
-
-def brief(self, msg, *args, **kw):
-    if self.isEnabledFor(BRIEF_LEVEL):
-        self._log(BRIEF_LEVEL, msg, args, **kw)
-
-
-logging.Logger.model_info = model_info  # type: ignore
-logging.Logger.brief = brief  # type: ignore
 
 
 def run_agent(
@@ -120,7 +102,7 @@ def run_agent(
     )
 
     while manager.time_step + 1 < max_iterations:
-        logger.info(f"Starting iteration {manager.time_step + 1}!")
+        logger.brief(f"Starting iteration {manager.time_step + 1}!")
 
         # TODO: move user_input logic to manager?
         user_input = None
@@ -151,3 +133,4 @@ def run_agent(
             )
 
     manager.report_token_usage()
+    logger.brief(f"output saved in {output_dir}.")

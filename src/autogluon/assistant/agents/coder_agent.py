@@ -43,6 +43,7 @@ class CoderAgent(BaseAgent):
             )
 
     def __call__(self):
+        self.manager.log_agent_start("coder_agent")
 
         # Build prompt for evaluating execution results
         prompt = self.coder_prompt.build()
@@ -57,5 +58,7 @@ class CoderAgent(BaseAgent):
         response = self.coder_llm.assistant_chat(prompt)
 
         generated_code = self.coder_prompt.parse(response)
+
+        self.manager.log_agent_end("coder_agent")
 
         return generated_code

@@ -164,6 +164,9 @@ class ExecuterAgent(BaseAgent):
         )
 
     def __call__(self, code_to_execute, code_to_analyze=None, task_description=None, data_prompt=None):
+
+        self.manager.log_agent_start("executer_agent")
+
         if code_to_analyze is None:
             code_to_analyze = code_to_execute
 
@@ -194,8 +197,10 @@ class ExecuterAgent(BaseAgent):
         decision, error_summary = self.executer_prompt.parse(response)
 
         # Log the decision and error summary
-        logger.info(f"Planner decision: {decision}")
+        logger.brief(f"Planner decision: {decision}")
         if error_summary:
-            logger.info(f"Error summary: {error_summary}")
+            logger.error(f"Error summary: {error_summary}")
+
+        self.manager.log_agent_end("executer_agent")
 
         return decision, error_summary, prompt, stderr, stdout

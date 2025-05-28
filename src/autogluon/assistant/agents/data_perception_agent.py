@@ -202,17 +202,19 @@ class DataPerceptionAgent(BaseAgent):
     def __call__(
         self,
     ):
+        self.manager.log_agent_start("data_perception_agent")
+
         # Get absolute path of the folder
         abs_folder_path = os.path.abspath(self.input_data_folder)
-        logger.info(f"Analyzing folder: {abs_folder_path}")
+        logger.brief(f"Analyzing folder: {abs_folder_path}")
 
         # Get list of all files recursively
         all_files = get_all_files(abs_folder_path)
-        logger.info(f"Found {len(all_files)} files")
+        logger.brief(f"Found {len(all_files)} files")
 
         # Group similar files
         file_groups = group_similar_files(all_files)
-        logger.info(f"Grouped into {len(file_groups)} patterns")
+        logger.brief(f"Grouped into {len(file_groups)} patterns")
 
         # Process files based on their groups and types
         file_contents = {}
@@ -230,7 +232,7 @@ class DataPerceptionAgent(BaseAgent):
 
                 example_contents = []
                 for rel_path, abs_path in example_files:
-                    logger.info(f"Reading example file: {abs_path}")
+                    logger.brief(f"Reading example file: {abs_path}")
                     content = self.read_file(file_path=abs_path, max_chars=self.max_chars_per_file)
                     example_contents.append(f"Absolute path: {abs_path}\nContent:\n{content}")
 
@@ -241,7 +243,7 @@ class DataPerceptionAgent(BaseAgent):
                     file_info = f"Absolute path: {abs_path}"
 
                     # Use LLM to read file content
-                    logger.info(f"Reading file: {abs_path}")
+                    logger.brief(f"Reading file: {abs_path}")
 
                     file_contents[file_info] = self.read_file(file_path=abs_path, max_chars=self.max_chars_per_file)
 
@@ -249,5 +251,7 @@ class DataPerceptionAgent(BaseAgent):
         prompt = f"Absolute path to the folder: {abs_folder_path}\n\nFiles structures:\n\n{'-' * 10}\n\n"
         for file_info, content in file_contents.items():
             prompt += f"{file_info}\nContent:\n{content}\n{'-' * 10}\n"
+
+        self.manager.log_agent_end("data_perception_agent")
 
         return prompt
