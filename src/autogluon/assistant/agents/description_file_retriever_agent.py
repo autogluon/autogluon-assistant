@@ -40,7 +40,7 @@ class DescriptionFileRetrieverAgent(BaseAgent):
             )
 
     def __call__(self) -> List[str]:
-        self.manager.log_agent_start("description_file_retriever_agent")
+        self.manager.log_agent_start("DescriptionFileRetrieverAgent: identifying description files from data prompt.")
 
         # Build prompt for identifying description files
         prompt = self.description_file_retriever_prompt.build()
@@ -56,6 +56,6 @@ class DescriptionFileRetrieverAgent(BaseAgent):
 
         description_files = self.description_file_retriever_prompt.parse(response)
 
-        self.manager.log_agent_end("description_file_retriever_agent")
+        self.manager.log_agent_end("DescriptionFileRetrieverAgent: description file list extracted.")
 
         return description_files

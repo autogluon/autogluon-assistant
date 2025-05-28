@@ -48,7 +48,7 @@ class TaskDescriptorAgent(BaseAgent):
         Returns:
             str: Generated task description
         """
-        self.manager.log_agent_start("task_descriptor_agent")
+        self.manager.log_agent_start("TaskDescriptorAgent: generating a concise task description from source materials.")
 
         # Use description file directly if within certain length
         description_files_contents = self.task_descriptor_prompt.get_description_files_contents()
@@ -70,6 +70,6 @@ class TaskDescriptorAgent(BaseAgent):
 
         task_description = self.task_descriptor_prompt.parse(response)
 
-        self.manager.log_agent_end("task_descriptor_agent")
+        self.manager.log_agent_end("TaskDescriptorAgent: task description generated.")
 
         return task_description

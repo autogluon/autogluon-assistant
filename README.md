@@ -81,10 +81,9 @@ WIP
 
 ### CLI
 
-The main script `coding_agent.py` provides a command-line interface with the following options:
 
 ```bash
-mlzero -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS] [--need-user-input] [-u INITIAL_USER_INPUT] [-e EXTRACT_TO] [-v VERBOSITY_LEVEL]
+mlzero -i INPUT_DATA_FOLDER [-c CONFIG_PATH] [-n MAX_ITERATIONS] [-u INITIAL_USER_INPUT]
 ```
 
 
@@ -95,37 +94,16 @@ mlzero -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS]
 
 ### Optional Arguments
 
-- `-o, --output`:  
-  Path to the output directory. If not specified, a timestamped folder under `runs/` will be automatically generated.
-
 - `-c, --config`:  
   Path to the YAML configuration file. Default: `configs/default.yaml`.
 
 - `-n, --max-iterations`:  
   Maximum number of iterations. Default is `5`.
 
-- `--need-user-input`:  
-  Whether to prompt user input at each iteration. Defaults to `False`.
-
 - `-u, --user-input`:  
   Initial user input to use in the first iteration. Optional.
 
-- `-e, --extract-to`:  
-  If the input folder contains archive files, unpack them into this directory. If not specified, archives are not unpacked.
-
-- `-v, --verbosity`:  
-  Increase logging verbosity level. Use `-v <level>` where level is an integer:
-  
-  | `-v` value | Logging Level  |
-  |------------|----------------|
-  | 0          | BRIEF          |
-  | 1          | CRITICAL       |
-  | 2          | ERROR          |
-  | 3          | WARNING        |
-  | 4          | BRIEF          |
-  | 5          | INFO           |
-  | 6          | MODEL_INFO     |
-  | 7 or more  | DEBUG          |
+> **Note:** For more optional arguments and examples, see the [CLI tutorial](https://github.com/autogluon/autogluon-assistant/tree/main/docs/tutorials/cli_tutorial.md).
 
 ### Examples
 
@@ -133,11 +111,8 @@ mlzero -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS]
 # Basic usage
 mlzero -i ./data
 
-# Custom output directory and increased verbosity
-mlzero -i ./data -o ./results -v 5
-
-# Use archive extraction and limit iterations
-mlzero -i ./data -n 3 -e ./tmp_extract -v 6
+# Custom output directory and set limit to 3 iterations
+mlzero -i ./data -n 3
 
 
 #### Overriding Configs
@@ -145,7 +120,6 @@ You can always provide a config to override default config.
 ```
 
 
-```bash
 ## Citation
 If you use Autogluon Assistant (MLZero) in your research, please cite our paper:
 

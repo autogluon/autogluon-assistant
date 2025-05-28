@@ -43,7 +43,7 @@ class CoderAgent(BaseAgent):
             )
 
     def __call__(self):
-        self.manager.log_agent_start("coder_agent")
+        self.manager.log_agent_start("CoderAgent: starting to build and send code-generation prompt to the LLM.")
 
         # Build prompt for evaluating execution results
         prompt = self.coder_prompt.build()
@@ -59,6 +59,6 @@ class CoderAgent(BaseAgent):
 
         generated_code = self.coder_prompt.parse(response)
 
-        self.manager.log_agent_end("coder_agent")
+        self.manager.log_agent_end("CoderAgent: code-generation prompt handled and code parsed from response.")
 
         return generated_code

@@ -360,47 +360,11 @@ class Manager:
             else:
                 file.write("<None>")
 
-    def log_agent_start(self, agent_name: str):
-        match agent_name:
-            case "coder_agent":
-                logger.info("CoderAgent: starting to build and send code-generation prompt to the LLM.")
-            case "data_perception_agent":
-                logger.info("DataPerceptionAgent: beginning to scan data folder and group similar files.")
-            case "description_file_retriever_agent":
-                logger.info("DescriptionFileRetrieverAgent: identifying description files from data prompt.")
-            case "error_analyzer_agent":
-                logger.info("ErrorAnalyzerAgent: analyzing previous error and preparing debugging suggestions.")
-            case "executer_agent":
-                logger.info("ExecuterAgent: executing code and collecting stdout/stderr for evaluation.")
-            case "retriever_agent":
-                logger.info("RetrieverAgent: selecting relevant tutorials based on task context.")
-            case "task_descriptor_agent":
-                logger.info("TaskDescriptorAgent: generating a concise task description from source materials.")
-            case "tool_selector_agent":
-                logger.info("ToolSelectorAgent: choosing the most appropriate ML library for the task.")
-            case _:
-                logger.info(f"{agent_name}: starting execution.")
+    def log_agent_start(self, message: str):
+        logger.info(message)
 
-    def log_agent_end(self, agent_name: str):
-        match agent_name:
-            case "coder_agent":
-                logger.brief("CoderAgent: code-generation prompt handled and code parsed from response.")
-            case "data_perception_agent":
-                logger.brief("DataPerceptionAgent: completed folder scan and assembled data prompt.")
-            case "description_file_retriever_agent":
-                logger.brief("DescriptionFileRetrieverAgent: description file list extracted.")
-            case "error_analyzer_agent":
-                logger.brief("ErrorAnalyzerAgent: error analysis complete with summary and fix suggestions.")
-            case "executer_agent":
-                logger.brief("ExecuterAgent: execution finished; planner decision logged.")
-            case "retriever_agent":
-                logger.brief("RetrieverAgent: tutorial selection complete and prompt formatted.")
-            case "task_descriptor_agent":
-                logger.brief("TaskDescriptorAgent: task description generated.")
-            case "tool_selector_agent":
-                logger.brief("ToolSelectorAgent: selected tool and recorded justification.")
-            case _:
-                logger.brief(f"{agent_name}: execution finished.")
+    def log_agent_end(self, message: str):
+        logger.brief(message)
 
     def report_token_usage(self):
         token_usage_path = os.path.join(self.output_folder, "token_usage.json")

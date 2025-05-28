@@ -202,7 +202,7 @@ class DataPerceptionAgent(BaseAgent):
     def __call__(
         self,
     ):
-        self.manager.log_agent_start("data_perception_agent")
+        self.manager.log_agent_start("DataPerceptionAgent: beginning to scan data folder and group similar files.")
 
         # Get absolute path of the folder
         abs_folder_path = os.path.abspath(self.input_data_folder)
@@ -252,6 +252,6 @@ class DataPerceptionAgent(BaseAgent):
         for file_info, content in file_contents.items():
             prompt += f"{file_info}\nContent:\n{content}\n{'-' * 10}\n"
 
-        self.manager.log_agent_end("data_perception_agent")
+        self.manager.log_agent_end("DataPerceptionAgent: completed folder scan and assembled data prompt.")
 
         return prompt
