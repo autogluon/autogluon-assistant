@@ -59,6 +59,7 @@ mlzero \
     -o "$OUTPUT_DIR" \
     -n 5 \
     -v 7 \
+    -u "complete the task in one hour" \
     2>&1 | tee "${OUTPUT_DIR}/log.txt"
 
 # Check if the process was successful

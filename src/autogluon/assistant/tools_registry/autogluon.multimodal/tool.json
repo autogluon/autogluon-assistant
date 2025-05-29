@@ -9,15 +9,10 @@
   ],
   "requirements": [],
   "prompt_template": [
-    "Use Autogluon Multimodal with the following parameters:",
-    "- time_limit: 1800 seconds",
-    "- presets: \\\"medium_quality\\\"",
-    "- tuning_data: only use validation if there is a validation dataset.",
+    "tuning_data: only use validation if there is a validation dataset.",
     "The usage of document prediction is different from image prediction.",
     "Check data path carefully when encounter ValueError: No model is available for this dataset.",
     "For semantic segmentation, use single GPU by setting CUDA_VISIBLE_DEVICES=0",
-    "For semantic segmentation, save the mask as greyscale JPG image (squeeze then cv2.imwrite) in \\\"predicted_mask\\\" folder under output folder and save its absolute path in label column.",
-    "No need to specify model.names, and do not increase default per gpu batch size to avoid OOM errors.",
-    "IMPORTANT: To handle multi-label classification/regression with AutoGluon, split the problem by training a separate model for each label column (whether binary or multiclass) using the same feature set (EXCLUDE other label columns!) but different target columns, then combine predictions from all models to form the complete multi-label output for new data."
+    "For semantic segmentation, the predicted mask should be saved as greyscale JPG image in \\\"predicted_mask\\\" folder under output folder and save its absolute path in label column."
   ]
 }
