@@ -79,14 +79,11 @@ mlzero -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS]
   Increase logging verbosity level. Use `-v <level>` where level is an integer:
   | `-v` value | Logging Level |
   |------------|----------------|
-  | 0 | BRIEF |
-  | 1 | CRITICAL |
-  | 2 | ERROR |
-  | 3 | WARNING |
-  | 4 | BRIEF |
-  | 5 | INFO |
-  | 6 | MODEL_INFO |
-  | 7 or more | DEBUG |
+  | 0 | ERROR |
+  | 1 (Default) | BRIEF |
+  | 2 | INFO |
+  | 3 | MODEL_INFO |
+  | 4 or more | DEBUG |
 
 #### Examples
 

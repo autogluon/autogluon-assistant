@@ -41,6 +41,8 @@ export AWS_ACCESS_KEY_ID="<your-access-key>"
 export AWS_SECRET_ACCESS_KEY="<your-secret-key>"
 ```
 
+We also support OpenAI. More LLM providers' support (e.g. Anthropic, Azure, etc.) will be added soon.
+
 ### Basic Usage
 
 ```bash

@@ -41,7 +41,7 @@ def main(
         None, "-e", "--extract-to", help="Directory in which to unpack any archives"
     ),
     # === Logging parameters ===
-    verbosity: int = typer.Option(0, "-v", "--verbosity", help="Verbosity level (0–7)"),
+    verbosity: int = typer.Option(1, "-v", "--verbosity", help="Verbosity level (0–4)"),
 ):
     """
     mlzero: a CLI for running the AutoMLAgent pipeline.
@@ -50,21 +50,15 @@ def main(
     # 1) Configure logging
     match verbosity:
         case 0:
-            level = BRIEF_LEVEL
+            level = logging.ERROR  # Only errors
         case 1:
-            level = logging.CRITICAL
+            level = BRIEF_LEVEL  # Brief summaries
         case 2:
-            level = logging.ERROR
+            level = logging.INFO  # Standard info
         case 3:
-            level = logging.WARNING
-        case 4:
-            level = BRIEF_LEVEL
-        case 5:
-            level = logging.INFO
-        case 6:
-            level = MODEL_INFO_LEVEL
-        case _:
-            level = logging.DEBUG
+            level = MODEL_INFO_LEVEL  # Model details
+        case _:  # 4+
+            level = logging.DEBUG  # Full debug info
     configure_logging(level)
 
     # 2) If the user specified output_dir, ensure its parent directory exists;
