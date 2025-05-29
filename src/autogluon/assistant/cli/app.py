@@ -50,15 +50,15 @@ def main(
     # 1) Configure logging
     match verbosity:
         case 0:
-            level = logging.ERROR     # Only errors
+            level = logging.ERROR  # Only errors
         case 1:
-            level = BRIEF_LEVEL       # Brief summaries
+            level = BRIEF_LEVEL  # Brief summaries
         case 2:
-            level = logging.INFO      # Standard info
+            level = logging.INFO  # Standard info
         case 3:
             level = MODEL_INFO_LEVEL  # Model details
         case _:  # 4+
-            level = logging.DEBUG     # Full debug info
+            level = logging.DEBUG  # Full debug info
     configure_logging(level)
 
     # 2) If the user specified output_dir, ensure its parent directory exists;
