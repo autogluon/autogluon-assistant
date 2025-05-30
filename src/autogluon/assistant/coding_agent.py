@@ -17,12 +17,12 @@ logger = logging.getLogger(__name__)
 def run_agent(
     input_data_folder,
     output_folder=None,
-    tutorial_link=None,
     config_path=None,
     max_iterations=5,
     need_user_input=False,
     initial_user_input=None,
     extract_archives_to=None,
+    manager=None,
 ):
 
     if not logger.hasHandlers():
@@ -95,11 +95,12 @@ def run_agent(
         user_config = OmegaConf.load(config_path)
         config = OmegaConf.merge(config, user_config)
 
-    manager = Manager(
-        input_data_folder=input_data_folder,
-        output_folder=output_folder,
-        config=config,
-    )
+    if manager is None:
+        manager = Manager(
+            input_data_folder=input_data_folder,
+            output_folder=output_folder,
+            config=config,
+        )
 
     while manager.time_step + 1 < max_iterations:
         logger.brief(f"Starting iteration {manager.time_step + 1}!")

@@ -66,16 +66,15 @@ def main(
     if output_dir:
         out_path = output_dir.expanduser().resolve()
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        output_folder_arg = str(out_path)
+        output_folder = str(out_path)
         logging.getLogger(__name__).info("Output directory to be created: %s", out_path)
     else:
-        output_folder_arg = None
+        output_folder = None
 
     # 3) Invoke the core run_agent function
     run_agent(
         input_data_folder=input_data_folder,
-        output_folder=output_folder_arg,
-        tutorial_link=None,
+        output_folder=output_folder,
         config_path=str(config_path),
         max_iterations=max_iterations,
         need_user_input=need_user_input,
