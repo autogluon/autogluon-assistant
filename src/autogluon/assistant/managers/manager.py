@@ -361,7 +361,7 @@ class Manager:
                 file.write("<None>")
 
     def log_agent_start(self, message: str):
-        logger.info(message)
+        logger.brief(message)
 
     def log_agent_end(self, message: str):
         logger.brief(message)

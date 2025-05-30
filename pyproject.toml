@@ -27,6 +27,7 @@ dependencies = [
   "typer>=0.12.5",
   "rich>=13.8.1",
   "s3fs>=2025.3.2",
+  "flask>=2.2",
   "fsspec>=2025.3.2",
   "joblib>=1.4.2",
   "python-calamine",
@@ -42,6 +43,7 @@ dependencies = [
 aga          = "autogluon.assistant.cli.app:app"
 mlzero       = "autogluon.assistant.cli.app:app"
 mlzero-webui = "autogluon.assistant.webui.Home:main"
+mlzero-backend = "autogluon.assistant.webui.backend.app:main"
 
 [project.optional-dependencies]
 dev = [
