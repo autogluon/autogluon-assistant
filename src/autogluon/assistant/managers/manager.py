@@ -308,6 +308,9 @@ class Manager:
             data_prompt=self.data_prompt,
         )
 
+        self.save_and_log_states(stderr, "stderr", per_iteration=True, add_uuid=False)
+        self.save_and_log_states(stdout, "stdout", per_iteration=True, add_uuid=False)
+
         if planner_decision == "FIX":
             logger.brief(f"[bold red]Code generation failed in iteration[/bold red] {self.time_step}!")
             # Add suggestions to the error message to guide next iteration
