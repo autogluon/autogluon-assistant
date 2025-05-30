@@ -71,7 +71,7 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
             error_analysis = f"ERROR_SUMMARY: {analysis_match.group(1).strip()}"
         else:
             error_analysis = "Failed to extract error analysis from LLM response."
-        
+
         self.manager.save_and_log_states(
             content=response, save_name="error_analyzer_response.txt", per_iteration=True, add_uuid=False
         )
