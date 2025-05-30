@@ -5,6 +5,7 @@
 <!-- Please describe how you tested your changes -->
 - [ ] Unit tests (`pytest tests/`)
 - [ ] Integration tests (if applicable)
+- [ ] If there is a new feature, please describe how you test it:
 
 
 ## Configuration Changes
