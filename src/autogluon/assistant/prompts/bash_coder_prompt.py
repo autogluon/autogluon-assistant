@@ -35,12 +35,7 @@ Notes:
 
         assert self.manager.time_step >= 0, "run manager.step(user_input) before retriving the prompt"
 
-        # TODO: remove the hard code for "install_packages" (add in tool registry if need installation)
-        environment_prompt = self.get_env_prompt(
-            create_venv=self.manager.config.create_venv,
-            install_packages="machine learning" in self.manager.selected_tool,
-            output_folder=self.manager.output_folder,
-        )
+        environment_prompt = self.get_env_prompt()
 
         # Format the prompt using the template
         prompt = self.template.format(
@@ -78,7 +73,13 @@ Notes:
 
         return extracted_bash_script
 
-    def get_env_prompt(self, create_venv, install_packages, output_folder):
+    def get_env_prompt(self):
+        create_venv = self.manager.config.create_venv
+        # TODO: remove the hard code for "install_packages" (add in tool registry if need installation)
+        install_packages = "machine learning" in self.manager.selected_tool
+        output_folder = self.manager.output_folder
+        selected_tool = self.manager.selected_tool
+
         env_prompt = ""
         if create_venv:
             env_prompt = f"""
@@ -91,6 +92,6 @@ Create and configure a conda environment in {output_folder}:
                 "The environment may not be fully configured. Install any packages required in the python code."
             )
         else:
-            env_prompt = "The environment is already configured. Do not install or update any package unless there is an error due to the missing package."
+            env_prompt = f"The environment is already configured. Do not install or update any package unless there is an error due to the missing package. \nDo NOT upgrade {selected_tool} which is already installed."
 
         return env_prompt
