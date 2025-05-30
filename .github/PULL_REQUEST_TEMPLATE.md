@@ -11,7 +11,7 @@
 ## Configuration Changes
 <!-- Note any changes to configuration files or environment variables -->
 - [ ] No config changes
-- [ ] Config changes (please describe):
+- [ ] Config changes have been updated in `default.yaml`. Please describe the changes:
 
 ## Type of Change
 <!-- Check relevant options -->
