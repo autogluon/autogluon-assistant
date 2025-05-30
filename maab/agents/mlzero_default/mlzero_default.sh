@@ -58,8 +58,8 @@ mlzero \
     -i "$TRAINING_PATH" \
     -o "$OUTPUT_DIR" \
     -n 5 \
-    -vv \
-    2>&1 | tee "${OUTPUT_DIR}/log.txt"
+    -v 1 \
+    2>&1 | tee "${OUTPUT_DIR}/maab_logs.txt"
 
 # Check if the process was successful
 if [ $? -ne 0 ]; then

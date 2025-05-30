@@ -67,9 +67,8 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
 
     def parse(self, response: str) -> Optional[str]:
         analysis_match = re.search(r"ERROR_SUMMARY:\s*(.*)", response, re.DOTALL)
-
         if analysis_match:
-            error_analysis = analysis_match.group(1).strip()
+            error_analysis = f"ERROR_SUMMARY: {analysis_match.group(1).strip()}"
         else:
             error_analysis = "Failed to extract error analysis from LLM response."
 
@@ -79,5 +78,4 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
         self.manager.save_and_log_states(
             content=error_analysis, save_name="error_analysis.txt", per_iteration=True, add_uuid=False
         )
-
         return error_analysis

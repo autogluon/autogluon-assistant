@@ -21,27 +21,21 @@ AutoGluon Assistant (aka MLZero) is a multi-agent system that automates end-to-e
 
 AutoGluon Assistant is supported on Python 3.8 - 3.11 and is available on Linux, MacOS, and Windows.
 
-
-You can install from source:
+You can install from source (new version will be released to PyPI soon):
 
 ```bash
 git clone https://github.com/autogluon/autogluon-assistant.git
-cd autogluon-assistant && pip install -e "."
+cd autogluon-assistant
+pip install uv
+uv pip install -e .
 ```
 
-You can also install old version with (not recommended):
+## Quick Start
 
-```bash
-pip install autogluon.assistant
-```
+For detailed usage instructions, OpenAI/Azure setup, and advanced configuration options, see our [Getting Started Tutorial](docs/tutorials/getting_started.md).
 
-### API Keys
-
-#### Configuring LLMs
-MLZero supports using both AWS Bedrock and OpenAI as LLM model providers. You will need to set up API keys for the respective provider you choose. By default, MLZero uses AWS Bedrock for its language models.
-
-#### AWS Bedrock Setup
-MLZero integrates with AWS Bedrock by default. To use AWS Bedrock, you will need to configure your AWS credentials and region settings:
+### API Setup
+MLZero uses AWS Bedrock by default. Configure your AWS credentials:
 
 ```bash
 export AWS_DEFAULT_REGION="<your-region>"
@@ -49,76 +43,13 @@ export AWS_ACCESS_KEY_ID="<your-access-key>"
 export AWS_SECRET_ACCESS_KEY="<your-secret-key>"
 ```
 
-Ensure you have an active AWS account and appropriate permissions set up for using Bedrock models. You can manage your AWS credentials through the AWS Management Console. See [Bedrock supported AWS regions](https://docs.aws.amazon.com/bedrock/latest/userguide/bedrock-regions.html)
+We also support OpenAI. More LLM providers' support (e.g. Anthropic, Azure, etc.) will be added soon.
 
-
-#### OpenAI Setup
-To use OpenAI, you'll need to set your OpenAI API key as an environment variable:
+### Basic Usage
 
 ```bash
-export OPENAI_API_KEY="sk-..."
+mlzero -i <input_data_folder> [-u <optional_user_instructions>]
 ```
-
-You can sign up for an OpenAI account [here](https://platform.openai.com/) and manage your API keys [here](https://platform.openai.com/account/api-keys).
-
-Important: Free-tier OpenAI accounts may be subject to rate limits, which could affect AG-A's performance. We recommend using a paid OpenAI API key for seamless functionality.
-
-
-#### Azure OpenAI Setup (WIP)
-To use Azure OpenAI, you'll need to set the following Azure OpenAI values, as environment variables:
-```bash
-export AZURE_OPENAI_API_KEY=<...>
-export OPENAI_API_VERSION=<...>
-export AZURE_OPENAI_ENDPOINT=<...>
-```
-
-## Usage
-
-We support two ways of using AutoGluon Assistant: WebUI or CLI.
-
-### Web UI
-WIP
-
-### CLI
-
-
-```bash
-mlzero -i INPUT_DATA_FOLDER [-c CONFIG_PATH] [-n MAX_ITERATIONS] [-u INITIAL_USER_INPUT]
-```
-
-
-### Required Arguments
-
-- `-i, --input`:  
-  Path to the input data folder. This directory should contain training/testing files and optionally a description file.
-
-### Optional Arguments
-
-- `-c, --config`:  
-  Path to the YAML configuration file. Default: `configs/default.yaml`.
-
-- `-n, --max-iterations`:  
-  Maximum number of iterations. Default is `5`.
-
-- `-u, --user-input`:  
-  Initial user input to use in the first iteration. Optional.
-
-> **Note:** For more optional arguments and examples, see the [CLI tutorial](https://github.com/autogluon/autogluon-assistant/tree/main/docs/tutorials/cli_tutorial.md).
-
-### Examples
-
-```bash
-# Basic usage
-mlzero -i ./data
-
-# Custom output directory and set limit to 3 iterations
-mlzero -i ./data -n 3
-
-
-#### Overriding Configs
-You can always provide a config to override default config.
-```
-
 
 ## Citation
 If you use Autogluon Assistant (MLZero) in your research, please cite our paper:
