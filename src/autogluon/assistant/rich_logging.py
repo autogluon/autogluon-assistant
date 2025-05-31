@@ -71,6 +71,17 @@ def _configure_logging(console_level: int, output_dir: Path = None) -> None:
         info_handler.setFormatter(info_formatter)
         handlers.append(info_handler)
 
+        # Console log file (captures same level as console output)
+        console_log_path = output_dir / "logs.txt"
+        console_file_handler = logging.FileHandler(str(console_log_path), mode="w", encoding="utf-8")
+        console_file_handler.setLevel(console_level)
+        console_formatter = logging.Formatter(
+            "%(asctime)s %(levelname)-8s [%(name)s] %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        console_file_handler.setFormatter(console_formatter)
+        handlers.append(console_file_handler)
+
     logging.basicConfig(
         level=root_level,
         format="%(message)s",
