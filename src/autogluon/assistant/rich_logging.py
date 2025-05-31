@@ -4,7 +4,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.logging import RichHandler
 
-from autogluon.assistant.constants import BRIEF_LEVEL, MODEL_INFO_LEVEL
+from .constants import BRIEF_LEVEL, MODEL_INFO_LEVEL
 
 # ── Custom log levels ─────────────────────────────
 logging.addLevelName(MODEL_INFO_LEVEL, "MODEL_INFO")
@@ -26,33 +26,69 @@ logging.Logger.brief = brief  # type: ignore
 # ─────────────────────────────────────────
 
 
-def configure_logging(level: int) -> None:
+def _configure_logging(console_level: int, output_dir: Path = None) -> None:
     """
-    Globally initialize logging (overrides any basicConfig set by other modules)
+    Globally initialize logging with separate levels for console and file
+
+    Args:
+        console_level: Logging level for terminal output
+        output_dir: If provided, creates both debug and info level file loggers in this directory
     """
     console = Console()
+
+    # Set root logger level to DEBUG to allow file handlers to capture all logs
+    root_level = logging.DEBUG
+
+    # Create RichHandler with the specified console level
+    console_handler = RichHandler(console=console, markup=True, rich_tracebacks=True)
+    console_handler.setLevel(console_level)
+
+    handlers = [console_handler]
+
+    # Add file handlers if output_dir is provided
+    if output_dir is not None:
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Debug log file (captures everything DEBUG and above)
+        debug_log_path = output_dir / "debugging_logs.txt"
+        debug_handler = logging.FileHandler(str(debug_log_path), mode="w", encoding="utf-8")
+        debug_handler.setLevel(logging.DEBUG)
+        debug_formatter = logging.Formatter(
+            "%(asctime)s %(levelname)-8s [%(name)s] %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        debug_handler.setFormatter(debug_formatter)
+        handlers.append(debug_handler)
+
+        # Info log file (captures INFO and above only)
+        info_log_path = output_dir / "info_logs.txt"
+        info_handler = logging.FileHandler(str(info_log_path), mode="w", encoding="utf-8")
+        info_handler.setLevel(logging.INFO)
+        info_formatter = logging.Formatter(
+            "%(asctime)s %(levelname)-8s [%(name)s] %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        info_handler.setFormatter(info_formatter)
+        handlers.append(info_handler)
+
     logging.basicConfig(
-        level=level,
+        level=root_level,
         format="%(message)s",
-        handlers=[RichHandler(console=console, markup=True, rich_tracebacks=True)],
+        handlers=handlers,
         force=True,  # Ensure override
     )
 
 
-def attach_file_logger(output_dir: Path):
-    """
-    Create a logs.txt file under output_dir to record all logs at DEBUG level and above.
-    """
-    log_path = output_dir / "logs.txt"
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    fh = logging.FileHandler(str(log_path), mode="w", encoding="utf-8")
-    fh.setLevel(logging.DEBUG)
-
-    fmt = logging.Formatter(
-        "%(asctime)s %(levelname)-8s [%(name)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    fh.setFormatter(fmt)
-
-    logging.getLogger().addHandler(fh)
+def configure_logging(verbosity: int, output_dir: Path = None) -> None:
+    match verbosity:
+        case 0:
+            level = logging.ERROR  # Only errors
+        case 1:
+            level = BRIEF_LEVEL  # Brief summaries
+        case 2:
+            level = logging.INFO  # Standard info
+        case 3:
+            level = MODEL_INFO_LEVEL  # Model details
+        case _:  # 4+
+            level = logging.DEBUG  # Full debug info
+    _configure_logging(console_level=level, output_dir=output_dir)
