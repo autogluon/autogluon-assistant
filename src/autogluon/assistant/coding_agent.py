@@ -7,8 +7,8 @@ from pathlib import Path
 from omegaconf import OmegaConf
 
 from .managers import Manager
-from .utils import extract_archives
 from .rich_logging import configure_logging
+from .utils import extract_archives
 
 logger = logging.getLogger(__name__)
 
