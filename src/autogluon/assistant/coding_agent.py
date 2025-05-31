@@ -6,9 +6,8 @@ from pathlib import Path
 
 from omegaconf import OmegaConf
 
-from autogluon.assistant.rich_logging import attach_file_logger
-
 from .managers import Manager
+from .rich_logging import configure_logging
 from .utils import extract_archives
 
 logger = logging.getLogger(__name__)
@@ -23,11 +22,8 @@ def run_agent(
     initial_user_input=None,
     extract_archives_to=None,
     manager=None,
+    verbosity=1,
 ):
-
-    if not logger.hasHandlers():
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s [%(name)s] %(message)s")
-
     # Get the directory of the current file
     current_file_dir = Path(__file__).parent
 
@@ -47,7 +43,8 @@ def run_agent(
     output_dir = Path(output_folder).expanduser().resolve()
     output_dir.parent.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=False, exist_ok=True)
-    attach_file_logger(output_dir)
+
+    configure_logging(verbosity=verbosity, output_dir=output_dir)
 
     if extract_archives_to is not None:
         if extract_archives_to and extract_archives_to != input_data_folder:
