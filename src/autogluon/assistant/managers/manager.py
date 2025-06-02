@@ -221,7 +221,7 @@ class Manager:
     @property
     def all_previous_error_prompts(self) -> str:
         if self.time_step >= 1:
-            return "\n".join(self.error_prompts[: self.time_step])
+            return "\n\n".join(self.error_prompts[: self.time_step])
         else:
             return ""
 

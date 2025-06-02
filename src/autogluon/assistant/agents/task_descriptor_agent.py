@@ -52,11 +52,10 @@ class TaskDescriptorAgent(BaseAgent):
             "TaskDescriptorAgent: generating a concise task description from source materials."
         )
 
-        # Use description file directly if within certain length
-        description_files_contents = self.task_descriptor_prompt.get_description_files_contents()
+        # Attach description file directly if within certain length
+        description_files_contents = self.task_descriptor_prompt.get_description_files_contents(to_show=True)
 
-        if len(description_files_contents) <= self.manager.config.task_descriptor.max_description_files_length:
-            return description_files_contents
+        task_description = description_files_contents
 
         # Otherwise generate condensed task description
         prompt = self.task_descriptor_prompt.build()

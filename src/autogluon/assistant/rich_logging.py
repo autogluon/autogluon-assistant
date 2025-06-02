@@ -43,7 +43,7 @@ def attach_file_logger(output_dir: Path):
     """
     Create a logs.txt file under output_dir to record all logs at DEBUG level and above.
     """
-    log_path = output_dir / "logs.txt"
+    log_path = output_dir / "debugging_logs.txt"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     fh = logging.FileHandler(str(log_path), mode="w", encoding="utf-8")
