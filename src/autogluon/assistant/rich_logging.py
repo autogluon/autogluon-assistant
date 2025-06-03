@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+import sys
 
 from rich.console import Console
 from rich.logging import RichHandler
@@ -30,11 +31,22 @@ def configure_logging(level: int) -> None:
     """
     Globally initialize logging (overrides any basicConfig set by other modules)
     """
-    console = Console()
+    if sys.stdout.isatty():
+        console = Console(file=sys.stderr)
+        rich_handler = RichHandler(console=console, markup=True, rich_tracebacks=True)
+        handler = rich_handler
+
+    else:
+        stdout_handler = logging.StreamHandler(sys.stdout)   # 写到 stdout
+        stdout_handler.setLevel(level)                # 只要 INFO+
+        stdout_fmt = logging.Formatter("%(levelname)s %(message)s")
+        stdout_handler.setFormatter(stdout_fmt)
+        handler = stdout_handler
+
     logging.basicConfig(
         level=level,
         format="%(message)s",
-        handlers=[RichHandler(console=console, markup=True, rich_tracebacks=True)],
+        handlers=[handler], # , stdout_handler
         force=True,  # Ensure override
     )
 

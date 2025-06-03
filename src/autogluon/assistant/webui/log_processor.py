@@ -1,172 +1,122 @@
 import re
-import time
-
 import streamlit as st
-from autogluon.assistant.constants import (
-    IGNORED_MESSAGES,
-    STAGE_COMPLETE_SIGNAL,
-    STAGE_MESSAGES,
-    STATUS_BAR_STAGE,
-    SUCCESS_MESSAGE,
-    TIME_LIMIT_MAPPING,
-    BRIEF_STAGE_MESSAGES,
-)
-
-
-def show_log_line(entry):
-    """
-    entry: {"level": "<LEVEL>", "text": "<MESSAGE>"}
-    Prints "<LEVEL>\t<MESSAGE>" with simple styling.
-    """
-    # 新格式：dict 包含 level/text
-    if isinstance(entry, dict):
-        level = entry.get("level", "").upper()
-        text  = entry.get("text", "")
-    else:
-        # 若不符合新格式，兜底当 INFO
-        st.write("error: missing level (eg. INFO)")
-
-    # 将 level 和 text 以制表符分隔打印
-    # 你可以根据 level 再加不同的颜色或组件
-    st.write(f"{text}")
-
-def show_logs():
-    st.write("hello world")
-    # """
-    # Display logs and task status when task is finished.
-    # """
-    # if st.session_state.logs:
-    #     status_container = st.empty()
-    #     if st.session_state.return_code == 0:
-    #         status_container.success(SUCCESS_MESSAGE)
-    #     else:
-    #         status_container.error("Error detected in the process...Check the logs for more details")
-    #     tab1, tab2 = st.tabs(["Messages", "Logs"])
-    #     with tab1:
-    #         for stage, logs in st.session_state.stage_container.items():
-    #             if logs:
-    #                 with st.status(stage, expanded=False, state="complete"):
-    #                     for log in logs:
-    #                         show_log_line(log)
-    #     with tab2:
-    #         log_container = st.empty()
-    #         log_container.text_area("Real-Time Logs", st.session_state.logs, height=400)
-
-
-def format_log_line(line):
-    """
-    Format log lines by removing ANSI escape codes, formatting markdown syntax,
-    and cleaning up process-related information.
-
-    Args:
-        line (str): Raw log line to be formatted.
-
-    Returns:
-        str: Formatted log line with:
-    """
-    line = re.sub(r"\x1B\[1m(.*?)\x1B\[0m", r"**\1**", line)
-    line = re.sub(r"^#", r"\\#", line)
-    line = re.sub(r"\033\[\d+m", "", line)
-    line = re.sub(r"^\s*\(\w+ pid=\d+\)\s*", "", line)
-    return line
-
-
-def process_realtime_logs(line):
-    """
-    Handles the real-time processing of log lines, updating the UI state,
-    managing progress bars, and displaying status updates in the  interface.
-
-    Args:  line (str): A single line from the log stream to process.
-    """
-    if any(ignored_msg in line for ignored_msg in IGNORED_MESSAGES):
-        return
-    stage = get_stage_from_log(line)
-    if stage:
-        if stage != st.session_state.current_stage:
-            if st.session_state.current_stage:
-                st.session_state.stage_status[st.session_state.current_stage].update(
-                    state="complete",
-                )
-            st.session_state.current_stage = stage
-        if stage not in st.session_state.stage_status:
-            st.session_state.stage_status[stage] = st.status(stage, expanded=False)
-
-    if st.session_state.current_stage:
-        if "AutoGluon training complete" in line:
-            st.session_state.show_remaining_time = False
-        with st.session_state.stage_status[st.session_state.current_stage]:
-            if "Fitting model" in line and not st.session_state.show_remaining_time:
-                st.session_state.progress_bar = st.progress(0, text="Elapsed Time for Fitting models:")
-                st.session_state.show_remaining_time = True
-                st.session_state.elapsed_time = time.time() - st.session_state.start_time
-                st.session_state.remaining_time = (
-                    TIME_LIMIT_MAPPING[st.session_state.time_limit] - st.session_state.elapsed_time
-                )
-                st.session_state.start_model_train_time = time.time()
-            if st.session_state.show_remaining_time:
-                st.session_state.elapsed_time = time.time() - st.session_state.start_model_train_time
-                progress_bar = st.session_state.progress_bar
-                current_time = min(st.session_state.elapsed_time, st.session_state.remaining_time)
-                progress = current_time / st.session_state.remaining_time
-                time_ratio = f"Elapsed Time for Fitting models: | ({progress:.1%})"
-                progress_bar.progress(progress, text=time_ratio)
-            if not st.session_state.show_remaining_time:
-                st.session_state.stage_container[st.session_state.current_stage].append(line)
-                show_log_line(line)
-
 
 import re
-import streamlit as st
+import time
 
-def messages(process, total_iterations):
+READING_START = "DataPerceptionAgent: beginning to scan data folder and group similar files."
+READING_END   = "DataPerceptionAgent: completed folder scan and assembled data prompt."
+ITER_START_RE = re.compile(r"Starting iteration (\d+)!")
+ITER_END_RE   = re.compile(r"Code generation (failed|successful)")
+OUTPUT_START  = "Total tokens"
+OUTPUT_END    = "output saved in"
+
+
+
+def messages(log_entries: list[dict], max_iter: int):
     """
-    Parse the given process.stdout line-by-line, grouping BRIEF logs into
-    stages and updating the Streamlit UI. All output for this run appears
-    in one assistant bubble, with a top-level progress bar and per-stage
-    collapsible sections.
+    对后端返回的多条日志条目（每条是 {"level": ..., "text": ...}），
+    按照“Reading → Iteration1…IterationN → Output”几个阶段来渲染。
+
+    关键步骤：
+      1. 用 st.progress() 显示一个总进度条，阶段数量 = max_iter + 2
+         （index0=Reading, index1~indexN=各Iteration, indexN+1=Output）；
+      2. 每当遇到“阶段开始”的 text 时，就创建一个 st.status(stage_name) 容器，
+         并把阶段内的所有 text 追加到该容器里；
+      3. 当遇到“阶段结束”的 text 时，就把该容器更新为 state="complete" 并推进进度条；
+      4. 剩余无法匹配入任何阶段边界/内部的日志，就直接用 st.write() 输出。
+
+    参数：
+      - log_entries: 后端 `/api/logs` 返回的列表，每项是 {"level": ..., "text": ...}；
+      - max_iter: 用户在前端设置的最大迭代次数（整数，比如 5）。
     """
-    chat_bubble = st.chat_message("assistant")
-    with chat_bubble:
-        # overall progress bar (0→1)
-        progress = st.progress(0.0)
-        current_status = None
 
-        # e.g. "2025-05-29 00:00:24 BRIEF    [module] Message..."
-        log_pattern = re.compile(r'^\S+\s+\S+\s+(\w+)\s+\[[^\]]+\]\s+(.*)$')
+    total_stages = max_iter + 2  # 阶段总数：Reading + (Iteration x max_iter) + Output
+    prog = st.progress(0.0, text="Starting…")
 
-        for line in process.stdout:
-            line = line.strip()
-            if not line:
-                continue
-            m = log_pattern.match(line)
-            if not m:
-                continue
-            level, message = m.group(1), m.group(2)
+    # 存储各阶段对应的 StatusContainer：{ phase_name: st.status(...) }
+    stage_containers: dict[str, st.delta_generator.StatusContainer] = {}
+    current_phase: str | None = None  # 记录当前正在写入哪个阶段
 
-            # on each BRIEF log, start a new stage
-            if level == "BRIEF":
-                if current_status is not None:
-                    current_status.update(state="complete")
-                key = message.split(":", 1)[0].strip()
-                # use the text before the first colon as the section title
-                current_status = st.status(key, expanded=False)
+    for entry in log_entries:
+        text = entry.get("text", "")  # 先取出纯文本
+        # —— 1) 检测 Reading 阶段的“开始”
+        if READING_START in text:
+            current_phase = "Reading"
+            if current_phase not in stage_containers:
+                stage_containers[current_phase] = st.status(current_phase, expanded=False)
+            prog.progress(0 / total_stages, text=current_phase)
+            stage_containers[current_phase].write(text)
+            continue
 
-            # emit this line into the current stage
-            if current_status is not None:
-                if level == "BRIEF":
-                    current_status.markdown(f":green[{message}]")
-                elif level == "INFO":
-                    current_status.markdown(f":blue[{message}]")
-                elif level.upper().startswith("WARN"):
-                    current_status.markdown(f":orange[{message}]")
-                elif level.upper().startswith("ERROR") or level.upper().startswith("EXCEPTION"):
-                    current_status.markdown(f":red[{message}]")
-                else:
-                    current_status.write(message)
+        # —— 2) 检测 Reading 阶段的“结束”
+        if READING_END in text:
+            if current_phase == "Reading":
+                stage_containers["Reading"].write(text)
+                stage_containers["Reading"].update(state="complete")
+                current_phase = None
+            else:
+                # 如果没记录当前phase，也强制创建一次并标记完成
+                if "Reading" not in stage_containers:
+                    stage_containers["Reading"] = st.status("Reading", expanded=False)
+                stage_containers["Reading"].write(text)
+                stage_containers["Reading"].update(state="complete")
+            continue
 
-        # mark last stage done
-        if current_status is not None:
-            current_status.update(state="complete")
+        # —— 3) 检测某次 Iteration 的“开始”，如 “Starting iteration 0!”
+        m_start = ITER_START_RE.search(text)
+        if m_start:
+            idx = int(m_start.group(1)) + 1  # “0”→第1次，显示字符串为 f"Iteration 1"
+            phase_name = f"Iteration {idx}"
+            current_phase = phase_name
+            if phase_name not in stage_containers:
+                stage_containers[phase_name] = st.status(phase_name, expanded=False)
+            prog.progress(idx / total_stages, text=phase_name)
+            stage_containers[phase_name].write(text)
+            continue
 
-        # finish overall progress
-        progress.progress(1.0)
+        # —— 4) 检测某次 Iteration 的“结束”（失败或成功都算）
+        if ITER_END_RE.search(text):
+            if current_phase and current_phase.startswith("Iteration"):
+                stage_containers[current_phase].write(text)
+                stage_containers[current_phase].update(state="complete")
+                current_phase = None
+            else:
+                # 如果没有 current_phase，或者格式意外，就写到“Iteration (Unknown)”里
+                fallback = "Iteration (Unknown)"
+                if fallback not in stage_containers:
+                    stage_containers[fallback] = st.status(fallback, expanded=False)
+                stage_containers[fallback].write(text)
+                stage_containers[fallback].update(state="complete")
+            continue
+
+        # —— 5) 检测 Output 阶段的“开始”
+        if OUTPUT_START in text:
+            current_phase = "Output"
+            if current_phase not in stage_containers:
+                stage_containers[current_phase] = st.status(current_phase, expanded=False)
+            prog.progress((max_iter + 1) / total_stages, text=current_phase)
+            stage_containers[current_phase].write(text)
+            continue
+
+        # —— 6) 检测 Output 阶段的“结束”
+        if OUTPUT_END in text:
+            if current_phase == "Output":
+                stage_containers["Output"].write(text)
+                stage_containers["Output"].update(state="complete")
+                prog.progress(1.0, text="Complete")
+                current_phase = None
+            else:
+                if "Output" not in stage_containers:
+                    stage_containers["Output"] = st.status("Output", expanded=False)
+                stage_containers["Output"].write(text)
+                stage_containers["Output"].update(state="complete")
+                prog.progress(1.0, text="Complete")
+            continue
+
+        # —— 7) 如果正在某阶段内部，把这条直接追加进去
+        if current_phase:
+            stage_containers[current_phase].write(text)
+        else:
+            # 不属于任何阶段内部或开始/结束，把它当“孤立”日志直接写
+            st.write(text)

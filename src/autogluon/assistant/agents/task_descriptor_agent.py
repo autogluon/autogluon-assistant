@@ -56,6 +56,7 @@ class TaskDescriptorAgent(BaseAgent):
         description_files_contents = self.task_descriptor_prompt.get_description_files_contents()
 
         if len(description_files_contents) <= self.manager.config.task_descriptor.max_description_files_length:
+            self.manager.log_agent_end("TaskDescriptorAgent: task description generated using original description.")
             return description_files_contents
 
         # Otherwise generate condensed task description
@@ -72,6 +73,6 @@ class TaskDescriptorAgent(BaseAgent):
 
         task_description = self.task_descriptor_prompt.parse(response)
 
-        self.manager.log_agent_end("TaskDescriptorAgent: task description generated.")
+        self.manager.log_agent_end("TaskDescriptorAgent: task description generated using condensed description.")
 
         return task_description

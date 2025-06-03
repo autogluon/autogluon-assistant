@@ -4,34 +4,34 @@ import re
 import subprocess
 import threading
 
+
 # 全局存储每个 run 的状态
 _runs: dict = {}
 
 def parse_log_line(line: str) -> dict:
     """
-    解析一行原始日志，提取 level 和 text，两者均为字符串。
-    支持可选前缀 [MM/DD/YY hh:mm:ss]，会自动丢弃。
-    例子：
-      "[05/29/25 22:56:33] INFO    Some message here module.py:123"
-    或者：
-      "BRIEF   Brief-level message"
-    都能正确提取。
+    按照“<LEVEL> <内容>”的格式解析一行日志，LEVEL 只能是 BRIEF、INFO、MODEL_INFO。
+    如果满足格式，则提取出 level 和 text；否则返回 level="other"，text 为整行内容。
+
+    返回：
+        {
+            "level": "<BRIEF/INFO/MODEL_INFO 或 other>",
+            "text": "<内容文本>"
+        }
     """
-    # 正则：可选时间戳、空格、级别（字母）、任意空白、正文
-    m = re.match(
-        r'''
-        (?:\[\d{2}/\d{2}/\d{2}\s+\d{2}:\d{2}:\d{2}\]\s*)?   # 可选时间戳 [MM/DD/YY hh:mm:ss]
-        (?P<level>[A-Z]+)                                  # 日志级别，全大写字母
-        \s+                                                # 分隔空格
-        (?P<text>.*)                                       # 剩下的全部，作为正文
-        ''',
-        line,
-        re.VERBOSE,
-    )
-    if not m:
-        # 这里的问题，正则永远匹配不上
-        return {"level": "INFO", "text": line}
-    return {"level": m.group("level"), "text": m.group("text").strip()}
+    allowed_levels = {"BRIEF", "INFO", "MODEL_INFO"}
+    stripped = line.strip()
+
+    parts = stripped.split(" ", 1)
+    if len(parts) == 2 and parts[0] in allowed_levels:
+        return {"level": parts[0], "text": parts[1]}
+    else:
+        return {"level": "other", "text": stripped}
+
+
+# def parse_log_line(line: str) -> dict:
+#     return line.strip()
+
 
 def start_run(run_id: str, cmd: list[str]):
     """
