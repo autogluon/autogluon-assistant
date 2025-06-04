@@ -35,29 +35,31 @@ def _configure_logging(console_level: int, output_dir: Path = None) -> None:
         console_level: Logging level for terminal output
         output_dir: If provided, creates both debug and info level file loggers in this directory
     """
-    if sys.stdout.isatty():
-        console = Console(file=sys.stderr)
-        rich_handler = RichHandler(console=console, markup=True, rich_tracebacks=True)
-        handler = rich_handler
+    # console = Console()
 
-    else:
-        stdout_handler = logging.StreamHandler(sys.stdout)   # 写到 stdout
-        stdout_handler.setLevel(level)                # 只要 INFO+
-        stdout_fmt = logging.Formatter("%(levelname)s %(message)s")
-        stdout_handler.setFormatter(stdout_fmt)
-        handler = stdout_handler
-
-    console = Console()
-
-    # Set root logger level to DEBUG to allow file handlers to capture all logs
+    # # Set root logger level to DEBUG to allow file handlers to capture all logs
     root_level = logging.DEBUG
 
-    # Create RichHandler with the specified console level
-    console_handler = RichHandler(console=console, markup=True, rich_tracebacks=True)
-    console_handler.setLevel(console_level)
-    console_handler.name = CONSOLE_HANDLER
+    # # Create RichHandler with the specified console level
+    # console_handler = RichHandler(console=console, markup=True, rich_tracebacks=True)
+    # console_handler.setLevel(console_level)
+    # console_handler.name = CONSOLE_HANDLER
 
-    handlers = [console_handler]
+    # handlers = [console_handler]
+
+    if sys.stdout.isatty():
+       console = Console(file=sys.stderr)
+       rich_handler = RichHandler(console=console, markup=True, rich_tracebacks=True)
+       rich_handler.setLevel(console_level)
+       handler = rich_handler
+    else:
+       stdout_handler = logging.StreamHandler(sys.stdout)
+       stdout_handler.setLevel(console_level)
+       stdout_fmt = logging.Formatter("%(levelname)s %(message)s")
+       stdout_handler.setFormatter(stdout_fmt)
+       handler = stdout_handler
+
+    handlers = [handler]
 
     # Add file handlers if output_dir is provided
     if output_dir is not None:
@@ -110,7 +112,6 @@ def _configure_logging(console_level: int, output_dir: Path = None) -> None:
     logging.basicConfig(
         level=root_level,
         format="%(message)s",
-        handlers=[handler], # , stdout_handler
         handlers=handlers,
         force=True,  # Ensure override
     )
