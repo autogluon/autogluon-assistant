@@ -1,32 +1,30 @@
 import logging
 
 from rich.progress import (
-    BarColumn,
     Progress,
     TextColumn,
 )
 
 from ..prompts import ExecuterPrompt
+from ..rich_logging import show_progress_bar
 from .base_agent import BaseAgent
 from .utils import init_llm
 
 logger = logging.getLogger(__name__)
 
 
-def execute_code(code, language, stream_output, timeout):
+def execute_code(code, language, timeout):
     """
     Execute code with real-time output streaming and timeout and show a linear timeout progress bar..
     Args:
         code (str): The code to execute (Python code or bash script)
         language (str): The language to execute ("python" or "bash")
-        stream_output (bool): Whether to stream stdout/stderr in real-time
         timeout (float): Maximum execution time in seconds before terminating the process.
     Returns:
         tuple: (success: bool, stdout: str, stderr: str)
     """
     import select
     import subprocess
-    import sys
     import time
 
     try:
@@ -55,29 +53,29 @@ def execute_code(code, language, stream_output, timeout):
         start_time = time.time()
 
         with Progress(
-            TextColumn(f"[cyan]Execution of maximum remaining time ({int(timeout)}s)[/]"),
-            BarColumn(bar_width=None),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            transient=True,
-        ) as progress:
-            task = progress.add_task("", total=timeout)
+            TextColumn(f"[bold cyan]Executing {language}:"),
+            TextColumn("[bold green]{task.completed:.1f}s[/bold green] [dim](time limit: {task.total:.0f}s)[/dim]"),
+            refresh_per_second=2,
+            transient=False,
+            disable=not show_progress_bar(),
+        ) as progress_context:
+
+            task = progress_context.add_task("", total=timeout)
 
             while streams:
                 # Calculate remaining time
                 elapsed_time = time.time() - start_time
-                progress.update(task, completed=min(elapsed_time, timeout))
+                progress_context.update(task, completed=elapsed_time)
                 remaining_time = max(0, timeout - elapsed_time)
 
                 # Check if we've exceeded timeout
-                if remaining_time == 0:
+                if remaining_time <= 0:
                     process.terminate()
                     time.sleep(3)  # Give it a moment to terminate gracefully
                     if process.poll() is None:  # If still running
                         process.kill()  # Force kill
-                    stdout_chunks.append(f"\nProcess reached time limit after {timeout} seconds\n")
-                    if stream_output:
-                        sys.stdout.write(f"\nProcess reached time limit after {timeout} seconds\n")
-                        sys.stdout.flush()
+                    stdout_chunks.append(f"\nProcess reached time limit after {timeout} seconds.\n")
+                    logger.info(f"\nProcess reached time limit after {timeout} seconds.\n")
                     break
 
                 # Wait for output on either stream with timeout
@@ -101,14 +99,14 @@ def execute_code(code, language, stream_output, timeout):
                     # Handle stdout
                     if stream == process.stdout:
                         stdout_chunks.append(line)
-                        if stream_output:
-                            logger.model_info(line.rstrip())
+                        logger.detail(line.rstrip())
                     # Handle stderr
                     else:
                         stderr_chunks.append(line)
-                        if stream_output:
-                            logger.model_info(line.rstrip())
-            progress.update(task, completed=timeout)
+                        logger.detail(line.rstrip())
+
+            elapsed_time = time.time() - start_time
+            progress_context.update(task, completed=elapsed_time)
 
         # Wait for process to complete (should already be done, but just in case)
         if process.poll() is None:
@@ -134,13 +132,10 @@ class ExecuterAgent(BaseAgent):
     Agent Output:
     """
 
-    def __init__(
-        self, config, manager, language, stream_output, timeout, executer_llm_config, executer_prompt_template
-    ):
+    def __init__(self, config, manager, language, timeout, executer_llm_config, executer_prompt_template):
         super().__init__(config=config, manager=manager)
         assert language in ["bash", "python"]
 
-        self.stream_output = stream_output
         self.timeout = timeout
         self.language = language
         self.executer_llm_config = executer_llm_config
@@ -170,9 +165,7 @@ class ExecuterAgent(BaseAgent):
         if code_to_analyze is None:
             code_to_analyze = code_to_execute
 
-        success, stdout, stderr = execute_code(
-            code=code_to_execute, language=self.language, stream_output=self.stream_output, timeout=self.timeout
-        )
+        success, stdout, stderr = execute_code(code=code_to_execute, language=self.language, timeout=self.timeout)
 
         if not self.executer_llm_config.multi_turn:
             self.executer_llm = init_llm(

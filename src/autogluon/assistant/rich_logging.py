@@ -4,16 +4,16 @@ from pathlib import Path
 from rich.console import Console
 from rich.logging import RichHandler
 
-from .constants import BRIEF_LEVEL, MODEL_INFO_LEVEL
+from .constants import BRIEF_LEVEL, CONSOLE_HANDLER, DETAIL_LEVEL
 
 # ── Custom log levels ─────────────────────────────
-logging.addLevelName(MODEL_INFO_LEVEL, "MODEL_INFO")
+logging.addLevelName(DETAIL_LEVEL, "DETAIL")
 logging.addLevelName(BRIEF_LEVEL, "BRIEF")
 
 
-def model_info(self, msg, *args, **kw):
-    if self.isEnabledFor(MODEL_INFO_LEVEL):
-        self._log(MODEL_INFO_LEVEL, msg, args, **kw)
+def detail(self, msg, *args, **kw):
+    if self.isEnabledFor(DETAIL_LEVEL):
+        self._log(DETAIL_LEVEL, msg, args, **kw)
 
 
 def brief(self, msg, *args, **kw):
@@ -21,7 +21,7 @@ def brief(self, msg, *args, **kw):
         self._log(BRIEF_LEVEL, msg, args, **kw)
 
 
-logging.Logger.model_info = model_info  # type: ignore
+logging.Logger.detail = detail  # type: ignore
 logging.Logger.brief = brief  # type: ignore
 # ─────────────────────────────────────────
 
@@ -42,6 +42,7 @@ def _configure_logging(console_level: int, output_dir: Path = None) -> None:
     # Create RichHandler with the specified console level
     console_handler = RichHandler(console=console, markup=True, rich_tracebacks=True)
     console_handler.setLevel(console_level)
+    console_handler.name = CONSOLE_HANDLER
 
     handlers = [console_handler]
 
@@ -59,6 +60,17 @@ def _configure_logging(console_level: int, output_dir: Path = None) -> None:
         )
         debug_handler.setFormatter(debug_formatter)
         handlers.append(debug_handler)
+
+        # Detail log file (captures DETAIL and above only)
+        detail_log_path = output_dir / "detail_logs.txt"
+        detail_handler = logging.FileHandler(str(detail_log_path), mode="w", encoding="utf-8")
+        detail_handler.setLevel(DETAIL_LEVEL)
+        detail_formatter = logging.Formatter(
+            "%(asctime)s %(levelname)-8s [%(name)s] %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        detail_handler.setFormatter(detail_formatter)
+        handlers.append(detail_handler)
 
         # Info log file (captures INFO and above only)
         info_log_path = output_dir / "info_logs.txt"
@@ -99,7 +111,17 @@ def configure_logging(verbosity: int, output_dir: Path = None) -> None:
         case 2:
             level = logging.INFO  # Standard info
         case 3:
-            level = MODEL_INFO_LEVEL  # Model details
+            level = DETAIL_LEVEL  # Model details
         case _:  # 4+
             level = logging.DEBUG  # Full debug info
     _configure_logging(console_level=level, output_dir=output_dir)
+
+
+def show_progress_bar():
+    root_logger = logging.getLogger()
+    console_handler_level = None
+    for handler in root_logger.handlers:
+        if hasattr(handler, "name") and handler.name == CONSOLE_HANDLER:
+            console_handler_level = handler.level
+
+    return console_handler_level > DETAIL_LEVEL
