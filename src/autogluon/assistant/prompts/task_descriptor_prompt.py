@@ -43,9 +43,15 @@ Based ONLY on the information explicitly stated in the provided data structure a
             "\n\n".join(file_contents) if file_contents else "No description file contents could be read."
         )
         if to_show:
-            description_file_contents = self._truncate_output_end(output=file_contents, max_length=self.manager.config.task_descriptor.max_description_files_length_to_show)
+            description_file_contents = self._truncate_output_end(
+                output=file_contents,
+                max_length=self.manager.config.task_descriptor.max_description_files_length_to_show,
+            )
         else:
-            description_file_contents = self._truncate_output_end(output=file_contents, max_length=self.manager.config.task_descriptor.max_description_files_length_for_summarization)
+            description_file_contents = self._truncate_output_end(
+                output=file_contents,
+                max_length=self.manager.config.task_descriptor.max_description_files_length_for_summarization,
+            )
         return description_file_contents
 
     def build(self) -> str:
