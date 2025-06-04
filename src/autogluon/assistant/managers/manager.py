@@ -130,7 +130,6 @@ class Manager:
             config=self.config,
             manager=self,
             language="bash",
-            stream_output=self.config.stream_output,
             timeout=self.config.per_execution_timeout,
             executer_llm_config=self.config.executer,
             executer_prompt_template=None,

@@ -157,7 +157,6 @@ class DataPerceptionAgent(BaseAgent):
             config=self.config,
             manager=self.manager,
             language="python",
-            stream_output=False,  # TODO: make it configurable
             timeout=60,  # TODO: make it configurable
             executer_llm_config=config.executer,
             executer_prompt_template=None,

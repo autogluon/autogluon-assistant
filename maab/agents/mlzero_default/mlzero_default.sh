@@ -58,9 +58,8 @@ mlzero \
     -i "$TRAINING_PATH" \
     -o "$OUTPUT_DIR" \
     -n 5 \
-    -v 4 \
-    -u "complete the task in 10 minutes" \
-    2>&1 | tee "${OUTPUT_DIR}/maab_logs.txt"
+    -v 1 \
+    -u "complete the task in 10 minutes"
 
 # Check if the process was successful
 if [ $? -ne 0 ]; then

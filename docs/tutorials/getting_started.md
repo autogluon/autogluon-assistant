@@ -82,7 +82,7 @@ mlzero -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS]
   | 0 | ERROR |
   | 1 (Default) | BRIEF |
   | 2 | INFO |
-  | 3 | MODEL_INFO |
+  | 3 | DETAIL |
   | 4 or more | DEBUG |
 
 #### Examples

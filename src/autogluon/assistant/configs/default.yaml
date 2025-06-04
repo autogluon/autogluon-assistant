@@ -1,6 +1,5 @@
 # Tutorial Prompt Generator Configuration
 
-stream_output: True
 per_execution_timeout: 86400
 
 # Data Perception
