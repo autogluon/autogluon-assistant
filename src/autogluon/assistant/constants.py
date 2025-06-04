@@ -1,8 +1,9 @@
 VALID_CODING_LANGUAGES = ["python", "bash"]
 LOGO_PATH = "static/page_icon.png"
 DEMO_URL = "https://automl-mm-bench.s3.amazonaws.com/autogluon-assistant/aga-kaggle-demo.mp4"
-MODEL_INFO_LEVEL = 19
+DETAIL_LEVEL = 19
 BRIEF_LEVEL = 25
+CONSOLE_HANDLER = "console_handler"
 
 API_URL = "http://localhost:5000/api"
 
