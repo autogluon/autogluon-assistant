@@ -59,7 +59,11 @@ class SessionStateManager:
         st.session_state.stage_container = copy.deepcopy(INITIAL_STAGE)
         st.session_state.stage_status = {}
         st.session_state.all_logs = []
-    
+
+        if "log_processor_state" in st.session_state:
+            del st.session_state.log_processor_state
+
+
     @staticmethod
     def add_message(role: str, text: str):
         """Add a message to the chat history"""
