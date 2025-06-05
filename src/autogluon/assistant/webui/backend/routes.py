@@ -30,7 +30,7 @@ def run():
         "mlzero",
         "-i", data_src,
         "-n", str(max_iter),
-        "-v", verbosity,
+        "-v", str(verbosity),
         "-c", config_path,
     ]
     if out_dir:     cmd += ["-o", out_dir]

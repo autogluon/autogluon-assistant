@@ -21,9 +21,9 @@ PACKAGE_ROOT = Path(__file__).parents[2]
 DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "configs" / "default.yaml"
 
 VERBOSITY_MAP = {
-    "MODEL_INFO": "3",
-    "DETAILED_INFO": "2", 
-    "BRIEF_INFO": "1",
+    "DETAIL": "3",
+    "INFO": "2", 
+    "BRIEF": "1",
 }
 
 DEFAULT_SESSION_STATE = {
@@ -117,8 +117,8 @@ class UIComponents:
                     ),
                     "log_verbosity": st.select_slider(
                         "Log verbosity",
-                        options=list(VERBOSITY_MAP.keys()),
-                        value="BRIEF_INFO",
+                        options=["BRIEF", "INFO", "DETAIL"],
+                        value="BRIEF",
                         key="log_verbosity",
                     ),
                 }

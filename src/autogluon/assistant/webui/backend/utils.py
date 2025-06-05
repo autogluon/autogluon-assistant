@@ -19,7 +19,7 @@ def parse_log_line(line: str) -> dict:
             "text": "<内容文本>"
         }
     """
-    allowed_levels = {"BRIEF", "INFO", "MODEL_INFO"}
+    allowed_levels = {"ERROR", "BRIEF", "INFO", "DETAIL", "DEBUG", "WARNING"}
     stripped = line.strip()
 
     parts = stripped.split(" ", 1)

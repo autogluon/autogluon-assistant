@@ -49,10 +49,10 @@ def messages(log_entries: List[Dict], max_iter: int):
             is_current = (phase_name == state["current_phase"])
             
             # 创建 status 容器
-            status = st.status(
+            status = st.expander(
                 phase_name,
                 expanded=is_current,
-                state=phase_data["status"]
+                # state=phase_data["status"]
             )
             
             # 渲染该阶段的所有日志
