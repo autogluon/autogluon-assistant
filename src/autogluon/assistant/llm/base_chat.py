@@ -14,6 +14,14 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 logger = logging.getLogger(__name__)
 
 
+def log_retry_attempt(retry_state):
+    """Custom callback to log each retry attempt"""
+    if retry_state.outcome.failed:
+        exception = retry_state.outcome.exception()
+        attempt_number = retry_state.attempt_number
+        logger.error(f"Attempt {attempt_number} failed: {type(exception).__name__}: {exception}")
+
+
 class GlobalTokenTracker:
     """Singleton class to track token usage across all conversations."""
 
@@ -166,7 +174,7 @@ class BaseAssistantChat(BaseModel):
             "session_name": self.session_name,
         }
 
-    @retry(stop=stop_after_attempt(6), wait=wait_exponential(multiplier=32, min=32, max=128))
+    @retry(stop=stop_after_attempt(6), wait=wait_exponential(multiplier=32, min=32, max=128), after=log_retry_attempt)
     def assistant_chat(self, message: str) -> str:
         """Send a message and get response using LangGraph."""
         if not self.app:
