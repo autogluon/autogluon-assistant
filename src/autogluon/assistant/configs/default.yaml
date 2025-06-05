@@ -20,10 +20,10 @@ use_tutorial_summary: True
 llm: &default_llm
   # Note: bedrock is only supported in limited AWS regions
   #       and requires AWS credentials
-  #provider: bedrock
-  #model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
-  provider: openai
-  model: gpt-4o-2024-08-06
+  provider: bedrock
+  model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+  #provider: openai
+  #model: gpt-4o-2024-08-06
   #provider: anthropic
   #model: claude-3-7-sonnet-20250219
   max_tokens: 16384
