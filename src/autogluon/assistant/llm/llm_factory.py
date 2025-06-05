@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Any, Dict, Optional, Union
 
 from omegaconf import DictConfig
@@ -53,7 +54,7 @@ class ChatLLMFactory:
         if model not in valid_models:
             if model[3:] not in valid_models:  # TODO: better logic for cross region inference
                 raise ValueError(
-                    f"Invalid model: {model} for provider {provider}. All valid models are {valid_models}"
+                    f"Invalid model: {model} for provider {provider}. All valid models are {valid_models}. If you are using Bedrock, please check if the requested model is available in the provided AWS_DEFAULT_REGION: {os.environ.get('AWS_DEFAULT_REGION')}"
                 )
 
         if provider == "openai":
