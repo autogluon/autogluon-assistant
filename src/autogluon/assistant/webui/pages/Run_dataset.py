@@ -32,7 +32,7 @@ MSG_TYPE_USER_SUMMARY = "user_summary"
 MSG_TYPE_COMMAND = "command"
 MSG_TYPE_TASK_LOG = "task_log"
 
-DEFAULT_SESSION_STATE = {
+INITIAL_WEBPAGE_SESSION = {
     "user_session_id": lambda: uuid.uuid4().hex,
     "messages": lambda: [{
         "role": "assistant", 
@@ -57,7 +57,7 @@ class SessionStateManager:
     @staticmethod
     def initialize():
         """Initialize all session state variables"""
-        for key, default in DEFAULT_SESSION_STATE.items():
+        for key, default in INITIAL_WEBPAGE_SESSION.items():
             if key not in st.session_state:
                 st.session_state[key] = default() if callable(default) else default
     
@@ -150,25 +150,15 @@ class UIComponents:
         """Render sidebar settings and return configuration"""
         is_running = st.session_state.get("task_running", False)
         
-        with st.sidebar:
-            if is_running:
-                st.warning("⚠️ Task is running. Settings changes won't affect the current task.")
-            
-            # 清除历史按钮
-            task_count = sum(1 for msg in st.session_state.messages if msg.get("type") == MSG_TYPE_TASK_LOG)
-            if task_count > 0:
-                st.markdown(f"### 📋 Task History ({task_count} tasks)")
-                if st.button("🗑️ Clear All History"):
-                    # 只保留初始消息
-                    st.session_state.messages = [{
-                        "role": "assistant", 
-                        "type": MSG_TYPE_TEXT,
-                        "text": "Hello! Drag your data (folder or ZIP) into the chat box below, then press ENTER to start."
-                    }]
-                    st.rerun()
-            
-            with st.expander("⚙️ Advanced Settings", expanded=False):
+        with st.sidebar:  
+            with st.expander("⚙️ Settings", expanded=False):
                 config = {
+                    "input_dir": st.text_input(
+                        "Input directory", 
+                        value="", 
+                        key="input_dir",
+                        help="Fallback data directory if no files are uploaded in chat"
+                    ),
                     "out_dir": st.text_input("Output directory", value="", key="output_dir"),
                     "config_path": st.text_input(
                         "Config file",
@@ -177,7 +167,6 @@ class UIComponents:
                         key="config_path",
                     ),
                     "max_iter": st.number_input("Max iterations", min_value=1, max_value=20, value=5, key="max_iterations"),
-                    "init_prompt": st.text_area("Initial prompt (optional)", key="initial_prompt", height=80),
                     "control": st.checkbox("Manual prompts between iterations", key="control_prompts"),
                     "extract_check": st.checkbox("Extract uploaded ZIP", key="extract_check"),
                     "extract_dir": st.text_input(
@@ -193,6 +182,19 @@ class UIComponents:
                         key="log_verbosity",
                     ),
                 }
+
+            # 清除历史按钮
+            task_count = sum(1 for msg in st.session_state.messages if msg.get("type") == MSG_TYPE_TASK_LOG)
+            if task_count > 0:
+                st.markdown(f"### 📋 Task History ({task_count} tasks)")
+                if st.button("🗑️ Clear All History"):
+                    # 只保留初始消息
+                    st.session_state.messages = [{
+                        "role": "assistant", 
+                        "type": MSG_TYPE_TEXT,
+                        "text": "Hello! Drag your data (folder or ZIP) into the chat box below, then press ENTER to start."
+                    }]
+                    st.rerun()
         return config
     
     @staticmethod
@@ -212,7 +214,7 @@ class UIComponents:
                     st.code(msg["command"], language="bash")
                     
                 elif msg_type == MSG_TYPE_TASK_LOG:
-                    st.markdown(f"### 📊 Task Completed")
+                    # st.markdown(f"### 📊 Task Completed")
                     st.caption(f"ID: {msg['run_id'][:8]}... | Completed: {msg['timestamp']}")
                     # 渲染任务日志
                     render_task_logs(
@@ -222,7 +224,7 @@ class UIComponents:
                     )
     
     @staticmethod
-    def format_user_summary(file_names: List[str], config: Dict[str, Any]) -> str:
+    def format_user_summary(file_names: List[str], config: Dict[str, Any], user_prompt: str) -> str:
         """Format the user input summary"""
         summary_parts = ["📂 **Uploaded files:**"]
         
@@ -240,7 +242,7 @@ class UIComponents:
             f"- Extract ZIP: {config['extract_check']}{' → ' + config['extract_dir'] if config['extract_check'] else ''}",
             f"- Log verbosity: {config['log_verbosity']}",
             "\n✏️ **Initial prompt:**\n",
-            f"> {config['init_prompt'] or '(none)'}"
+            f"> {user_prompt or '(none)'}"
         ])
         
         return "\n".join(summary_parts)
@@ -251,7 +253,7 @@ class TaskManager:
     """Manages task execution and communication with backend"""
     
     @staticmethod
-    def build_command(config: Dict[str, Any]) -> List[str]:
+    def build_command(config: Dict[str, Any], user_prompt: str) -> List[str]:
         """Build the mlzero command from configuration"""
         cmd = [
             "mlzero",
@@ -263,8 +265,8 @@ class TaskManager:
         
         if config["out_dir"]:
             cmd.extend(["-o", config["out_dir"]])
-        if config["init_prompt"]:
-            cmd.extend(["-u", config["init_prompt"]])
+        if user_prompt:
+            cmd.extend(["-u", user_prompt])
         if config["control"]:
             cmd.append("--need-user-input")
         if config["extract_check"] and config["extract_dir"]:
@@ -273,14 +275,14 @@ class TaskManager:
         return cmd
     
     @staticmethod
-    def start_task(config: Dict[str, Any]) -> str:
+    def start_task(config: Dict[str, Any], user_prompt: str) -> str:
         """Start a new task via backend API"""
         payload = {
             "data_src": st.session_state.data_src,
             "out_dir": config["out_dir"],
             "config_path": config["config_path"],
             "max_iter": config["max_iter"],
-            "init_prompt": config["init_prompt"],
+            "init_prompt": user_prompt or None,
             "control": config["control"],
             "extract_dir": config["extract_dir"] if config["extract_check"] else None,
             "verbosity": VERBOSITY_MAP[config["log_verbosity"]],
@@ -311,45 +313,86 @@ class AutoMLAgentApp:
         SessionStateManager.initialize()
         self.config = UIComponents.render_sidebar()
     
-    def handle_user_input(self, submission):
-        """Process user input (files and text)"""
-        files = submission.files or []
+    def validate_inputs(self, files: List, user_text: str) -> tuple[bool, str, List[str]]:
+        """Validate user inputs and settings
+        
+        Returns:
+            (is_valid, error_message, file_names)
+        """
         file_names = []
         
-        # Handle file upload
+        # 1. 确定数据源
         if files:
+            # 优先使用上传的文件
             folder = handle_uploaded_files(files)
             st.session_state.data_src = folder
             file_names = [f.name for f in files]
+        elif self.config["input_dir"]:
+            # 使用 input directory
+            input_path = Path(self.config["input_dir"])
+            if not input_path.exists():
+                return False, f"⚠️ Input directory does not exist: {self.config['input_dir']}", []
+            if not input_path.is_dir():
+                return False, f"⚠️ Input path is not a directory: {self.config['input_dir']}", []
+            if not any(input_path.iterdir()):
+                return False, f"⚠️ Input directory is empty: {self.config['input_dir']}", []
+            st.session_state.data_src = str(input_path)
+        else:
+            return False, "⚠️ No data source provided. Please upload files or specify an input directory.", []
         
-        # Validate data source
-        if not st.session_state.data_src:
-            self._show_error("⚠️ No data detected. Please drag & drop your folder or ZIP first.")
+        # 2. 验证输出目录（如果指定）
+        if self.config["out_dir"]:
+            out_path = Path(self.config["out_dir"])
+            if not out_path.parent.exists():
+                return False, f"⚠️ Output directory parent does not exist: {out_path.parent}", file_names
+        
+        # 3. 验证配置文件
+        config_path = Path(self.config["config_path"])
+        if not config_path.exists():
+            return False, f"⚠️ Config file does not exist: {self.config['config_path']}", file_names
+        
+        # 4. 验证提取目录（如果启用）
+        if self.config["extract_check"] and self.config["extract_dir"]:
+            extract_path = Path(self.config["extract_dir"])
+            if extract_path.exists() and not extract_path.is_dir():
+                return False, f"⚠️ Extraction path exists but is not a directory: {self.config['extract_dir']}", file_names
+        
+        return True, "", file_names
+    
+    def handle_user_input(self, submission):
+        """Process user input (files and text)"""
+        files = submission.files or []
+        user_text = submission.text.strip() if submission.text else ""
+        
+        # 验证输入
+        is_valid, error_msg, file_names = self.validate_inputs(files, user_text)
+        if not is_valid:
+            self._show_error(error_msg)
             return
         
         # Create and display user summary
-        user_summary = UIComponents.format_user_summary(file_names, self.config)
+        user_summary = UIComponents.format_user_summary(file_names, self.config, user_text)
         SessionStateManager.add_message(
             role="user",
             msg_type=MSG_TYPE_USER_SUMMARY,
             summary=user_summary
         )
         
-        # Start the task
-        self._start_task()
+        # Start the task with user prompt
+        self._start_task(user_text)
     
     def _show_error(self, message: str):
         """Display an error message"""
         SessionStateManager.add_message(role="assistant", text=message)
         st.rerun()
     
-    def _start_task(self):
+    def _start_task(self, user_prompt: str):
         """Initialize and start a new task"""
         SessionStateManager.reset_task_state()
         SessionStateManager.save_running_config(self.config)
         
         # Build and display command
-        cmd = TaskManager.build_command(self.config)
+        cmd = TaskManager.build_command(self.config, user_prompt)
         t0 = datetime.now().strftime("%H:%M:%S")
         command_str = f"[{t0}] Running AutoMLAgent: {' '.join(cmd)}"
         
@@ -360,7 +403,7 @@ class AutoMLAgentApp:
         )
         
         # Start task via backend
-        run_id = TaskManager.start_task(self.config)
+        run_id = TaskManager.start_task(self.config, user_prompt)
         st.session_state.run_id = run_id
         st.session_state.task_running = True
         st.rerun()
@@ -417,7 +460,12 @@ class AutoMLAgentApp:
         )
         
         if submission is not None:
-            self.handle_user_input(submission)
+            # 如果任务正在运行，不处理新的输入
+            if st.session_state.get("task_running", False):
+                # 输入会保留在 chat_input 中
+                pass
+            else:
+                self.handle_user_input(submission)
         
         # Monitor running task
         self.monitor_task()
