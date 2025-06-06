@@ -1,0 +1,15 @@
+I'll create a minimal bash script to execute the Python script:
+
+```bash
+#!/bin/bash
+
+# Create directory structure if it doesn't exist
+mkdir -p dncakl/generation_iter_0
+
+# Execute the Python script
+python dncakl/generation_iter_0/generated_code.py
+
+echo "Script execution completed"
+```
+
+This script simply ensures the directory structure exists and then runs the Python script at the specified path. Since the environment is already configured, no package installation is needed.

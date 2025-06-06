@@ -1,0 +1,83 @@
+
+You are a data science expert tasked with selecting the most appropriate ML library for a specific task.
+
+### Task Description:
+File: /home/ubuntu/.autogluon_assistant/7f8251488f534328bea000a859406dbd/upload_a49aeeb0/descriptions.txt
+Content: Regression on Class_number_of_rings. Eval metric is RMSE.
+
+
+### Data Information:
+Absolute path to the folder: /home/ubuntu/.autogluon_assistant/7f8251488f534328bea000a859406dbd/upload_a49aeeb0
+
+Files structures:
+
+----------
+
+Absolute path: /home/ubuntu/.autogluon_assistant/7f8251488f534328bea000a859406dbd/upload_a49aeeb0/test.csv
+Content:
+Error reading file: Error executing python code: '>' not supported between instances of 'NoneType' and 'int'
+----------
+Absolute path: /home/ubuntu/.autogluon_assistant/7f8251488f534328bea000a859406dbd/upload_a49aeeb0/train.csv
+Content:
+Error reading file: Error executing python code: '>' not supported between instances of 'NoneType' and 'int'
+----------
+Absolute path: /home/ubuntu/.autogluon_assistant/7f8251488f534328bea000a859406dbd/upload_a49aeeb0/descriptions.txt
+Content:
+Error reading file: Error executing python code: '>' not supported between instances of 'NoneType' and 'int'
+----------
+
+
+### Available ML Libraries:
+Library Name: autogluon.timeseries
+Version: v1.2.0
+Description: AutoGluon Timeseries is an open-source AutoML framework that automates the training and tuning of forecasting models for time series data, handling tasks from preprocessing to model ensembling with built-in support for both univariate and multivariate forecasting.
+Key Features & Limitations:
+- timeseries forecasting
+
+
+Library Name: autogluon.multimodal
+Version: v1.2.0
+Description: AutoGluon Multimodal is an open-source AutoML framework that simplifies the training of models across multiple data types including text, images, and tabular data, automating tasks from preprocessing to model ensembling with minimal code required.
+Key Features & Limitations:
+- Support multimodal classification or regression, document classification, semantic segmentation
+- Does not work the best with pure tabular data (categorical and numerical).
+- Does not support any generation tasks like image-to-image or sequence-to-sequence.
+
+
+Library Name: autogluon.tabular
+Version: v1.2.0
+Description: AutoGluon Tabular is an open-source AutoML framework that automates the training and tuning of machine learning models for tabular data, handling tasks from preprocessing to model ensembling with minimal code required.
+Key Features & Limitations:
+- Works best when there are only tabular data (categorical and numerical).
+- Does not work very well on nlp tasks.
+- Does not work with image data.
+
+
+Library Name: FlagEmbedding
+Version: v1.3.4
+Description: Retrieval and Retrieval-augmented LLMs
+Key Features & Limitations:
+- retrieval
+- reranking
+
+
+Library Name: machine learning or deep learning
+Version: v0.1.0
+Description: You should select this as a general reference of machine learning or deep learning algorithms in case other tools are not helpful.
+
+
+
+
+IMPORTANT: Your response MUST follow this exact format:
+---
+SELECTED_LIBRARY: <write only the exact library name from the options above>
+EXPLANATION: <provide your detailed reasoning>
+---
+
+Requirements for your response:
+1. The SELECTED_LIBRARY must be exactly as shown in the available libraries list
+2. Use the exact headers "SELECTED_LIBRARY:" and "EXPLANATION:"
+3. Provide a clear, detailed explanation of why this library is the best choice
+4. Consider the task requirements, data characteristics, and library features
+
+Do not include any other formatting or additional sections in your response.

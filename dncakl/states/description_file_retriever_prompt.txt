@@ -1,0 +1,27 @@
+
+Given the data structure, please identify any files that appear to contain project descriptions, requirements, or task definitions.
+Look for files like README, documentation files, or task description files.
+
+### Data Structure
+Absolute path to the folder: /home/ubuntu/.autogluon_assistant/7f8251488f534328bea000a859406dbd/upload_a49aeeb0
+
+Files structures:
+
+----------
+
+Absolute path: /home/ubuntu/.autogluon_assistant/7f8251488f534328bea000a859406dbd/upload_a49aeeb0/test.csv
+Content:
+Error reading file: Error executing python code: '>' not supported between instances of 'NoneType' and 'int'
+----------
+Absolute path: /home/ubuntu/.autogluon_assistant/7f8251488f534328bea000a859406dbd/upload_a49aeeb0/train.csv
+Content:
+Error reading file: Error executing python code: '>' not supported between instances of 'NoneType' and 'int'
+----------
+Absolute path: /home/ubuntu/.autogluon_assistant/7f8251488f534328bea000a859406dbd/upload_a49aeeb0/descriptions.txt
+Content:
+Error reading file: Error executing python code: '>' not supported between instances of 'NoneType' and 'int'
+----------
+
+
+Format your response as follows, do not give explanations:
+Description Files: [list ONLY the absolute path, one per line]

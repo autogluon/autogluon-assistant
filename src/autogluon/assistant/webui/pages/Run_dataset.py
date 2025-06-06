@@ -12,7 +12,7 @@ import requests
 import streamlit as st
 
 from autogluon.assistant.webui.file_uploader import handle_uploaded_files
-from autogluon.assistant.webui.log_processor import messages
+from autogluon.assistant.webui.log_processor import messages, process_logs, render_task_logs
 from autogluon.assistant.constants import INITIAL_STAGE, SUCCESS_MESSAGE, API_URL
 
 
@@ -26,17 +26,27 @@ VERBOSITY_MAP = {
     "BRIEF": "1",
 }
 
+# Message types
+MSG_TYPE_TEXT = "text"
+MSG_TYPE_USER_SUMMARY = "user_summary"
+MSG_TYPE_COMMAND = "command"
+MSG_TYPE_TASK_LOG = "task_log"
+
 DEFAULT_SESSION_STATE = {
     "user_session_id": lambda: uuid.uuid4().hex,
-    "messages": lambda: [{"role": "assistant", "text": "Hello! Drag your data (folder or ZIP) into the chat box below, then press ENTER to start."}],
+    "messages": lambda: [{
+        "role": "assistant", 
+        "type": MSG_TYPE_TEXT,
+        "text": "Hello! Drag your data (folder or ZIP) into the chat box below, then press ENTER to start."
+    }],
     "data_src": None,
     "task_running": False,
     "run_id": None,
-    "all_logs": lambda: [],
+    "current_task_logs": lambda: [],  # 当前任务的日志
     "current_stage": None,
     "stage_container": lambda: copy.deepcopy(INITIAL_STAGE),
     "stage_status": lambda: {},
-    "running_config": None,  # 新增：存储运行时的配置
+    "running_config": None,
 }
 
 
@@ -49,7 +59,6 @@ class SessionStateManager:
         """Initialize all session state variables"""
         for key, default in DEFAULT_SESSION_STATE.items():
             if key not in st.session_state:
-                # Call lambda functions if they exist, otherwise use the value directly
                 st.session_state[key] = default() if callable(default) else default
     
     @staticmethod
@@ -59,8 +68,8 @@ class SessionStateManager:
         st.session_state.current_stage = None
         st.session_state.stage_container = copy.deepcopy(INITIAL_STAGE)
         st.session_state.stage_status = {}
-        st.session_state.all_logs = []
-
+        st.session_state.current_task_logs = []
+        
         if "log_processor_state" in st.session_state:
             del st.session_state.log_processor_state
 
@@ -75,14 +84,48 @@ class SessionStateManager:
         return st.session_state.get("running_config")
 
     @staticmethod
-    def add_message(role: str, text: str):
-        """Add a message to the chat history"""
-        st.session_state.messages.append({"role": role, "text": text})
+    def add_message(role: str, msg_type: str = MSG_TYPE_TEXT, **kwargs):
+        """Add a message to the chat history
+        
+        Args:
+            role: 'user' or 'assistant'
+            msg_type: Type of message
+            **kwargs: Additional data for the message
+        """
+        message = {"role": role, "type": msg_type}
+        message.update(kwargs)
+        st.session_state.messages.append(message)
+    
+    @staticmethod
+    def save_completed_task():
+        """Save completed task logs to messages"""
+        if not st.session_state.current_task_logs:
+            return
+            
+        running_config = st.session_state.running_config
+        if not running_config:
+            return
+            
+        # 处理日志，提取阶段信息
+        processed_state = process_logs(
+            st.session_state.current_task_logs, 
+            running_config["max_iter"]
+        )
+        
+        # 添加任务日志消息
+        SessionStateManager.add_message(
+            role="assistant",
+            msg_type=MSG_TYPE_TASK_LOG,
+            run_id=st.session_state.run_id,
+            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            phase_states=processed_state["phase_states"],
+            max_iter=running_config["max_iter"]
+        )
     
     @staticmethod
     def update_logs(new_entries: List[Dict]):
-        """Update the log entries"""
-        st.session_state.all_logs.extend(new_entries)
+        """Update the current task log entries"""
+        st.session_state.current_task_logs.extend(new_entries)
 
 
 # ==================== UI Components ====================
@@ -105,12 +148,24 @@ class UIComponents:
     @staticmethod
     def render_sidebar() -> Dict[str, Any]:
         """Render sidebar settings and return configuration"""
-        # 检查是否有任务正在运行
         is_running = st.session_state.get("task_running", False)
         
         with st.sidebar:
             if is_running:
                 st.warning("⚠️ Task is running. Settings changes won't affect the current task.")
+            
+            # 清除历史按钮
+            task_count = sum(1 for msg in st.session_state.messages if msg.get("type") == MSG_TYPE_TASK_LOG)
+            if task_count > 0:
+                st.markdown(f"### 📋 Task History ({task_count} tasks)")
+                if st.button("🗑️ Clear All History"):
+                    # 只保留初始消息
+                    st.session_state.messages = [{
+                        "role": "assistant", 
+                        "type": MSG_TYPE_TEXT,
+                        "text": "Hello! Drag your data (folder or ZIP) into the chat box below, then press ENTER to start."
+                    }]
+                    st.rerun()
             
             with st.expander("⚙️ Advanced Settings", expanded=False):
                 config = {
@@ -145,10 +200,26 @@ class UIComponents:
         """Render the chat message history"""
         for msg in st.session_state.messages:
             with st.chat_message(msg["role"]):
-                if msg["role"] == "user":
+                msg_type = msg.get("type", MSG_TYPE_TEXT)
+                
+                if msg_type == MSG_TYPE_TEXT:
                     st.write(msg["text"])
-                else:
-                    st.write(msg["text"])
+                    
+                elif msg_type == MSG_TYPE_USER_SUMMARY:
+                    st.markdown(msg["summary"])
+                    
+                elif msg_type == MSG_TYPE_COMMAND:
+                    st.code(msg["command"], language="bash")
+                    
+                elif msg_type == MSG_TYPE_TASK_LOG:
+                    st.markdown(f"### 📊 Task Completed")
+                    st.caption(f"ID: {msg['run_id'][:8]}... | Completed: {msg['timestamp']}")
+                    # 渲染任务日志
+                    render_task_logs(
+                        msg["phase_states"],
+                        msg["max_iter"],
+                        show_progress=False  # 历史任务不显示进度条
+                    )
     
     @staticmethod
     def format_user_summary(file_names: List[str], config: Dict[str, Any]) -> str:
@@ -258,35 +329,35 @@ class AutoMLAgentApp:
         
         # Create and display user summary
         user_summary = UIComponents.format_user_summary(file_names, self.config)
-        SessionStateManager.add_message("user", user_summary)
-        with st.chat_message("user"):
-            st.markdown(user_summary)
+        SessionStateManager.add_message(
+            role="user",
+            msg_type=MSG_TYPE_USER_SUMMARY,
+            summary=user_summary
+        )
         
         # Start the task
         self._start_task()
     
     def _show_error(self, message: str):
         """Display an error message"""
-        SessionStateManager.add_message("assistant", message)
-        with st.chat_message("assistant"):
-            st.write(message)
+        SessionStateManager.add_message(role="assistant", text=message)
         st.rerun()
     
     def _start_task(self):
         """Initialize and start a new task"""
         SessionStateManager.reset_task_state()
-        
-        # 保存运行时的配置
         SessionStateManager.save_running_config(self.config)
         
         # Build and display command
         cmd = TaskManager.build_command(self.config)
         t0 = datetime.now().strftime("%H:%M:%S")
-        start_msg = f"[{t0}] Running AutoMLAgent: {' '.join(cmd)}"
+        command_str = f"[{t0}] Running AutoMLAgent: {' '.join(cmd)}"
         
-        SessionStateManager.add_message("assistant", start_msg)
-        with st.chat_message("assistant"):
-            st.code(start_msg, language="bash")
+        SessionStateManager.add_message(
+            role="assistant",
+            msg_type=MSG_TYPE_COMMAND,
+            command=command_str
+        )
         
         # Start task via backend
         run_id = TaskManager.start_task(self.config)
@@ -300,8 +371,6 @@ class AutoMLAgentApp:
             return
         
         run_id = st.session_state.run_id
-        
-        # 使用保存的运行时配置
         running_config = SessionStateManager.get_running_config()
         if not running_config:
             st.error("Running configuration not found!")
@@ -311,16 +380,25 @@ class AutoMLAgentApp:
         new_entries = TaskManager.fetch_logs(run_id)
         SessionStateManager.update_logs(new_entries)
         
-        # Display logs - 使用运行时的 max_iter
+        # Display running task logs
         with st.chat_message("assistant"):
-            messages(st.session_state.all_logs, running_config["max_iter"])
+            st.markdown(f"### Current Task")
+            st.caption(f"ID: {run_id[:8]}...")
+            messages(st.session_state.current_task_logs, running_config["max_iter"])
         
         # Check task status
         if TaskManager.check_status(run_id):
+            # 保存完成的任务到消息历史
+            SessionStateManager.save_completed_task()
+            
             st.success(SUCCESS_MESSAGE)
             st.session_state.task_running = False
-            # 清理运行时配置
             st.session_state.running_config = None
+            st.session_state.current_task_logs = []
+            
+            # 清理 log processor state
+            if "log_processor_state" in st.session_state:
+                del st.session_state.log_processor_state
         else:
             time.sleep(0.1)
             st.rerun()

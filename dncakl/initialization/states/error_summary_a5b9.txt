@@ -1,0 +1,1 @@
+The code failed with a TypeError: "'>' not supported between instances of 'NoneType' and 'int'" which likely occurs in the comparison of column numbers. There may be an issue with the file path or the file itself is empty/corrupted.

@@ -13,31 +13,28 @@ OUTPUT_START = "Total tokens"
 OUTPUT_END = "output saved in"
 
 
-def messages(log_entries: List[Dict], max_iter: int):
-    """处理日志并渲染UI"""
-    # 初始化 session state
-    if "log_processor_state" not in st.session_state:
-        st.session_state.log_processor_state = {
-            "current_phase": None,
-            "phase_states": {},  # {phase_name: {"status": "running/complete", "logs": []}}
-            "processed_logs": 0,  # 已处理的日志数量
-            "progress": 0.0,  # 当前进度
-            "stage_text": "",  # 当前阶段文本
-            "fixed_max_iter": max_iter,  # 固定的最大迭代次数
-        }
+def process_logs(log_entries: List[Dict], max_iter: int) -> Dict:
+    """处理日志并返回结构化的阶段数据
     
-    state = st.session_state.log_processor_state
+    Args:
+        log_entries: 日志条目列表
+        max_iter: 最大迭代次数
+        
+    Returns:
+        包含阶段信息的字典
+    """
+    state = {
+        "current_phase": None,
+        "phase_states": {},
+        "progress": 0.0,
+        "stage_text": "",
+    }
     
-    # 使用固定的 max_iter（任务开始时的值）
-    fixed_max_iter = state["fixed_max_iter"]
-    total_stages = fixed_max_iter + 2
+    total_stages = max_iter + 2
     
-    # 处理新日志（只处理未处理过的）
-    new_entries = log_entries[state["processed_logs"]:]
-    
-    for i, entry in enumerate(new_entries):
+    # 处理所有日志
+    for entry in log_entries:
         text = entry.get("text", "")
-        log_index = state["processed_logs"] + i
         
         # 检测阶段变化
         phase_change = _detect_phase_change(text, state)
@@ -46,7 +43,6 @@ def messages(log_entries: List[Dict], max_iter: int):
             phase_name, action = phase_change
             
             if action == "start":
-                # 开始新阶段
                 state["current_phase"] = phase_name
                 if phase_name not in state["phase_states"]:
                     state["phase_states"][phase_name] = {
@@ -54,20 +50,14 @@ def messages(log_entries: List[Dict], max_iter: int):
                         "logs": []
                     }
                 state["phase_states"][phase_name]["logs"].append(text)
-                
-                # 更新状态
                 state["stage_text"] = f"### {phase_name}"
-                state["progress"] = _calculate_progress(state, total_stages, fixed_max_iter)
+                state["progress"] = _calculate_progress(state, total_stages, max_iter)
                 
             elif action == "end":
-                # 结束阶段
                 if phase_name in state["phase_states"]:
                     state["phase_states"][phase_name]["status"] = "complete"
                     state["phase_states"][phase_name]["logs"].append(text)
-                
                 state["current_phase"] = None
-                
-                # 如果是最后阶段，进度条满格
                 if phase_name == "Output":
                     state["progress"] = 1.0
         else:
@@ -75,34 +65,102 @@ def messages(log_entries: List[Dict], max_iter: int):
             if state["current_phase"] and state["current_phase"] in state["phase_states"]:
                 state["phase_states"][state["current_phase"]]["logs"].append(text)
     
-    # 更新已处理的日志数量
-    state["processed_logs"] = len(log_entries)
-    
-    # 基于 session state 渲染 UI（使用固定的 max_iter）
-    _render_ui(state, fixed_max_iter)
+    return state
 
 
-def _render_ui(state: Dict, max_iter: int):
-    """基于状态渲染 UI"""
-    # 创建进度条和标题
-    if state["stage_text"]:
-        st.markdown(state["stage_text"])
+def render_task_logs(phase_states: Dict, max_iter: int, show_progress: bool = True, 
+                     current_phase: str = None, progress: float = 0.0):
+    """渲染任务日志UI
     
-    st.progress(state["progress"])
+    Args:
+        phase_states: 阶段状态字典
+        max_iter: 最大迭代次数
+        show_progress: 是否显示进度条
+        current_phase: 当前运行的阶段
+        progress: 当前进度
+    """
+    # 显示进度条（仅运行中的任务）
+    if show_progress:
+        if current_phase:
+            st.markdown(f"### {current_phase}")
+        st.progress(progress)
     
-    # 渲染所有阶段（使用固定的 max_iter）
+    # 渲染所有阶段
     phase_order = ["Reading"] + [f"Iteration {i}" for i in range(max_iter)] + ["Output"]
     
-    # 只渲染已经出现在日志中的阶段
     for phase_name in phase_order:
-        if phase_name in state["phase_states"]:
-            phase_data = state["phase_states"][phase_name]
-            is_current = (phase_name == state["current_phase"])
+        if phase_name in phase_states:
+            phase_data = phase_states[phase_name]
+            is_current = (phase_name == current_phase)
             
             # 创建 expander
             with st.expander(phase_name, expanded=is_current):
                 for log in phase_data["logs"]:
                     st.write(log)
+
+
+def messages(log_entries: List[Dict], max_iter: int):
+    """处理实时日志并渲染UI（用于运行中的任务）"""
+    # 初始化 session state
+    if "log_processor_state" not in st.session_state:
+        st.session_state.log_processor_state = {
+            "current_phase": None,
+            "phase_states": {},
+            "processed_logs": 0,
+            "progress": 0.0,
+            "stage_text": "",
+            "fixed_max_iter": max_iter,
+        }
+    
+    state = st.session_state.log_processor_state
+    fixed_max_iter = state["fixed_max_iter"]
+    total_stages = fixed_max_iter + 2
+    
+    # 处理新日志
+    new_entries = log_entries[state["processed_logs"]:]
+    
+    for i, entry in enumerate(new_entries):
+        text = entry.get("text", "")
+        
+        # 检测阶段变化
+        phase_change = _detect_phase_change(text, state)
+        
+        if phase_change:
+            phase_name, action = phase_change
+            
+            if action == "start":
+                state["current_phase"] = phase_name
+                if phase_name not in state["phase_states"]:
+                    state["phase_states"][phase_name] = {
+                        "status": "running",
+                        "logs": []
+                    }
+                state["phase_states"][phase_name]["logs"].append(text)
+                state["stage_text"] = f"### {phase_name}"
+                state["progress"] = _calculate_progress(state, total_stages, fixed_max_iter)
+                
+            elif action == "end":
+                if phase_name in state["phase_states"]:
+                    state["phase_states"][phase_name]["status"] = "complete"
+                    state["phase_states"][phase_name]["logs"].append(text)
+                state["current_phase"] = None
+                if phase_name == "Output":
+                    state["progress"] = 1.0
+        else:
+            if state["current_phase"] and state["current_phase"] in state["phase_states"]:
+                state["phase_states"][state["current_phase"]]["logs"].append(text)
+    
+    # 更新已处理的日志数量
+    state["processed_logs"] = len(log_entries)
+    
+    # 渲染UI
+    render_task_logs(
+        state["phase_states"], 
+        fixed_max_iter,
+        show_progress=True,
+        current_phase=state["current_phase"],
+        progress=state["progress"]
+    )
 
 
 def _detect_phase_change(text: str, state: Dict) -> Optional[Tuple[str, str]]:
@@ -116,14 +174,12 @@ def _detect_phase_change(text: str, state: Dict) -> Optional[Tuple[str, str]]:
     # Iteration 阶段
     m_start = ITER_START_RE.search(text)
     if m_start:
-        idx = int(m_start.group(1))  # 这里直接使用日志中的索引，不需要加1
+        idx = int(m_start.group(1))
         return (f"Iteration {idx}", "start")
     
     if ITER_END_RE.search(text):
-        # 如果当前在某个 Iteration 阶段，结束它
         if state["current_phase"] and state["current_phase"].startswith("Iteration"):
             return (state["current_phase"], "end")
-        # 否则尝试找到一个未完成的 Iteration
         for phase_name, phase_data in state["phase_states"].items():
             if phase_name.startswith("Iteration") and phase_data["status"] == "running":
                 return (phase_name, "end")
@@ -140,13 +196,12 @@ def _detect_phase_change(text: str, state: Dict) -> Optional[Tuple[str, str]]:
 def _calculate_progress(state: Dict, total_stages: int, max_iter: int) -> float:
     """计算当前进度"""
     if state["current_phase"] == "Reading":
-        return 1.0 / total_stages  # Reading 阶段的进度
+        return 1.0 / total_stages
     elif state["current_phase"] == "Output":
         return (max_iter + 1) / total_stages
     elif state["current_phase"] and state["current_phase"].startswith("Iteration"):
         try:
             idx = int(state["current_phase"].split()[1])
-            # idx 从 0 开始，所以 idx=0 时进度应该是 2/total_stages
             return (idx + 2) / total_stages
         except:
             pass
