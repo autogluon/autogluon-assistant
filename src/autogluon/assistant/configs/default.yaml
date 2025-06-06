@@ -51,7 +51,7 @@ reader:
 error_analyzer:
   <<: *default_llm  # Merge llm_config
 
-retriever:
+reranker:
   <<: *default_llm  # Merge llm_config
 
 description_file_retriever:

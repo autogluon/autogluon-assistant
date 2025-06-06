@@ -10,7 +10,7 @@ from ..agents import (
     DescriptionFileRetrieverAgent,
     ErrorAnalyzerAgent,
     ExecuterAgent,
-    RetrieverAgent,
+    RerankerAgent,
     TaskDescriptorAgent,
     ToolSelectorAgent,
 )
@@ -102,10 +102,10 @@ class Manager:
             prompt_template=None,  # TODO: Add prompt_template to argument
         )
 
-        self.retriever = RetrieverAgent(
+        self.reranker = RerankerAgent(
             config=self.config,
             manager=self,
-            llm_config=self.config.retriever,
+            llm_config=self.config.reranker,
             prompt_template=None,  # TODO: Add prompt_template to argument
         )
 
@@ -264,7 +264,7 @@ class Manager:
             assert len(self.error_prompts) == self.time_step - 1
             self.error_prompts.append(previous_error_prompt)
 
-        tutorial_prompt = self.retriever()
+        tutorial_prompt = self.reranker()
 
         assert len(self.tutorial_prompts) == self.time_step
         self.tutorial_prompts.append(tutorial_prompt)
