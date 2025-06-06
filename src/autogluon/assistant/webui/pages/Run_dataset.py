@@ -148,33 +148,22 @@ class UIComponents:
     @staticmethod
     def render_sidebar() -> Dict[str, Any]:
         """Render sidebar settings and return configuration"""
-        is_running = st.session_state.get("task_running", False)
         
         with st.sidebar:  
             with st.expander("⚙️ Settings", expanded=False):
+                # Config file uploader
+                uploaded_config = st.file_uploader(
+                    "Config file (optional)",
+                    type=['yaml', 'yml'],
+                    key="config_uploader",
+                    help="Upload a custom YAML config file. If not provided, default config will be used."
+                )
+                
                 config = {
-                    "input_dir": st.text_input(
-                        "Input directory", 
-                        value="", 
-                        key="input_dir",
-                        help="Fallback data directory if no files are uploaded in chat"
-                    ),
-                    "out_dir": st.text_input("Output directory", value="", key="output_dir"),
-                    "config_path": st.text_input(
-                        "Config file",
-                        value=str(DEFAULT_CONFIG_PATH),
-                        help="Path to YAML config file (only default.yaml is provided)",
-                        key="config_path",
-                    ),
+                    "uploaded_config": uploaded_config,
                     "max_iter": st.number_input("Max iterations", min_value=1, max_value=20, value=5, key="max_iterations"),
                     "control": st.checkbox("Manual prompts between iterations", key="control_prompts"),
                     "extract_check": st.checkbox("Extract uploaded ZIP", key="extract_check"),
-                    "extract_dir": st.text_input(
-                        "Extraction dir",
-                        placeholder="extract_to/",
-                        key="extract_dir",
-                        disabled=not st.session_state.get("extract_check", False),
-                    ),
                     "log_verbosity": st.select_slider(
                         "Log verbosity",
                         options=["BRIEF", "INFO", "DETAIL"],
@@ -214,7 +203,6 @@ class UIComponents:
                     st.code(msg["command"], language="bash")
                     
                 elif msg_type == MSG_TYPE_TASK_LOG:
-                    # st.markdown(f"### 📊 Task Completed")
                     st.caption(f"ID: {msg['run_id'][:8]}... | Completed: {msg['timestamp']}")
                     # 渲染任务日志
                     render_task_logs(
@@ -224,7 +212,7 @@ class UIComponents:
                     )
     
     @staticmethod
-    def format_user_summary(file_names: List[str], config: Dict[str, Any], user_prompt: str) -> str:
+    def format_user_summary(file_names: List[str], config: Dict[str, Any], user_prompt: str, config_used: str) -> str:
         """Format the user input summary"""
         summary_parts = ["📂 **Uploaded files:**"]
         
@@ -235,11 +223,10 @@ class UIComponents:
         
         summary_parts.extend([
             "\n⚙️ **Settings:**\n",
-            f"- Output directory: {config['out_dir'] or '(default runs/)'}",
-            f"- Config file: {config['config_path']}",
+            f"- Config file: {config_used}",
             f"- Max iterations: {config['max_iter']}",
             f"- Manual prompts: {config['control']}",
-            f"- Extract ZIP: {config['extract_check']}{' → ' + config['extract_dir'] if config['extract_check'] else ''}",
+            f"- Extract ZIP: {config['extract_check']}",
             f"- Log verbosity: {config['log_verbosity']}",
             "\n✏️ **Initial prompt:**\n",
             f"> {user_prompt or '(none)'}"
@@ -253,39 +240,58 @@ class TaskManager:
     """Manages task execution and communication with backend"""
     
     @staticmethod
-    def build_command(config: Dict[str, Any], user_prompt: str) -> List[str]:
+    def save_config_file(uploaded_config, data_folder: str) -> str:
+        """Save uploaded config file to data folder and return its path
+        
+        Args:
+            uploaded_config: Uploaded config file from st.file_uploader
+            data_folder: Path to the data folder
+            
+        Returns:
+            Path to the saved config file
+        """
+        if uploaded_config:
+            # 保存上传的配置文件到数据文件夹
+            config_path = Path(data_folder) / uploaded_config.name
+            with open(config_path, "wb") as f:
+                f.write(uploaded_config.getbuffer())
+            return str(config_path)
+        else:
+            # 使用默认配置
+            return str(DEFAULT_CONFIG_PATH)
+    
+    @staticmethod
+    def build_command(config_path: str, user_prompt: str, config: Dict[str, Any]) -> List[str]:
         """Build the mlzero command from configuration"""
         cmd = [
             "mlzero",
             "-i", st.session_state.data_src,
             "-n", str(config["max_iter"]),
             "-v", VERBOSITY_MAP[config["log_verbosity"]], 
-            "-c", config["config_path"],
+            "-c", config_path,  # 使用实际的配置文件路径
         ]
         
-        if config["out_dir"]:
-            cmd.extend(["-o", config["out_dir"]])
+        # 不指定输出目录，使用默认
+        # 不指定提取目录，如果需要提取会使用默认行为
+        
         if user_prompt:
             cmd.extend(["-u", user_prompt])
         if config["control"]:
             cmd.append("--need-user-input")
-        if config["extract_check"] and config["extract_dir"]:
-            cmd.extend(["-e", config["extract_dir"]])
         
         return cmd
     
     @staticmethod
-    def start_task(config: Dict[str, Any], user_prompt: str) -> str:
+    def start_task(config_path: str, user_prompt: str, config: Dict[str, Any]) -> str:
         """Start a new task via backend API"""
         payload = {
             "data_src": st.session_state.data_src,
-            "out_dir": config["out_dir"],
-            "config_path": config["config_path"],
+            "config_path": config_path,
             "max_iter": config["max_iter"],
             "init_prompt": user_prompt or None,
             "control": config["control"],
-            "extract_dir": config["extract_dir"] if config["extract_check"] else None,
             "verbosity": VERBOSITY_MAP[config["log_verbosity"]],
+            # 不发送 out_dir 和 extract_dir，让后端使用默认值
         }
         
         response = requests.post(f"{API_URL}/run", json=payload)
@@ -313,65 +319,27 @@ class AutoMLAgentApp:
         SessionStateManager.initialize()
         self.config = UIComponents.render_sidebar()
     
-    def validate_inputs(self, files: List, user_text: str) -> tuple[bool, str, List[str]]:
-        """Validate user inputs and settings
-        
-        Returns:
-            (is_valid, error_message, file_names)
-        """
-        file_names = []
-        
-        # 1. 确定数据源
-        if files:
-            # 优先使用上传的文件
-            folder = handle_uploaded_files(files)
-            st.session_state.data_src = folder
-            file_names = [f.name for f in files]
-        elif self.config["input_dir"]:
-            # 使用 input directory
-            input_path = Path(self.config["input_dir"])
-            if not input_path.exists():
-                return False, f"⚠️ Input directory does not exist: {self.config['input_dir']}", []
-            if not input_path.is_dir():
-                return False, f"⚠️ Input path is not a directory: {self.config['input_dir']}", []
-            if not any(input_path.iterdir()):
-                return False, f"⚠️ Input directory is empty: {self.config['input_dir']}", []
-            st.session_state.data_src = str(input_path)
-        else:
-            return False, "⚠️ No data source provided. Please upload files or specify an input directory.", []
-        
-        # 2. 验证输出目录（如果指定）
-        if self.config["out_dir"]:
-            out_path = Path(self.config["out_dir"])
-            if not out_path.parent.exists():
-                return False, f"⚠️ Output directory parent does not exist: {out_path.parent}", file_names
-        
-        # 3. 验证配置文件
-        config_path = Path(self.config["config_path"])
-        if not config_path.exists():
-            return False, f"⚠️ Config file does not exist: {self.config['config_path']}", file_names
-        
-        # 4. 验证提取目录（如果启用）
-        if self.config["extract_check"] and self.config["extract_dir"]:
-            extract_path = Path(self.config["extract_dir"])
-            if extract_path.exists() and not extract_path.is_dir():
-                return False, f"⚠️ Extraction path exists but is not a directory: {self.config['extract_dir']}", file_names
-        
-        return True, "", file_names
-    
     def handle_user_input(self, submission):
         """Process user input (files and text)"""
         files = submission.files or []
         user_text = submission.text.strip() if submission.text else ""
         
-        # 验证输入
-        is_valid, error_msg, file_names = self.validate_inputs(files, user_text)
-        if not is_valid:
-            self._show_error(error_msg)
+        # 验证是否有文件
+        if not files:
+            self._show_error("⚠️ No data files provided. Please drag and drop your data files or ZIP.")
             return
         
+        # 处理上传的文件
+        folder = handle_uploaded_files(files)
+        st.session_state.data_src = folder
+        file_names = [f.name for f in files]
+        
+        # 保存配置文件（如果有上传）
+        config_path = TaskManager.save_config_file(self.config["uploaded_config"], folder)
+        config_used = self.config["uploaded_config"].name if self.config["uploaded_config"] else "default.yaml"
+        
         # Create and display user summary
-        user_summary = UIComponents.format_user_summary(file_names, self.config, user_text)
+        user_summary = UIComponents.format_user_summary(file_names, self.config, user_text, config_used)
         SessionStateManager.add_message(
             role="user",
             msg_type=MSG_TYPE_USER_SUMMARY,
@@ -379,20 +347,20 @@ class AutoMLAgentApp:
         )
         
         # Start the task with user prompt
-        self._start_task(user_text)
+        self._start_task(user_text, config_path)
     
     def _show_error(self, message: str):
         """Display an error message"""
         SessionStateManager.add_message(role="assistant", text=message)
         st.rerun()
     
-    def _start_task(self, user_prompt: str):
+    def _start_task(self, user_prompt: str, config_path: str):
         """Initialize and start a new task"""
         SessionStateManager.reset_task_state()
         SessionStateManager.save_running_config(self.config)
         
         # Build and display command
-        cmd = TaskManager.build_command(self.config, user_prompt)
+        cmd = TaskManager.build_command(config_path, user_prompt, self.config)
         t0 = datetime.now().strftime("%H:%M:%S")
         command_str = f"[{t0}] Running AutoMLAgent: {' '.join(cmd)}"
         
@@ -403,7 +371,7 @@ class AutoMLAgentApp:
         )
         
         # Start task via backend
-        run_id = TaskManager.start_task(self.config, user_prompt)
+        run_id = TaskManager.start_task(config_path, user_prompt, self.config)
         st.session_state.run_id = run_id
         st.session_state.task_running = True
         st.rerun()
