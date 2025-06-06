@@ -36,6 +36,7 @@ DEFAULT_SESSION_STATE = {
     "current_stage": None,
     "stage_container": lambda: copy.deepcopy(INITIAL_STAGE),
     "stage_status": lambda: {},
+    "running_config": None,  # 新增：存储运行时的配置
 }
 
 
@@ -63,6 +64,15 @@ class SessionStateManager:
         if "log_processor_state" in st.session_state:
             del st.session_state.log_processor_state
 
+    @staticmethod
+    def save_running_config(config: Dict[str, Any]):
+        """Save the configuration at the time of task start"""
+        st.session_state.running_config = copy.deepcopy(config)
+
+    @staticmethod
+    def get_running_config() -> Optional[Dict[str, Any]]:
+        """Get the saved running configuration"""
+        return st.session_state.get("running_config")
 
     @staticmethod
     def add_message(role: str, text: str):
@@ -95,7 +105,13 @@ class UIComponents:
     @staticmethod
     def render_sidebar() -> Dict[str, Any]:
         """Render sidebar settings and return configuration"""
+        # 检查是否有任务正在运行
+        is_running = st.session_state.get("task_running", False)
+        
         with st.sidebar:
+            if is_running:
+                st.warning("⚠️ Task is running. Settings changes won't affect the current task.")
+            
             with st.expander("⚙️ Advanced Settings", expanded=False):
                 config = {
                     "out_dir": st.text_input("Output directory", value="", key="output_dir"),
@@ -150,7 +166,7 @@ class UIComponents:
             f"- Config file: {config['config_path']}",
             f"- Max iterations: {config['max_iter']}",
             f"- Manual prompts: {config['control']}",
-            f"- Extract ZIP: {config['extract_check']}{' → ' + config['extract_dir'] if config['extract_check'] else ''}"
+            f"- Extract ZIP: {config['extract_check']}{' → ' + config['extract_dir'] if config['extract_check'] else ''}",
             f"- Log verbosity: {config['log_verbosity']}",
             "\n✏️ **Initial prompt:**\n",
             f"> {config['init_prompt'] or '(none)'}"
@@ -260,6 +276,9 @@ class AutoMLAgentApp:
         """Initialize and start a new task"""
         SessionStateManager.reset_task_state()
         
+        # 保存运行时的配置
+        SessionStateManager.save_running_config(self.config)
+        
         # Build and display command
         cmd = TaskManager.build_command(self.config)
         t0 = datetime.now().strftime("%H:%M:%S")
@@ -282,18 +301,26 @@ class AutoMLAgentApp:
         
         run_id = st.session_state.run_id
         
+        # 使用保存的运行时配置
+        running_config = SessionStateManager.get_running_config()
+        if not running_config:
+            st.error("Running configuration not found!")
+            return
+        
         # Fetch and update logs
         new_entries = TaskManager.fetch_logs(run_id)
         SessionStateManager.update_logs(new_entries)
         
-        # Display logs
+        # Display logs - 使用运行时的 max_iter
         with st.chat_message("assistant"):
-            messages(st.session_state.all_logs, self.config["max_iter"])
+            messages(st.session_state.all_logs, running_config["max_iter"])
         
         # Check task status
         if TaskManager.check_status(run_id):
             st.success(SUCCESS_MESSAGE)
             st.session_state.task_running = False
+            # 清理运行时配置
+            st.session_state.running_config = None
         else:
             time.sleep(0.1)
             st.rerun()
