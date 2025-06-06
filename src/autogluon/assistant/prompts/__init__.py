@@ -4,6 +4,6 @@ from .error_analyzer_prompt import ErrorAnalyzerPrompt
 from .executer_prompt import ExecuterPrompt
 from .python_coder_prompt import PythonCoderPrompt
 from .python_reader_prompt import PythonReaderPrompt
-from .retriever_prompt import RetrieverPrompt
+from .reranker_prompt import RerankerPrompt
 from .task_descriptor_prompt import TaskDescriptorPrompt
 from .tool_selector_prompt import ToolSelectorPrompt
