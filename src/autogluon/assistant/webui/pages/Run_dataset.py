@@ -163,7 +163,6 @@ class UIComponents:
                     "uploaded_config": uploaded_config,
                     "max_iter": st.number_input("Max iterations", min_value=1, max_value=20, value=5, key="max_iterations"),
                     "control": st.checkbox("Manual prompts between iterations", key="control_prompts"),
-                    "extract_check": st.checkbox("Extract uploaded ZIP", key="extract_check"),
                     "log_verbosity": st.select_slider(
                         "Log verbosity",
                         options=["BRIEF", "INFO", "DETAIL"],
@@ -226,7 +225,6 @@ class UIComponents:
             f"- Config file: {config_used}",
             f"- Max iterations: {config['max_iter']}",
             f"- Manual prompts: {config['control']}",
-            f"- Extract ZIP: {config['extract_check']}",
             f"- Log verbosity: {config['log_verbosity']}",
             "\n✏️ **Initial prompt:**\n",
             f"> {user_prompt or '(none)'}"
