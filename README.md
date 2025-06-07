@@ -45,6 +45,8 @@ We also support OpenAI. More LLM providers' support (e.g. Anthropic, Azure, etc.
 
 ### Basic Usage
 
+![Demo](assets/cli_demo.gif)
+
 ```bash
 mlzero -i <input_data_folder> [-u <optional_user_instructions>]
 ```
