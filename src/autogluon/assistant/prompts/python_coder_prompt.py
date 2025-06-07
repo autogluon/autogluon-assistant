@@ -65,7 +65,7 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
 
         # Truncate outputs if they exceed max length
         if self.manager.user_input:
-            user_prompt = self._truncate_output_end(self.manager.user_input, self.config.max_user_input_length)
+            user_prompt = self._truncate_output_end(self.manager.user_input, self.manager.config.max_user_input_length)
         else:
             user_prompt = "N/A"
 
