@@ -24,10 +24,8 @@ AutoGluon Assistant is supported on Python 3.8 - 3.11 and is available on Linux,
 You can install from source (new version will be released to PyPI soon):
 
 ```bash
-git clone https://github.com/autogluon/autogluon-assistant.git
-cd autogluon-assistant
 pip install uv
-uv pip install -e .
+uv pip install git+https://github.com/autogluon/autogluon-assistant.git
 ```
 
 ## Quick Start
@@ -46,6 +44,8 @@ export AWS_SECRET_ACCESS_KEY="<your-secret-key>"
 We also support OpenAI. More LLM providers' support (e.g. Anthropic, Azure, etc.) will be added soon.
 
 ### Basic Usage
+
+![Demo](https://github.com/autogluon/autogluon-assistant/blob/main/docs/assets/cli_demo.gif)
 
 ```bash
 mlzero -i <input_data_folder> [-u <optional_user_instructions>]

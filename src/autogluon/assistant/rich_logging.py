@@ -14,11 +14,15 @@ logging.addLevelName(BRIEF_LEVEL, "BRIEF")
 
 def detail(self, msg, *args, **kw):
     if self.isEnabledFor(DETAIL_LEVEL):
+        # Add stacklevel=2 to skip one frame up the call stack
+        kw.setdefault("stacklevel", 2)
         self._log(DETAIL_LEVEL, msg, args, **kw)
 
 
 def brief(self, msg, *args, **kw):
     if self.isEnabledFor(BRIEF_LEVEL):
+        # Add stacklevel=2 to skip one frame up the call stack
+        kw.setdefault("stacklevel", 2)
         self._log(BRIEF_LEVEL, msg, args, **kw)
 
 
