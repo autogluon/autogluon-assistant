@@ -36,8 +36,8 @@ class Message:
     content: Dict[str, Any] = field(default_factory=dict)
     
     @classmethod
-    def text(cls, text: str) -> "Message":
-        return cls(role="assistant", type="text", content={"text": text})
+    def text(cls, text: str, role: str = "assistant") -> "Message":
+        return cls(role=role, type="text", content={"text": text})
     
     @classmethod
     def user_summary(cls, summary: str) -> "Message":
@@ -158,6 +158,15 @@ class BackendAPI:
         """检查任务状态"""
         response = requests.get(f"{API_URL}/status", params={"run_id": run_id})
         return response.json().get("finished", False)
+    
+    @staticmethod
+    def cancel_task(run_id: str) -> bool:
+        """取消任务"""
+        try:
+            response = requests.post(f"{API_URL}/cancel", json={"run_id": run_id})
+            return response.json().get("cancelled", False)
+        except:
+            return False
 
 
 # ==================== UI Components ====================
@@ -275,6 +284,38 @@ class TaskManager:
         # 启动任务
         self._start_task(data_folder, config_path, user_text)
     
+    def handle_cancel_request(self):
+        """处理取消请求"""
+        run_id = st.session_state.run_id
+        if not run_id:
+            return
+        
+        # 显示用户的取消命令
+        SessionState.add_message(Message.text("cancel", role="user"))
+        
+        # 尝试取消任务
+        if BackendAPI.cancel_task(run_id):
+            SessionState.add_message(Message.text(f"🛑 Task {run_id[:8]}... has been cancelled."))
+            # 保存当前已有的日志
+            if st.session_state.current_task_logs:
+                processed = process_logs(
+                    st.session_state.current_task_logs,
+                    st.session_state.running_config.max_iter
+                )
+                
+                SessionState.add_message(
+                    Message.task_log(
+                        st.session_state.run_id,
+                        processed["phase_states"],
+                        st.session_state.running_config.max_iter
+                    )
+                )
+            SessionState.finish_task()
+        else:
+            SessionState.add_message(Message.text("❌ Failed to cancel the task."))
+        
+        st.rerun()
+    
     def monitor_running_task(self):
         """监控运行中的任务"""
         if not st.session_state.task_running or not st.session_state.run_id:
@@ -294,7 +335,7 @@ class TaskManager:
         # 显示运行中的任务
         with st.chat_message("assistant"):
             st.markdown(f"### Current Task")
-            st.caption(f"ID: {run_id[:8]}...")
+            st.caption(f"ID: {run_id[:8]}... | Type 'cancel' to stop the task")
             messages(st.session_state.current_task_logs, config.max_iter)
         
         # 检查是否完成
@@ -382,9 +423,24 @@ class AutoMLAgentApp:
             max_chars=10000,
         )
         
-        # 如果有新提交且没有任务在运行
-        if submission and not st.session_state.task_running:
-            self.task_manager.handle_submission(submission)
+        if submission:
+            # 如果任务正在运行
+            if st.session_state.task_running:
+                # 检查是否是取消命令
+                if submission.text and submission.text.strip().lower() == "cancel":
+                    self.task_manager.handle_cancel_request()
+                else:
+                    # 显示提示信息
+                    SessionState.add_message(
+                        Message.text(
+                            "⚠️ A task is currently running. Type 'cancel' to stop it, or wait for it to complete.",
+                            role="user"
+                        )
+                    )
+                    st.rerun()
+            else:
+                # 没有任务运行，正常处理提交
+                self.task_manager.handle_submission(submission)
         
         # 监控运行中的任务
         self.task_manager.monitor_running_task()
