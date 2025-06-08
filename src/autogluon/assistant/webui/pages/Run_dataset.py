@@ -70,6 +70,16 @@ class SessionStateManager:
         st.session_state.stage_status = {}
         st.session_state.current_task_logs = []
         
+        # 清理所有旧的 log processor states
+        keys_to_delete = []
+        for key in st.session_state:
+            if key.startswith("log_processor_state_"):
+                keys_to_delete.append(key)
+        
+        for key in keys_to_delete:
+            del st.session_state[key]
+        
+        # 兼容旧版本
         if "log_processor_state" in st.session_state:
             del st.session_state.log_processor_state
 
@@ -405,7 +415,12 @@ class AutoMLAgentApp:
             st.session_state.running_config = None
             st.session_state.current_task_logs = []
             
-            # 清理 log processor state
+            # 清理当前任务的 log processor state
+            current_state_key = f"log_processor_state_{run_id}"
+            if current_state_key in st.session_state:
+                del st.session_state[current_state_key]
+                
+            # 清理兼容的旧key
             if "log_processor_state" in st.session_state:
                 del st.session_state.log_processor_state
         else:
