@@ -213,17 +213,24 @@ class ToolsRegistry:
 
             for i, chunk in enumerate(chunks):
                 context = "This is a continuation of the previous chunk. " if i > 0 else ""
-                chunk_prompt = f"""{context}Condense this portion of the tutorial while preserving essential implementation details, code samples, and key concepts. Focus on:
+                chunk_prompt = f"""{context}Condense this portion of the tutorial while preserving essential implementation details, code samples, and key concepts. Remove unnecessary information that is not helpful for using the model, such as benchmarking results, citations, performance comparisons, research paper references, and promotional content. Focus on:
 
 1. Implementation details and techniques
 2. Code snippets with necessary context
 3. Critical configurations and parameters
 4. Important warnings and best practices
 
+Remove or minimize:
+- Benchmarking results and performance metrics
+- Academic citations and paper references
+- Marketing language and promotional content
+- Historical context unless directly relevant to implementation
+- Theoretical background that doesn't impact practical usage
+
 Chunk {i+1}/{len(chunks)}:
 {chunk}
 
-Provide the condensed content in markdown format."""
+Provide the condensed content in markdown format, focusing on actionable information for practitioners."""
 
                 condensed_chunk = llm.assistant_chat(chunk_prompt)
                 condensed_chunks.append(condensed_chunk)
