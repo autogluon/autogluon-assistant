@@ -310,7 +310,7 @@ class TaskManager:
                         st.session_state.running_config.max_iter
                     )
                 )
-            SessionState.finish_task()
+            SessionState._tafinishsk()
         else:
             SessionState.add_message(Message.text("❌ Failed to cancel the task."))
         
