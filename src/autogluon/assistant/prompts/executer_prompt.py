@@ -47,6 +47,14 @@ Even if the code executed without throwing errors, it might still have issues wi
         stdout = self._truncate_output_mid(stdout, self.llm_config.max_stdout_length)
         stderr = self._truncate_output_mid(stderr, self.llm_config.max_stderr_length)
 
+        self.manager.save_and_log_states(
+            content=stderr, save_name="stderr.txt", per_iteration=True, add_uuid=True
+        )
+
+        self.manager.save_and_log_states(
+            content=stdout, save_name="stdout.txt", per_iteration=True, add_uuid=True
+        )
+
         # Format the prompt using the template
         prompt = self.template.format(
             task_description=task_description,

@@ -53,17 +53,15 @@ def _configure_logging(console_level: int, output_dir: Path = None) -> None:
 
     if sys.stdout.isatty():
        console = Console(file=sys.stderr)
-       rich_handler = RichHandler(console=console, markup=True, rich_tracebacks=True)
-       rich_handler.setLevel(console_level)
-       handler = rich_handler
+       console_handler = RichHandler(console=console, markup=True, rich_tracebacks=True)
+       console_handler.setLevel(console_level)
+       handlers = [console_handler]
     else:
        stdout_handler = logging.StreamHandler(sys.stdout)
        stdout_handler.setLevel(console_level)
        stdout_fmt = logging.Formatter("%(levelname)s %(message)s")
        stdout_handler.setFormatter(stdout_fmt)
-       handler = stdout_handler
-
-    handlers = [handler]
+       handlers = [stdout_handler]
 
     # Add file handlers if output_dir is provided
     if output_dir is not None:
@@ -143,4 +141,6 @@ def show_progress_bar():
         if hasattr(handler, "name") and handler.name == CONSOLE_HANDLER:
             console_handler_level = handler.level
 
+    if console_handler_level is None:
+        return False
     return console_handler_level > DETAIL_LEVEL
