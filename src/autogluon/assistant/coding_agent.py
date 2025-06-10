@@ -113,7 +113,7 @@ def run_agent(
                 logger.brief(
                     f"\n[bold green]Previous iteration files are in:[/bold green] {os.path.join(output_folder, f'iteration_{manager.time_step}')}"
                 )
-            user_input += input("Enter your inputs for this iteration (press Enter to skip): ")
+            user_input = input("Enter your inputs for this iteration (press Enter to skip): ")
 
         manager.step(user_input=user_input)
 
