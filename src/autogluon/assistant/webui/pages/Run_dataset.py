@@ -189,7 +189,7 @@ class UI:
     @staticmethod
     def setup_page():
         """设置页面"""
-        st.set_page_config(page_title="AutoMLAgent Chat", layout="wide")
+        st.set_page_config(page_title="Run dataset", layout="wide")
     
     @staticmethod
     def render_sidebar() -> TaskConfig:

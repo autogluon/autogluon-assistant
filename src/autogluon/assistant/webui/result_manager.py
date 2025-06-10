@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 import streamlit as st
+import pandas as pd
 
 
 class ResultManager:
@@ -16,21 +17,20 @@ class ResultManager:
     
     def __init__(self, output_dir: str):
         self.output_dir = Path(output_dir)
-        # Debug: Print the path being used
-        print(f"ResultManager initialized with output_dir: {output_dir}")
-        print(f"Path object: {self.output_dir}")
-        print(f"Absolute path: {self.output_dir.absolute()}")
         
     def extract_output_dir(self, phase_states: Dict) -> Optional[str]:
         """Extract output directory from log phase states"""
         output_phase = phase_states.get("Output", {})
         logs = output_phase.get("logs", [])
         
-        # Look for output directory in the last log entry
         for log in reversed(logs):
-            match = re.search(r'output saved in (.+?)(?:\s|$)', log)
+            # Look for "output saved in" pattern and extract the path
+            match = re.search(r'output saved in\s+([^\s]+)', log)
             if match:
-                return match.group(1)
+                output_dir = match.group(1).strip()
+                # Remove any trailing punctuation
+                output_dir = output_dir.rstrip('.,;:')
+                return output_dir
         return None
     
     def find_latest_model(self) -> Optional[Path]:
@@ -62,6 +62,23 @@ class ResultManager:
         """Find token usage JSON file"""
         token_file = self.output_dir / "token_usage.json"
         return token_file if token_file.exists() else None
+    
+    def find_latest_generation_iter(self) -> Optional[Path]:
+        """Find the latest generation_iter directory"""
+        generation_dirs = []
+        pattern = re.compile(r'generation_iter_(\d+)')
+        
+        for item in self.output_dir.iterdir():
+            if item.is_dir() and pattern.match(item.name):
+                match = pattern.match(item.name)
+                iter_num = int(match.group(1))
+                generation_dirs.append((iter_num, item))
+        
+        if generation_dirs:
+            # Sort by iteration number and return the latest
+            generation_dirs.sort(key=lambda x: x[0], reverse=True)
+            return generation_dirs[0][1]
+        return None
     
     def create_download_zip(self, include_items: List[str]) -> bytes:
         """Create a zip file with selected items"""
@@ -108,7 +125,7 @@ class ResultManager:
     
     def render_download_tab(self):
         """Render the download tab"""
-        st.markdown("### 📥 Download Options")
+        st.markdown("### Download Options")
         
         # Check what's available
         has_model = self.find_latest_model() is not None
@@ -118,115 +135,201 @@ class ResultManager:
         # Selection options
         download_options = []
         
-        col1, col2 = st.columns([1, 3])
+        # Create centered columns for checkboxes
+        col1, col2, col3 = st.columns([1, 4, 1])
         
-        with col1:
+        with col2:
+            # All option
             if st.checkbox("All", key=f"download_all_{self.output_dir}"):
                 download_options.append("all")
-                
-        with col2:
-            st.caption("Includes all intermediate code, logs, models, results, and token usage statistics")
-        
-        # Individual options (disabled if "All" is selected)
-        disabled = "all" in download_options
-        
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            if has_model and st.checkbox("Final trained model", disabled=disabled, 
-                                        key=f"download_model_{self.output_dir}"):
-                if not disabled:
-                    download_options.append("model")
-        with col2:
+                st.caption("Includes all intermediate code, logs, models, results, and token usage statistics")
+            
+            # Individual options (disabled if "All" is selected)
+            disabled = "all" in download_options
+            
+            # Add spacing between checkboxes
+            st.markdown("")
+            
+            # Model option
             if has_model:
+                if st.checkbox("Final trained model", disabled=disabled, 
+                              key=f"download_model_{self.output_dir}"):
+                    if not disabled:
+                        download_options.append("model")
                 model_dir = self.find_latest_model()
                 st.caption(f"Latest model: {model_dir.name}")
-        
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            if has_results and st.checkbox("Results", disabled=disabled,
-                                         key=f"download_results_{self.output_dir}"):
-                if not disabled:
-                    download_options.append("results")
-        with col2:
+                st.markdown("")
+            
+            # Results option
             if has_results:
+                if st.checkbox("Results", disabled=disabled,
+                              key=f"download_results_{self.output_dir}"):
+                    if not disabled:
+                        download_options.append("results")
                 results_file = self.find_results_file()
                 st.caption(f"Results file: {results_file.name}")
-        
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            if has_token_usage and st.checkbox("Token usage", disabled=disabled,
-                                             key=f"download_token_{self.output_dir}"):
-                if not disabled:
-                    download_options.append("token_usage")
-        with col2:
+                st.markdown("")
+            
+            # Token usage option
             if has_token_usage:
+                if st.checkbox("Token usage", disabled=disabled,
+                              key=f"download_token_{self.output_dir}"):
+                    if not disabled:
+                        download_options.append("token_usage")
                 st.caption("Token usage statistics (JSON)")
         
         # Download button
-        if download_options:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"autogluon_results_{self.output_dir.name}_{timestamp}.zip"
-            
-            if st.button("🔽 Create Download", key=f"create_download_{self.output_dir}"):
-                with st.spinner("Creating download package..."):
-                    zip_data = self.create_download_zip(download_options)
-                    
+        st.markdown("")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if download_options:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"autogluon_results_{self.output_dir.name}_{timestamp}.zip"
+                
+                # Create download directly
+                zip_data = self.create_download_zip(download_options)
+                
                 st.download_button(
-                    label="💾 Download Package",
+                    label="Download Package",
                     data=zip_data,
                     file_name=filename,
                     mime="application/zip",
-                    key=f"download_btn_{self.output_dir}"
+                    key=f"download_btn_{self.output_dir}",
+                    use_container_width=True
                 )
-        else:
-            st.info("Select items to download")
+            else:
+                st.info("Select items to download")
     
     def render_results_tab(self):
         """Render the results viewing tab"""
-        st.info("📊 Results viewer - Coming soon!")
-        # TODO: Implement results visualization
-        # - Load results.csv/pq
-        # - Show summary statistics
-        # - Display performance metrics
-        # - Show leaderboard if available
+        results_file = self.find_results_file()
+        
+        if not results_file:
+            st.info("No results file found in the output directory.")
+            return
+        
+        st.markdown("### Results Visualization")
+        
+        try:
+            # Load results based on file type
+            if results_file.suffix == '.csv':
+                df = pd.read_csv(results_file)
+            else:  # .pq or .parquet
+                df = pd.read_parquet(results_file)
+            
+            # Display basic info
+            st.markdown(f"**File:** {results_file.name}")
+            st.markdown(f"**Shape:** {df.shape[0]} rows × {df.shape[1]} columns")
+            
+            # Display the dataframe
+            if df.shape[0] > 100:
+                st.markdown("**Preview (first 100 rows):**")
+                st.dataframe(df.head(100), use_container_width=True)
+                
+                with st.expander("Show all data"):
+                    st.dataframe(df, use_container_width=True)
+            else:
+                st.dataframe(df, use_container_width=True)
+            
+            # Show summary statistics for numeric columns
+            numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+            if len(numeric_cols) > 0:
+                st.markdown("**Summary Statistics:**")
+                st.dataframe(df[numeric_cols].describe(), use_container_width=True)
+                
+        except Exception as e:
+            st.error(f"Error loading results: {str(e)}")
     
     def render_code_tab(self):
         """Render the code viewing tab"""
-        st.info("👨‍💻 Code viewer - Coming soon!")
-        # TODO: Implement code viewer
-        # - Show final generated code
-        # - Show execution scripts
-        # - Syntax highlighting
-        # - Copy to clipboard functionality
+        latest_gen_dir = self.find_latest_generation_iter()
+        
+        if not latest_gen_dir:
+            st.info("No generation directories found in the output directory.")
+            return
+        
+        st.markdown(f"### Generated Code from {latest_gen_dir.name}")
+        
+        # Check for execution script
+        exec_script = latest_gen_dir / "execution_script.sh"
+        if exec_script.exists():
+            st.markdown("**Execution Script (`execution_script.sh`):**")
+            with open(exec_script, 'r') as f:
+                exec_code = f.read()
+            st.code(exec_code, language='bash')
+        
+        # Check for generated Python code
+        gen_code = latest_gen_dir / "generated_code.py"
+        if gen_code.exists():
+            st.markdown("**Generated Python Code (`generated_code.py`):**")
+            with open(gen_code, 'r') as f:
+                python_code = f.read()
+            st.code(python_code, language='python')
+        
+        if not exec_script.exists() and not gen_code.exists():
+            st.info("No code files found in the latest generation directory.")
     
     def render_feedback_tab(self):
         """Render the feedback and privacy tab"""
-        st.info("💬 Feedback & Privacy - Coming soon!")
-        # TODO: Implement feedback system
-        # - Rating system (1-5 stars)
-        # - Text feedback
-        # - Privacy settings
-        # - Option to share results with AutoGluon team
+        st.markdown("### Feedback & Privacy")
+        
+        with st.form(key=f"feedback_form_{self.output_dir}"):
+            # Star rating
+            rating = st.feedback("stars", key=f"rating_{self.output_dir}")
+            
+            # Text feedback
+            feedback_text = st.text_area(
+                "Additional comments (optional):",
+                placeholder="Share your thoughts about the results...",
+                key=f"feedback_text_{self.output_dir}"
+            )
+            
+            # Submit button
+            submitted = st.form_submit_button("Submit Feedback", use_container_width=True)
+            
+            if submitted:
+                # Check if at least one field is filled
+                if rating is not None or feedback_text.strip():
+                    # Create feedback directory
+                    feedback_dir = self.output_dir / "feedback"
+                    feedback_dir.mkdir(exist_ok=True)
+                    
+                    # Create feedback data
+                    feedback_data = {
+                        "timestamp": datetime.now().isoformat(),
+                        "rating": rating,
+                        "comments": feedback_text.strip()
+                    }
+                    
+                    # Save feedback
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    feedback_file = feedback_dir / f"feedback_{timestamp}.json"
+                    
+                    with open(feedback_file, 'w') as f:
+                        json.dump(feedback_data, f, indent=2)
+                    
+                    st.success("Thank you for your feedback! It has been saved.")
+                    st.balloons()
+                else:
+                    st.warning("Please provide a rating or comments before submitting.")
+        
+        # Privacy notice
+        st.markdown("---")
+        st.markdown("**Privacy Notice:**")
+        st.markdown(
+            "Your feedback is stored locally in the output directory and is not automatically "
+            "shared with anyone. You can choose to share the feedback file with the AutoGluon "
+            "team if you wish to help improve the product."
+        )
     
     def render(self):
         """Main render method for result manager"""
-        # Debug output
         if not self.output_dir.exists():
             st.error(f"Output directory not found: {self.output_dir}")
-            # Try to see if parent directory exists
-            if self.output_dir.parent.exists():
-                st.info(f"Parent directory exists: {self.output_dir.parent}")
-                # List directories in parent
-                try:
-                    dirs = [d for d in self.output_dir.parent.iterdir() if d.is_dir()]
-                    if dirs:
-                        st.info(f"Available directories: {[d.name for d in dirs[:5]]}")
-                except Exception as e:
-                    st.error(f"Error listing directories: {e}")
             return
         
         # Create tabs
-        tabs = st.tabs(["📥 Download", "📊 See Results", "👨‍💻 See Code", "💬 Feedback & Privacy"])
+        tabs = st.tabs(["Download", "See Results", "See Code", "Feedback & Privacy"])
         
         with tabs[0]:
             self.render_download_tab()
