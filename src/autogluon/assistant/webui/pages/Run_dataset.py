@@ -79,7 +79,6 @@ class TaskConfig:
     """任务配置"""
     uploaded_config: Any
     max_iter: int
-    control: bool
     log_verbosity: str
 
 
@@ -153,7 +152,7 @@ class BackendAPI:
             "config_path": config_path,
             "max_iter": config.max_iter,
             "init_prompt": user_prompt or None,
-            "control": config.control,
+            "control": False,  # Always false now
             "verbosity": VERBOSITY_MAP[config.log_verbosity],
         }
         
@@ -204,7 +203,6 @@ class UI:
                         help="Upload a custom YAML config file. If not provided, default config will be used."
                     ),
                     max_iter=st.number_input("Max iterations", min_value=1, max_value=20, value=5, key="max_iterations"),
-                    control=st.checkbox("Manual prompts between iterations", key="control_prompts"),
                     log_verbosity=st.select_slider(
                         "Log verbosity",
                         options=["BRIEF", "INFO", "DETAIL"],
@@ -265,7 +263,6 @@ class UI:
             "\n⚙️ **Settings:**\n",
             f"- Config file: {config_file}",
             f"- Max iterations: {config.max_iter}",
-            f"- Manual prompts: {config.control}",
             f"- Log verbosity: {config.log_verbosity}",
             "\n✏️ **Initial prompt:**\n",
             f"> {prompt or '(none)'}"
@@ -408,8 +405,7 @@ class TaskManager:
         
         if user_prompt:
             cmd_parts.extend(["-u", user_prompt])
-        if self.config.control:
-            cmd_parts.append("--need-user-input")
+        # Removed --need-user-input flag since control is always False
         
         # 显示命令
         command_str = f"[{datetime.now().strftime('%H:%M:%S')}] Running AutoMLAgent: {' '.join(cmd_parts)}"
