@@ -5,6 +5,7 @@ import re
 import json
 import zipfile
 import tempfile
+import shutil
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
@@ -15,8 +16,9 @@ import pandas as pd
 class ResultManager:
     """Manages task results viewing and downloading"""
     
-    def __init__(self, output_dir: str):
+    def __init__(self, output_dir: str, run_id: str = None):
         self.output_dir = Path(output_dir)
+        self.run_id = run_id
         
     def extract_output_dir(self, phase_states: Dict) -> Optional[str]:
         """Extract output directory from log phase states"""
@@ -265,10 +267,44 @@ class ResultManager:
         if not exec_script.exists() and not gen_code.exists():
             st.info("No code files found in the latest generation directory.")
     
+    def find_input_dir(self) -> Optional[Path]:
+        """Find the input directory associated with this output"""
+        # Try to find from the output directory structure
+        # Usually input directories are named upload_XXXXX in the user data directory
+        from autogluon.assistant.webui.utils.utils import get_user_data_dir
+        user_dir = get_user_data_dir()
+        
+        # Look for directories that might be associated with this task
+        # This is a heuristic - you might need to adjust based on your actual directory structure
+        for item in user_dir.iterdir():
+            if item.is_dir() and item.name.startswith("upload_"):
+                # Check if this upload directory has any connection to our output
+                # This might require additional metadata or naming conventions
+                # For now, we'll return None and let the caller handle it
+                pass
+        
+        return None
+    
+    def delete_task_data(self) -> Tuple[bool, str]:
+        """Delete both input and output directories for this task"""
+        try:
+            # Delete output directory
+            if self.output_dir.exists():
+                shutil.rmtree(self.output_dir)
+            
+            # Try to find and delete input directory
+            # Note: This requires proper tracking of input directories per task
+            # For now, we only delete the output directory
+            
+            return True, "Task data has been successfully deleted."
+        except Exception as e:
+            return False, f"Error deleting task data: {str(e)}"
+    
     def render_feedback_tab(self):
         """Render the feedback and privacy tab"""
         st.markdown("### Feedback & Privacy")
         
+        # Feedback form
         with st.form(key=f"feedback_form_{self.output_dir}"):
             # Star rating
             rating = st.feedback("stars", key=f"rating_{self.output_dir}")
@@ -317,6 +353,41 @@ class ResultManager:
             "shared with anyone. You can choose to share the feedback file with the AutoGluon "
             "team if you wish to help improve the product."
         )
+        
+        # Delete task section
+        st.markdown("---")
+        st.markdown("**Delete Task Data:**")
+        st.markdown(
+            "If you want to remove this task and all associated data from your system, "
+            "you can delete it here. This action cannot be undone."
+        )
+        
+        # Create unique key for the dialog
+        dialog_key = f"delete_dialog_{self.run_id or self.output_dir.name}"
+        
+        @st.dialog("Confirm Deletion")
+        def confirm_delete():
+            st.warning(
+                "⚠️ **Warning:** This will permanently delete:\n"
+                "- All output files (models, results, logs)\n"
+                "- The associated input data\n"
+                "- This task from your history\n\n"
+                "This action cannot be undone!"
+            )
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Cancel", use_container_width=True, key=f"cancel_{dialog_key}"):
+                    st.rerun()
+            with col2:
+                if st.button("Delete", type="primary", use_container_width=True, key=f"confirm_{dialog_key}"):
+                    # Set deletion flag in session state
+                    st.session_state[f"delete_task_{self.run_id}"] = True
+                    st.rerun()
+        
+        # Delete button
+        if st.button("🗑️ Delete This Task", type="secondary", key=f"delete_btn_{self.output_dir}"):
+            confirm_delete()
     
     def render(self):
         """Main render method for result manager"""
@@ -362,7 +433,7 @@ def render_task_results(run_id: str, phase_states: Dict):
         st.session_state[task_output_key] = output_dir
         
         # Render result manager
-        manager = ResultManager(output_dir)
+        manager = ResultManager(output_dir, run_id)
         manager.render()
     else:
         st.warning("Output directory not found in logs. Results may not be available yet.")

@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 import time
+import shutil
 from typing import Dict, List, Optional, Any
 import requests
 from dataclasses import dataclass, field
@@ -41,25 +42,32 @@ class Message:
         return cls(role=role, type="text", content={"text": text})
     
     @classmethod
-    def user_summary(cls, summary: str) -> "Message":
-        return cls(role="user", type="user_summary", content={"summary": summary})
+    def user_summary(cls, summary: str, input_dir: Optional[str] = None) -> "Message":
+        content = {"summary": summary}
+        if input_dir:
+            content["input_dir"] = input_dir
+        return cls(role="user", type="user_summary", content=content)
     
     @classmethod
     def command(cls, command: str) -> "Message":
         return cls(role="assistant", type="command", content={"command": command})
     
     @classmethod
-    def task_log(cls, run_id: str, phase_states: Dict, max_iter: int, output_dir: Optional[str] = None) -> "Message":
+    def task_log(cls, run_id: str, phase_states: Dict, max_iter: int, output_dir: Optional[str] = None, input_dir: Optional[str] = None) -> "Message":
+        content = {
+            "run_id": run_id,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "phase_states": phase_states,
+            "max_iter": max_iter,
+        }
+        if output_dir:
+            content["output_dir"] = output_dir
+        if input_dir:
+            content["input_dir"] = input_dir
         return cls(
             role="assistant", 
             type="task_log",
-            content={
-                "run_id": run_id,
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "phase_states": phase_states,
-                "max_iter": max_iter,
-                "output_dir": output_dir  # Add output_dir to message content
-            }
+            content=content
         )
     
     @classmethod
@@ -98,6 +106,7 @@ class SessionState:
             "run_id": None,
             "current_task_logs": [],
             "running_config": None,
+            "current_input_dir": None,  # Track current task's input directory
         }
         
         for key, value in defaults.items():
@@ -105,12 +114,13 @@ class SessionState:
                 st.session_state[key] = value
     
     @staticmethod
-    def start_task(run_id: str, config: TaskConfig):
+    def start_task(run_id: str, config: TaskConfig, input_dir: str):
         """开始新任务"""
         st.session_state.task_running = True
         st.session_state.run_id = run_id
         st.session_state.current_task_logs = []
         st.session_state.running_config = config
+        st.session_state.current_input_dir = input_dir
         
         # 清理旧的日志处理器
         SessionState._cleanup_processors()
@@ -121,6 +131,7 @@ class SessionState:
         st.session_state.task_running = False
         st.session_state.running_config = None
         st.session_state.current_task_logs = []
+        st.session_state.current_input_dir = None
         
         # 清理当前任务的处理器
         if st.session_state.run_id:
@@ -132,6 +143,22 @@ class SessionState:
     def add_message(message: Message):
         """添加消息"""
         st.session_state.messages.append(message)
+    
+    @staticmethod
+    def delete_task_from_history(run_id: str):
+        """从历史中删除任务相关的消息"""
+        # Find and remove all messages related to this task
+        new_messages = []
+        for msg in st.session_state.messages:
+            # Skip messages related to this task
+            if msg.type in ["task_log", "task_results"] and msg.content.get("run_id") == run_id:
+                continue
+            # Also skip user_summary and command messages that might be associated
+            # This is a bit tricky - we need to identify which user_summary belongs to which task
+            # For now, we'll keep all user_summary messages
+            new_messages.append(msg)
+        
+        st.session_state.messages = new_messages
     
     @staticmethod
     def _cleanup_processors():
@@ -246,7 +273,7 @@ class UI:
             content = msg.content
             if "output_dir" in content and content["output_dir"]:
                 from autogluon.assistant.webui.result_manager import ResultManager
-                manager = ResultManager(content["output_dir"])
+                manager = ResultManager(content["output_dir"], content["run_id"])
                 manager.render()
     
     @staticmethod
@@ -298,14 +325,14 @@ class TaskManager:
         config_path = self._save_config(data_folder)
         config_name = self.config.uploaded_config.name if self.config.uploaded_config else "default.yaml"
         
-        # 添加用户摘要
+        # 添加用户摘要 - 包含输入目录信息
         summary = UI.format_user_summary(
             [f.name for f in files],
             self.config,
             user_text,
             config_name
         )
-        SessionState.add_message(Message.user_summary(summary))
+        SessionState.add_message(Message.user_summary(summary, input_dir=data_folder))
         
         # 启动任务
         self._start_task(data_folder, config_path, user_text)
@@ -337,7 +364,8 @@ class TaskManager:
                         st.session_state.run_id,
                         processed["phase_states"],
                         st.session_state.running_config.max_iter,
-                        output_dir
+                        output_dir,
+                        st.session_state.current_input_dir
                     )
                 )
                 
@@ -352,6 +380,56 @@ class TaskManager:
             SessionState.add_message(Message.text("❌ Failed to cancel the task."))
         
         st.rerun()
+    
+    def handle_task_deletion(self):
+        """处理任务删除请求"""
+        # Check for deletion flags
+        keys_to_check = [k for k in st.session_state if k.startswith("delete_task_")]
+        
+        for key in keys_to_check:
+            if st.session_state.get(key):
+                run_id = key.replace("delete_task_", "")
+                
+                # Find the task messages to get directories
+                output_dir = None
+                input_dir = None
+                
+                for msg in st.session_state.messages:
+                    if msg.type == "task_log" and msg.content.get("run_id") == run_id:
+                        output_dir = msg.content.get("output_dir")
+                        input_dir = msg.content.get("input_dir")
+                        break
+                
+                # Delete directories
+                success = True
+                error_msg = ""
+                
+                try:
+                    # Delete output directory
+                    if output_dir and Path(output_dir).exists():
+                        shutil.rmtree(output_dir)
+                    
+                    # Delete input directory
+                    if input_dir and Path(input_dir).exists():
+                        shutil.rmtree(input_dir)
+                except Exception as e:
+                    success = False
+                    error_msg = str(e)
+                
+                # Remove from message history
+                SessionState.delete_task_from_history(run_id)
+                
+                # Clear the deletion flag
+                del st.session_state[key]
+                
+                # Show result message
+                if success:
+                    st.success(f"Task {run_id[:8]}... and all associated data have been deleted.")
+                else:
+                    st.error(f"Error deleting task data: {error_msg}")
+                
+                # Force a complete rerun
+                st.rerun()
     
     @st.fragment(run_every=0.5)
     def render_running_task(self):
@@ -415,9 +493,9 @@ class TaskManager:
         command_str = f"[{datetime.now().strftime('%H:%M:%S')}] Running AutoMLAgent: {' '.join(cmd_parts)}"
         SessionState.add_message(Message.command(command_str))
         
-        # 启动任务
+        # 启动任务 - 传递输入目录
         run_id = BackendAPI.start_task(data_folder, config_path, user_prompt, self.config)
-        SessionState.start_task(run_id, self.config)
+        SessionState.start_task(run_id, self.config, data_folder)
         st.rerun()
     
     def _extract_output_dir(self, phase_states: Dict) -> Optional[str]:
@@ -453,7 +531,8 @@ class TaskManager:
                     st.session_state.run_id,
                     processed["phase_states"],
                     st.session_state.running_config.max_iter,
-                    output_dir
+                    output_dir,
+                    st.session_state.current_input_dir
                 )
             )
             
@@ -479,6 +558,9 @@ class AutoMLAgentApp:
     
     def run(self):
         """运行应用"""
+        # Check for task deletion requests first
+        self.task_manager.handle_task_deletion()
+        
         # 渲染历史消息
         UI.render_messages()
         
