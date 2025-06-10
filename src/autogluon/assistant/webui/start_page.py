@@ -15,7 +15,7 @@ def video():
     """
     Display Demo video
     """
-    st.video(DEMO_URL, muted=True, autoplay=True)
+    st.video(DEMO_URL, muted=True, autoplay=True, end_time=248, start_time=0, loop=True)
 
 
 def demo():
