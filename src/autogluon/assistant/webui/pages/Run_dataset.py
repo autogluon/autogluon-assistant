@@ -147,16 +147,64 @@ class SessionState:
     @staticmethod
     def delete_task_from_history(run_id: str):
         """从历史中删除任务相关的消息"""
-        # Find and remove all messages related to this task
-        new_messages = []
-        for msg in st.session_state.messages:
-            # Skip messages related to this task
-            if msg.type in ["task_log", "task_results"] and msg.content.get("run_id") == run_id:
+        # First, find the task_log message to get its index
+        task_log_index = None
+        for i, msg in enumerate(st.session_state.messages):
+            if msg.type == "task_log" and msg.content.get("run_id") == run_id:
+                task_log_index = i
+                break
+        
+        if task_log_index is None:
+            return
+        
+        # Find the associated user_summary and command messages
+        # They should be right before the task_log message
+        start_index = task_log_index
+        
+        # Look backwards for related messages
+        i = task_log_index - 1
+        while i >= 0:
+            msg = st.session_state.messages[i]
+            
+            # Check for command message
+            if msg.type == "command":
+                start_index = i
+                i -= 1
                 continue
-            # Also skip user_summary and command messages that might be associated
-            # This is a bit tricky - we need to identify which user_summary belongs to which task
-            # For now, we'll keep all user_summary messages
-            new_messages.append(msg)
+            
+            # Check for user_summary message
+            elif msg.type == "user_summary":
+                start_index = i
+                break
+            
+            # Check for "cancel" message from user
+            elif msg.type == "text" and msg.role == "user" and msg.content.get("text", "").strip().lower() == "cancel":
+                start_index = i
+                i -= 1
+                continue
+            
+            # Check for cancel confirmation message
+            elif msg.type == "text" and msg.role == "assistant" and "has been cancelled" in msg.content.get("text", ""):
+                start_index = i
+                i -= 1
+                continue
+            
+            # If we hit any other message type, stop looking
+            else:
+                break
+        
+        # Find the end index (task_results should be right after task_log)
+        end_index = task_log_index
+        if (task_log_index + 1 < len(st.session_state.messages) and 
+            st.session_state.messages[task_log_index + 1].type == "task_results" and
+            st.session_state.messages[task_log_index + 1].content.get("run_id") == run_id):
+            end_index = task_log_index + 1
+        
+        # Create new message list without the task-related messages
+        new_messages = []
+        for i, msg in enumerate(st.session_state.messages):
+            if i < start_index or i > end_index:
+                new_messages.append(msg)
         
         st.session_state.messages = new_messages
     
@@ -475,6 +523,9 @@ class TaskManager:
     
     def _start_task(self, data_folder: str, config_path: str, user_prompt: str):
         """启动任务"""
+        # 先生成 run_id
+        run_id = BackendAPI.start_task(data_folder, config_path, user_prompt, self.config)
+        
         # 构建命令
         cmd_parts = [
             "mlzero",
@@ -494,7 +545,6 @@ class TaskManager:
         SessionState.add_message(Message.command(command_str))
         
         # 启动任务 - 传递输入目录
-        run_id = BackendAPI.start_task(data_folder, config_path, user_prompt, self.config)
         SessionState.start_task(run_id, self.config, data_folder)
         st.rerun()
     
