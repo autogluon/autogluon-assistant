@@ -189,7 +189,7 @@ class UI:
     @staticmethod
     def setup_page():
         """设置页面"""
-        st.set_page_config(page_title="Run dataset", layout="wide")
+        st.set_page_config(page_title="AutoMLAgent Chat", layout="wide")
     
     @staticmethod
     def render_sidebar() -> TaskConfig:
@@ -224,31 +224,37 @@ class UI:
         return config
     
     @staticmethod
+    @st.fragment
+    def render_single_message(msg):
+        """Render a single message as a fragment to isolate interactions"""
+        if msg.type == "text":
+            st.write(msg.content["text"])
+        elif msg.type == "user_summary":
+            st.markdown(msg.content["summary"])
+        elif msg.type == "command":
+            st.code(msg.content["command"], language="bash")
+        elif msg.type == "task_log":
+            content = msg.content
+            st.caption(f"ID: {content['run_id'][:8]}... | Completed: {content['timestamp']}")
+            render_task_logs(
+                content["phase_states"],
+                content["max_iter"],
+                show_progress=False
+            )
+        elif msg.type == "task_results":
+            # Render the result manager for completed tasks
+            content = msg.content
+            if "output_dir" in content and content["output_dir"]:
+                from autogluon.assistant.webui.result_manager import ResultManager
+                manager = ResultManager(content["output_dir"])
+                manager.render()
+    
+    @staticmethod
     def render_messages():
         """渲染消息历史"""
         for msg in st.session_state.messages:
             with st.chat_message(msg.role):
-                if msg.type == "text":
-                    st.write(msg.content["text"])
-                elif msg.type == "user_summary":
-                    st.markdown(msg.content["summary"])
-                elif msg.type == "command":
-                    st.code(msg.content["command"], language="bash")
-                elif msg.type == "task_log":
-                    content = msg.content
-                    st.caption(f"ID: {content['run_id'][:8]}... | Completed: {content['timestamp']}")
-                    render_task_logs(
-                        content["phase_states"],
-                        content["max_iter"],
-                        show_progress=False
-                    )
-                elif msg.type == "task_results":
-                    # Render the result manager for completed tasks
-                    content = msg.content
-                    if "output_dir" in content and content["output_dir"]:
-                        from autogluon.assistant.webui.result_manager import ResultManager
-                        manager = ResultManager(content["output_dir"])
-                        manager.render()
+                UI.render_single_message(msg)
     
     @staticmethod
     def format_user_summary(files: List[str], config: TaskConfig, prompt: str, config_file: str) -> str:
@@ -347,8 +353,9 @@ class TaskManager:
         
         st.rerun()
     
-    def monitor_running_task(self):
-        """监控运行中的任务"""
+    @st.fragment(run_every=0.5)
+    def render_running_task(self):
+        """Render the currently running task as an isolated fragment"""
         if not st.session_state.task_running or not st.session_state.run_id:
             return
         
@@ -372,9 +379,12 @@ class TaskManager:
         # 检查是否完成
         if BackendAPI.check_status(run_id):
             self._complete_task()
-        else:
-            time.sleep(0.1)
-            st.rerun()
+            st.rerun()  # Rerun once to update the UI after completion
+    
+    def monitor_running_task(self):
+        """监控运行中的任务"""
+        if st.session_state.task_running:
+            self.render_running_task()
     
     def _save_config(self, data_folder: str) -> str:
         """保存配置文件"""
@@ -455,7 +465,6 @@ class TaskManager:
         
         st.success(SUCCESS_MESSAGE)
         SessionState.finish_task()
-        st.rerun()  # Force rerun to show new messages immediately
 
 
 # ==================== Main App ====================

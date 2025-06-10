@@ -160,11 +160,12 @@ def features():
         st.markdown(
             """
         <div class="feature-container">
-            <div class="feature-title">Powered by AutoGluon Tabular</div>
+            <div class="feature-title">Powered by Multi-Model Integration</div>
             <div class="feature-description">
-                Benefit from the robust capabilities of AutoGluon Tabular, 
-                State of the Art AutoML framework. AutoGluon automatically trains and tunes a diverse set of models for your tabular data,
-                ensuring optimal performance without the need for extensive machine learning expertise.
+            Leverage a unified platform that brings together multiple modeling capabilities. 
+            AutoGluon Assistant now supports AutoGluon Time Series, Multi-Model Pipelines, and Tabular Modeling, enabling end-to-end automation across diverse ML tasks. 
+            Integration with more Hugging Face models is coming soon, 
+            expanding support for advanced NLP and multimodal applications—all without requiring deep ML expertise.
             </div>
         </div>
         """,
@@ -202,11 +203,10 @@ def main():
         </div>
         <div class="right-section">
             <div class="get-started-title">Get Started</div>
-            <div class="description">AutoGluon Assistant (AG-A) provides users a simple interface where they can upload their data, describe their problem, and receive a highly accurate and competitive ML solution — without writing any code. By leveraging the state-of-the-art AutoML capabilities of AutoGluon and integrating them with a Large Language Model (LLM), AG-A automates the entire data science pipeline.</div>
+            <div class="description">AutoGluon Assistant (aka MLZero) is a multi-agent system that automates end-to-end multimodal machine learning or deep learning workflows by transforming raw multimodal data into high-quality ML solutions with zero human intervention. Leveraging specialized perception agents, dual-memory modules, and iterative code generation, it handles diverse data formats while maintaining high success rates across complex ML tasks.</div>
             <div class="steps">
                 <ol>
-                    <li>Upload dataset files (CSV,XLSX)</li>
-                    <li>Define your machine learning task</li>
+                    <li>Upload a folder</li>
                     <li>Launch AutoGluon Assistant</li>
                     <li>Get accurate predictions</li>
                 </ol>

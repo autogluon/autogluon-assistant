@@ -125,6 +125,7 @@ class ResultManager:
     
     def render_download_tab(self):
         """Render the download tab"""
+        # Center the heading
         col1, col2, col3 = st.columns([1, 3, 1])
         with col2:
             st.markdown("### Download Options")
@@ -137,46 +138,48 @@ class ResultManager:
         # Selection options
         download_options = []
         
-        # Left-aligned checkboxes
-        # All option
-        all_checked = st.checkbox("All", key=f"download_all_{self.output_dir}")
-        if all_checked:
-            download_options.append("all")
-        st.caption("Includes all intermediate code, logs, models, results, and token usage statistics")
-        
-        # Individual options (disabled if "All" is selected)
-        disabled = all_checked
-        
-        # Add spacing between checkboxes
-        st.markdown("")
-        
-        # Model option
-        if has_model:
-            if st.checkbox("Final trained model", disabled=disabled, 
-                          key=f"download_model_{self.output_dir}"):
-                if not disabled:
-                    download_options.append("model")
-            model_dir = self.find_latest_model()
-            st.caption(f"Latest model: {model_dir.name}")
+        # Center the checkboxes
+        col1, col2, col3 = st.columns([1, 3, 1])
+        with col2:
+            # All option
+            all_checked = st.checkbox("All", key=f"download_all_{self.output_dir}")
+            if all_checked:
+                download_options.append("all")
+            st.caption("Includes all intermediate code, logs, models, results, and token usage statistics")
+            
+            # Individual options (disabled if "All" is selected)
+            disabled = all_checked
+            
+            # Add spacing between checkboxes
             st.markdown("")
-        
-        # Results option
-        if has_results:
-            if st.checkbox("Results", disabled=disabled,
-                          key=f"download_results_{self.output_dir}"):
-                if not disabled:
-                    download_options.append("results")
-            results_file = self.find_results_file()
-            st.caption(f"Results file: {results_file.name}")
-            st.markdown("")
-        
-        # Token usage option
-        if has_token_usage:
-            if st.checkbox("Token usage", disabled=disabled,
-                          key=f"download_token_{self.output_dir}"):
-                if not disabled:
-                    download_options.append("token_usage")
-            st.caption("Token usage statistics (JSON)")
+            
+            # Model option
+            if has_model:
+                if st.checkbox("Final trained model", disabled=disabled, 
+                              key=f"download_model_{self.output_dir}"):
+                    if not disabled:
+                        download_options.append("model")
+                model_dir = self.find_latest_model()
+                st.caption(f"Latest model: {model_dir.name}")
+                st.markdown("")
+            
+            # Results option
+            if has_results:
+                if st.checkbox("Results", disabled=disabled,
+                              key=f"download_results_{self.output_dir}"):
+                    if not disabled:
+                        download_options.append("results")
+                results_file = self.find_results_file()
+                st.caption(f"Results file: {results_file.name}")
+                st.markdown("")
+            
+            # Token usage option
+            if has_token_usage:
+                if st.checkbox("Token usage", disabled=disabled,
+                              key=f"download_token_{self.output_dir}"):
+                    if not disabled:
+                        download_options.append("token_usage")
+                st.caption("Token usage statistics (JSON)")
         
         # Download button - centered
         st.markdown("")
@@ -241,7 +244,7 @@ class ResultManager:
             st.info("No generation directories found in the output directory.")
             return
         
-        st.markdown(f"### Generated Code from {latest_gen_dir.name}")
+        st.markdown(f"### Generated Code")
         
         # Check for execution script
         exec_script = latest_gen_dir / "execution_script.sh"
