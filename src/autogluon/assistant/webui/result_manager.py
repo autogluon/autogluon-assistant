@@ -125,7 +125,9 @@ class ResultManager:
     
     def render_download_tab(self):
         """Render the download tab"""
-        st.markdown("### Download Options")
+        col1, col2, col3 = st.columns([1, 3, 1])
+        with col2:
+            st.markdown("### Download Options")
         
         # Check what's available
         has_model = self.find_latest_model() is not None
@@ -135,50 +137,48 @@ class ResultManager:
         # Selection options
         download_options = []
         
-        # Create centered columns for checkboxes
-        col1, col2, col3 = st.columns([1, 4, 1])
+        # Left-aligned checkboxes
+        # All option
+        all_checked = st.checkbox("All", key=f"download_all_{self.output_dir}")
+        if all_checked:
+            download_options.append("all")
+        st.caption("Includes all intermediate code, logs, models, results, and token usage statistics")
         
-        with col2:
-            # All option
-            if st.checkbox("All", key=f"download_all_{self.output_dir}"):
-                download_options.append("all")
-                st.caption("Includes all intermediate code, logs, models, results, and token usage statistics")
-            
-            # Individual options (disabled if "All" is selected)
-            disabled = "all" in download_options
-            
-            # Add spacing between checkboxes
+        # Individual options (disabled if "All" is selected)
+        disabled = all_checked
+        
+        # Add spacing between checkboxes
+        st.markdown("")
+        
+        # Model option
+        if has_model:
+            if st.checkbox("Final trained model", disabled=disabled, 
+                          key=f"download_model_{self.output_dir}"):
+                if not disabled:
+                    download_options.append("model")
+            model_dir = self.find_latest_model()
+            st.caption(f"Latest model: {model_dir.name}")
             st.markdown("")
-            
-            # Model option
-            if has_model:
-                if st.checkbox("Final trained model", disabled=disabled, 
-                              key=f"download_model_{self.output_dir}"):
-                    if not disabled:
-                        download_options.append("model")
-                model_dir = self.find_latest_model()
-                st.caption(f"Latest model: {model_dir.name}")
-                st.markdown("")
-            
-            # Results option
-            if has_results:
-                if st.checkbox("Results", disabled=disabled,
-                              key=f"download_results_{self.output_dir}"):
-                    if not disabled:
-                        download_options.append("results")
-                results_file = self.find_results_file()
-                st.caption(f"Results file: {results_file.name}")
-                st.markdown("")
-            
-            # Token usage option
-            if has_token_usage:
-                if st.checkbox("Token usage", disabled=disabled,
-                              key=f"download_token_{self.output_dir}"):
-                    if not disabled:
-                        download_options.append("token_usage")
-                st.caption("Token usage statistics (JSON)")
         
-        # Download button
+        # Results option
+        if has_results:
+            if st.checkbox("Results", disabled=disabled,
+                          key=f"download_results_{self.output_dir}"):
+                if not disabled:
+                    download_options.append("results")
+            results_file = self.find_results_file()
+            st.caption(f"Results file: {results_file.name}")
+            st.markdown("")
+        
+        # Token usage option
+        if has_token_usage:
+            if st.checkbox("Token usage", disabled=disabled,
+                          key=f"download_token_{self.output_dir}"):
+                if not disabled:
+                    download_options.append("token_usage")
+            st.caption("Token usage statistics (JSON)")
+        
+        # Download button - centered
         st.markdown("")
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
@@ -221,15 +221,8 @@ class ResultManager:
             st.markdown(f"**File:** {results_file.name}")
             st.markdown(f"**Shape:** {df.shape[0]} rows × {df.shape[1]} columns")
             
-            # Display the dataframe
-            if df.shape[0] > 100:
-                st.markdown("**Preview (first 100 rows):**")
-                st.dataframe(df.head(100), use_container_width=True)
-                
-                with st.expander("Show all data"):
-                    st.dataframe(df, use_container_width=True)
-            else:
-                st.dataframe(df, use_container_width=True)
+            # Display the dataframe (all data)
+            st.dataframe(df, use_container_width=True)
             
             # Show summary statistics for numeric columns
             numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
