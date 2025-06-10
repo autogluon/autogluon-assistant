@@ -13,6 +13,7 @@ import streamlit as st
 
 from autogluon.assistant.webui.file_uploader import handle_uploaded_files
 from autogluon.assistant.webui.log_processor import messages, process_logs, render_task_logs
+from autogluon.assistant.webui.result_manager import render_task_results
 from autogluon.assistant.constants import INITIAL_STAGE, SUCCESS_MESSAGE, API_URL
 
 
@@ -48,7 +49,7 @@ class Message:
         return cls(role="assistant", type="command", content={"command": command})
     
     @classmethod
-    def task_log(cls, run_id: str, phase_states: Dict, max_iter: int) -> "Message":
+    def task_log(cls, run_id: str, phase_states: Dict, max_iter: int, output_dir: Optional[str] = None) -> "Message":
         return cls(
             role="assistant", 
             type="task_log",
@@ -56,7 +57,19 @@ class Message:
                 "run_id": run_id,
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "phase_states": phase_states,
-                "max_iter": max_iter
+                "max_iter": max_iter,
+                "output_dir": output_dir  # Add output_dir to message content
+            }
+        )
+    
+    @classmethod
+    def task_results(cls, run_id: str, output_dir: str) -> "Message":
+        return cls(
+            role="assistant",
+            type="task_results",
+            content={
+                "run_id": run_id,
+                "output_dir": output_dir
             }
         )
 
@@ -229,6 +242,13 @@ class UI:
                         content["max_iter"],
                         show_progress=False
                     )
+                elif msg.type == "task_results":
+                    # Render the result manager for completed tasks
+                    content = msg.content
+                    if "output_dir" in content and content["output_dir"]:
+                        from autogluon.assistant.webui.result_manager import ResultManager
+                        manager = ResultManager(content["output_dir"])
+                        manager.render()
     
     @staticmethod
     def format_user_summary(files: List[str], config: TaskConfig, prompt: str, config_file: str) -> str:
@@ -303,14 +323,25 @@ class TaskManager:
                     st.session_state.running_config.max_iter
                 )
                 
+                # Extract output directory if available
+                output_dir = self._extract_output_dir(processed["phase_states"])
+                
                 SessionState.add_message(
                     Message.task_log(
                         st.session_state.run_id,
                         processed["phase_states"],
-                        st.session_state.running_config.max_iter
+                        st.session_state.running_config.max_iter,
+                        output_dir
                     )
                 )
-            SessionState._tafinishsk()
+                
+                # Add task results message if output directory found
+                if output_dir:
+                    SessionState.add_message(
+                        Message.task_results(st.session_state.run_id, output_dir)
+                    )
+                    
+            SessionState.finish_task()
         else:
             SessionState.add_message(Message.text("❌ Failed to cancel the task."))
         
@@ -379,6 +410,22 @@ class TaskManager:
         SessionState.start_task(run_id, self.config)
         st.rerun()
     
+    def _extract_output_dir(self, phase_states: Dict) -> Optional[str]:
+        """Extract output directory from phase states"""
+        output_phase = phase_states.get("Output", {})
+        logs = output_phase.get("logs", [])
+        
+        for log in reversed(logs):
+            import re
+            # Look for "output saved in" pattern and extract the path
+            match = re.search(r'output saved in\s+([^\s]+)', log)
+            if match:
+                output_dir = match.group(1).strip()
+                # Remove any trailing punctuation
+                output_dir = output_dir.rstrip('.,;:')
+                return output_dir
+        return None
+    
     def _complete_task(self):
         """完成任务"""
         # 保存任务日志
@@ -388,16 +435,27 @@ class TaskManager:
                 st.session_state.running_config.max_iter
             )
             
+            # Extract output directory
+            output_dir = self._extract_output_dir(processed["phase_states"])
+            
             SessionState.add_message(
                 Message.task_log(
                     st.session_state.run_id,
                     processed["phase_states"],
-                    st.session_state.running_config.max_iter
+                    st.session_state.running_config.max_iter,
+                    output_dir
                 )
             )
+            
+            # Add task results message if output directory found
+            if output_dir:
+                SessionState.add_message(
+                    Message.task_results(st.session_state.run_id, output_dir)
+                )
         
         st.success(SUCCESS_MESSAGE)
         SessionState.finish_task()
+        st.rerun()  # Force rerun to show new messages immediately
 
 
 # ==================== Main App ====================
