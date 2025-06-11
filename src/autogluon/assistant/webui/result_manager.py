@@ -251,7 +251,7 @@ class ResultManager:
         # Check for execution script
         exec_script = latest_gen_dir / "execution_script.sh"
         if exec_script.exists():
-            st.markdown("**Execution Script (`execution_script.sh`):**")
+            st.markdown("**Execution Script for the Python code below:**")
             with open(exec_script, 'r') as f:
                 exec_code = f.read()
             st.code(exec_code, language='bash')
@@ -259,7 +259,7 @@ class ResultManager:
         # Check for generated Python code
         gen_code = latest_gen_dir / "generated_code.py"
         if gen_code.exists():
-            st.markdown("**Generated Python Code (`generated_code.py`):**")
+            st.markdown("**Generated Python Code:**")
             with open(gen_code, 'r') as f:
                 python_code = f.read()
             st.code(python_code, language='python')

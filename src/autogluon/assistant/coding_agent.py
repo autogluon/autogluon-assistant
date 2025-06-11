@@ -1,6 +1,7 @@
 import logging
 import os
 import uuid
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -11,6 +12,30 @@ from .rich_logging import configure_logging
 from .utils import extract_archives
 
 logger = logging.getLogger(__name__)
+
+# Special marker for WebUI input requests
+WEBUI_INPUT_REQUEST = "###WEBUI_INPUT_REQUEST###"
+WEBUI_INPUT_MARKER = "###WEBUI_USER_INPUT###"
+
+
+def is_webui_environment():
+    """Check if running in WebUI environment"""
+    return os.environ.get("AUTOGLUON_WEBUI", "false").lower() == "true"
+
+
+def get_user_input_webui(prompt: str) -> str:
+    """Get user input in WebUI environment"""
+    # Send special marker with the prompt
+    print(f"{WEBUI_INPUT_REQUEST} {prompt}", flush=True)
+    
+    # Read from stdin - Flask will send the user input here
+    while True:
+        line = sys.stdin.readline().strip()
+        if line.startswith(WEBUI_INPUT_MARKER):
+            # Extract the actual user input after the marker
+            user_input = line[len(WEBUI_INPUT_MARKER):].strip()
+            logger.debug(f"Received WebUI input: {user_input}")
+            return user_input
 
 
 def run_agent(
@@ -99,6 +124,9 @@ def run_agent(
             config=config,
         )
 
+    # Check if we're in WebUI environment
+    is_webui = is_webui_environment()
+
     while manager.time_step + 1 < max_iterations:
         logger.brief(f"Starting iteration {manager.time_step + 1}!")
 
@@ -110,10 +138,16 @@ def run_agent(
         # Get per iter user inputs if needed
         if need_user_input:
             if manager.time_step + 1 > 0:
+                # Only show the message if not the first iteration
                 logger.brief(
-                    f"\n[bold green]Previous iteration files are in:[/bold green] {os.path.join(output_folder, f'iteration_{manager.time_step}')}"
+                    f"Previous iteration files are in: {os.path.join(output_folder, f'iteration_{manager.time_step}')}"
                 )
-            user_input = input("Enter your inputs for this iteration (press Enter to skip): ")
+            
+            # Different behavior for WebUI vs CLI
+            if is_webui:
+                user_input = get_user_input_webui("Enter your inputs for this iteration (press Enter to skip): ")
+            else:
+                user_input = input("Enter your inputs for this iteration (press Enter to skip): ")
 
         manager.step(user_input=user_input)
 

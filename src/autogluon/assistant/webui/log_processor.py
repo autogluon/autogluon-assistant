@@ -34,6 +34,8 @@ class LogProcessor:
         self.current_phase: Optional[str] = None
         self.phase_states: Dict[str, PhaseInfo] = {}
         self.processed_count = 0
+        self.waiting_for_input = False
+        self.input_prompt = None
         
     @property
     def progress(self) -> float:
@@ -63,7 +65,22 @@ class LogProcessor:
         new_entries = log_entries[self.processed_count:]
         
         for entry in new_entries:
+            level = entry.get("level", "")
             text = entry.get("text", "")
+            special = entry.get("special", "")
+            
+            # Handle special messages
+            if special == "input_request":
+                self.waiting_for_input = True
+                self.input_prompt = text
+                # Don't add input requests to regular logs
+                continue
+            
+            # Skip empty BRIEF logs
+            if level == "BRIEF" and not text.strip():
+                continue
+                
+            # Process the log entry
             self._process_log_entry(text)
             
         self.processed_count = len(log_entries)
@@ -121,7 +138,10 @@ class LogProcessor:
     def render(self, show_progress: bool = True) -> None:
         """渲染日志UI"""
         if show_progress:
-            if self.current_phase:
+            if self.waiting_for_input and self.input_prompt:
+                # Show input request prominently
+                st.info(f"💬 {self.input_prompt}")
+            elif self.current_phase:
                 st.markdown(f"### {self.current_phase}")
             st.progress(self.progress)
         
@@ -170,8 +190,11 @@ def render_task_logs(phase_states: Dict, max_iter: int, show_progress: bool = Tr
     processor.render(show_progress=show_progress)
 
 
-def messages(log_entries: List[Dict], max_iter: int) -> None:
-    """处理实时日志（用于运行中的任务）"""
+def messages(log_entries: List[Dict], max_iter: int) -> Tuple[bool, Optional[str]]:
+    """
+    处理实时日志（用于运行中的任务）
+    Returns: (waiting_for_input, input_prompt)
+    """
     run_id = st.session_state.get("run_id", "unknown")
     processor_key = f"log_processor_{run_id}"
     
@@ -182,3 +205,5 @@ def messages(log_entries: List[Dict], max_iter: int) -> None:
     processor = st.session_state[processor_key]
     processor.process_new_logs(log_entries)
     processor.render(show_progress=True)
+    
+    return processor.waiting_for_input, processor.input_prompt

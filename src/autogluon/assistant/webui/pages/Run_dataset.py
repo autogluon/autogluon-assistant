@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 import time
 import shutil
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 import requests
 from dataclasses import dataclass, field
 
@@ -106,7 +106,10 @@ class SessionState:
             "run_id": None,
             "current_task_logs": [],
             "running_config": None,
-            "current_input_dir": None,  # Track current task's input directory
+            "current_input_dir": None,
+            "waiting_for_input": False,
+            "input_prompt": None,
+            "current_iteration": 0,
         }
         
         for key, value in defaults.items():
@@ -121,6 +124,9 @@ class SessionState:
         st.session_state.current_task_logs = []
         st.session_state.running_config = config
         st.session_state.current_input_dir = input_dir
+        st.session_state.waiting_for_input = False
+        st.session_state.input_prompt = None
+        st.session_state.current_iteration = 0
         
         # 清理旧的日志处理器
         SessionState._cleanup_processors()
@@ -132,12 +138,23 @@ class SessionState:
         st.session_state.running_config = None
         st.session_state.current_task_logs = []
         st.session_state.current_input_dir = None
+        st.session_state.waiting_for_input = False
+        st.session_state.input_prompt = None
+        st.session_state.current_iteration = 0
         
         # 清理当前任务的处理器
         if st.session_state.run_id:
             processor_key = f"log_processor_{st.session_state.run_id}"
             if processor_key in st.session_state:
                 del st.session_state[processor_key]
+    
+    @staticmethod
+    def set_waiting_for_input(waiting: bool, prompt: Optional[str] = None, iteration: Optional[int] = None):
+        """设置等待输入状态"""
+        st.session_state.waiting_for_input = waiting
+        st.session_state.input_prompt = prompt
+        if iteration is not None:
+            st.session_state.current_iteration = iteration
     
     @staticmethod
     def add_message(message: Message):
@@ -157,8 +174,7 @@ class SessionState:
         if task_log_index is None:
             return
         
-        # Find the associated user_summary and command messages
-        # They should be right before the task_log message
+        # Find the associated messages (user_summary, command, iteration_prompts, etc.)
         start_index = task_log_index
         
         # Look backwards for related messages
@@ -166,18 +182,13 @@ class SessionState:
         while i >= 0:
             msg = st.session_state.messages[i]
             
-            # Check for command message
-            if msg.type == "command":
+            # Check for various message types
+            if msg.type in ["command", "user_summary"]:
                 start_index = i
                 i -= 1
                 continue
             
-            # Check for user_summary message
-            elif msg.type == "user_summary":
-                start_index = i
-                break
-            
-            # Check for "cancel" message from user
+            # Check for cancel-related messages
             elif msg.type == "text" and msg.role == "user" and msg.content.get("text", "").strip().lower() == "cancel":
                 start_index = i
                 i -= 1
@@ -242,10 +253,23 @@ class BackendAPI:
         return response.json().get("lines", [])
     
     @staticmethod
-    def check_status(run_id: str) -> bool:
+    def check_status(run_id: str) -> Dict:
         """检查任务状态"""
         response = requests.get(f"{API_URL}/status", params={"run_id": run_id})
-        return response.json().get("finished", False)
+        return response.json()
+    
+    @staticmethod
+    def send_user_input(run_id: str, user_input: str) -> bool:
+        """发送用户输入到后端"""
+        try:
+            response = requests.post(f"{API_URL}/input", json={
+                "run_id": run_id,
+                "input": user_input
+            })
+            return response.json().get("success", False)
+        except Exception as e:
+            st.error(f"Error sending input: {str(e)}")
+            return False
     
     @staticmethod
     def cancel_task(run_id: str) -> bool:
@@ -299,7 +323,6 @@ class UI:
         return config
     
     @staticmethod
-    @st.fragment
     def render_single_message(msg):
         """Render a single message as a fragment to isolate interactions"""
         if msg.type == "text":
@@ -317,7 +340,6 @@ class UI:
                 show_progress=False
             )
         elif msg.type == "task_results":
-            # Render the result manager for completed tasks
             content = msg.content
             if "output_dir" in content and content["output_dir"]:
                 from autogluon.assistant.webui.result_manager import ResultManager
@@ -357,6 +379,12 @@ class TaskManager:
     
     def handle_submission(self, submission):
         """处理用户提交"""
+        # If waiting for input, handle it as iteration input
+        if st.session_state.waiting_for_input:
+            self.handle_iteration_input(submission)
+            return
+        
+        # When accept_file="multiple", submission has .files and .text attributes
         files = submission.files or []
         user_text = submission.text.strip() if submission.text else ""
         
@@ -373,7 +401,7 @@ class TaskManager:
         config_path = self._save_config(data_folder)
         config_name = self.config.uploaded_config.name if self.config.uploaded_config else "default.yaml"
         
-        # 添加用户摘要 - 包含输入目录信息
+        # 添加用户摘要
         summary = UI.format_user_summary(
             [f.name for f in files],
             self.config,
@@ -384,6 +412,31 @@ class TaskManager:
         
         # 启动任务
         self._start_task(data_folder, config_path, user_text)
+    
+    def handle_iteration_input(self, submission):
+        """处理迭代输入"""
+        # When accept_file=False, submission is just a string
+        if not submission:
+            user_input = ""  # Empty input means skip
+        else:
+            user_input = submission.strip()
+        
+        # Don't add iteration prompt as a separate message - it will be shown in logs
+        
+        # Send input to backend
+        if BackendAPI.send_user_input(st.session_state.run_id, user_input):
+            SessionState.set_waiting_for_input(False)
+            # Force update by clearing the processor's waiting state
+            run_id = st.session_state.run_id
+            processor_key = f"log_processor_{run_id}"
+            if processor_key in st.session_state:
+                processor = st.session_state[processor_key]
+                processor.waiting_for_input = False
+                processor.input_prompt = None
+        else:
+            SessionState.add_message(Message.text("❌ Failed to send input to the process."))
+        
+        st.rerun()
     
     def handle_cancel_request(self):
         """处理取消请求"""
@@ -479,9 +532,8 @@ class TaskManager:
                 # Force a complete rerun
                 st.rerun()
     
-    @st.fragment(run_every=0.5)
     def render_running_task(self):
-        """Render the currently running task as an isolated fragment"""
+        """Render the currently running task"""
         if not st.session_state.task_running or not st.session_state.run_id:
             return
         
@@ -496,21 +548,56 @@ class TaskManager:
         new_logs = BackendAPI.fetch_logs(run_id)
         st.session_state.current_task_logs.extend(new_logs)
         
+        # 获取状态
+        status = BackendAPI.check_status(run_id)
+        
         # 显示运行中的任务
         with st.chat_message("assistant"):
             st.markdown(f"### Current Task")
             st.caption(f"ID: {run_id[:8]}... | Type 'cancel' to stop the task")
-            messages(st.session_state.current_task_logs, config.max_iter)
+            
+            # Process logs and check for input requests
+            waiting_for_input, input_prompt = messages(st.session_state.current_task_logs, config.max_iter)
+            
+            # Update session state if waiting for input
+            if waiting_for_input and not st.session_state.waiting_for_input:
+                # Extract iteration number from logs if possible
+                iteration = self._extract_current_iteration()
+                SessionState.set_waiting_for_input(True, input_prompt, iteration)
+                # Don't rerun here - let the fragment cycle handle it
         
         # 检查是否完成
-        if BackendAPI.check_status(run_id):
+        if status.get("finished", False):
             self._complete_task()
-            st.rerun()  # Rerun once to update the UI after completion
+            st.rerun()
     
     def monitor_running_task(self):
         """监控运行中的任务"""
         if st.session_state.task_running:
-            self.render_running_task()
+            # Use a container with auto-refresh
+            container = st.container()
+            with container:
+                self.render_running_task()
+                
+            # Auto-refresh logic
+            if st.session_state.task_running:
+                time.sleep(0.5)
+                st.rerun()
+    
+    def _extract_current_iteration(self) -> int:
+        """Extract current iteration number from logs"""
+        # Look for "Starting iteration X!" in recent logs
+        for entry in reversed(st.session_state.current_task_logs[-20:]):  # Check last 20 entries
+            text = entry.get("text", "")
+            if "Starting iteration" in text:
+                try:
+                    import re
+                    match = re.search(r'Starting iteration (\d+)!', text)
+                    if match:
+                        return int(match.group(1))
+                except:
+                    pass
+        return 1  # Default to 1 if not found
     
     def _save_config(self, data_folder: str) -> str:
         """保存配置文件"""
@@ -544,7 +631,7 @@ class TaskManager:
         command_str = f"[{datetime.now().strftime('%H:%M:%S')}] Running AutoMLAgent: {' '.join(cmd_parts)}"
         SessionState.add_message(Message.command(command_str))
         
-        # 启动任务 - 传递输入目录
+        # 启动任务
         SessionState.start_task(run_id, self.config, data_folder)
         st.rerun()
     
@@ -586,13 +673,15 @@ class TaskManager:
                 )
             )
             
+            # Add success message
+            SessionState.add_message(Message.text(SUCCESS_MESSAGE))
+            
             # Add task results message if output directory found
             if output_dir:
                 SessionState.add_message(
                     Message.task_results(st.session_state.run_id, output_dir)
                 )
         
-        st.success(SUCCESS_MESSAGE)
         SessionState.finish_task()
 
 
@@ -614,19 +703,37 @@ class AutoMLAgentApp:
         # 渲染历史消息
         UI.render_messages()
         
+        # Determine chat input configuration based on state
+        if st.session_state.waiting_for_input:
+            # When waiting for iteration input
+            placeholder = st.session_state.input_prompt or "Enter your input for this iteration (press Enter to skip)"
+            accept_file = False  # Don't accept files during iteration prompts
+        elif st.session_state.task_running:
+            # When task is running but not waiting for input
+            placeholder = "Type 'cancel' to stop the current task"
+            accept_file = False
+        else:
+            # Normal state - ready to accept new tasks
+            placeholder = "Type optional prompt, or drag & drop your data files/ZIP here"
+            accept_file = "multiple"
+        
         # 处理用户输入
         submission = st.chat_input(
-            placeholder="Type optional prompt, or drag & drop your data files/ZIP here",
-            accept_file="multiple",
+            placeholder=placeholder,
+            accept_file=accept_file,
             key="u_input",
             max_chars=10000,
         )
         
         if submission:
+            # 如果正在等待输入
+            if st.session_state.waiting_for_input:
+                self.task_manager.handle_submission(submission)
             # 如果任务正在运行
-            if st.session_state.task_running:
+            elif st.session_state.task_running:
                 # 检查是否是取消命令
-                if submission.text and submission.text.strip().lower() == "cancel":
+                # When accept_file=False, submission is just a string
+                if submission and submission.strip().lower() == "cancel":
                     self.task_manager.handle_cancel_request()
                 else:
                     # 显示提示信息

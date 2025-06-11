@@ -5,95 +5,212 @@ import subprocess
 import threading
 import signal
 import os
+import logging
+from typing import Optional, Dict, List
 
+# Setup logging - reduce verbosity
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# 全局存储每个 run 的状态
-_runs: dict = {}
+# Silence watchdog debug logs
+logging.getLogger('watchdog').setLevel(logging.WARNING)
+
+# Special markers for WebUI communication
+WEBUI_INPUT_REQUEST = "###WEBUI_INPUT_REQUEST###"
+WEBUI_INPUT_MARKER = "###WEBUI_USER_INPUT###"
+
+# Global storage for each run's state
+_runs: Dict[str, Dict] = {}
 
 def parse_log_line(line: str) -> dict:
     """
-    按照"<LEVEL> <内容>"的格式解析一行日志，LEVEL 只能是 BRIEF、INFO、MODEL_INFO。
-    如果满足格式，则提取出 level 和 text；否则返回 level="other"，text 为整行内容。
-
-    返回：
+    Parse a log line according to format "<LEVEL> <content>".
+    Also detect special WebUI input requests.
+    
+    Returns:
         {
-            "level": "<BRIEF/INFO/MODEL_INFO 或 other>",
-            "text": "<内容文本>"
+            "level": "<BRIEF/INFO/MODEL_INFO or other>",
+            "text": "<content text>",
+            "special": "<type of special message if any>"
         }
     """
+    # Skip empty lines
+    if not line.strip():
+        return None
+        
+    # Check for special WebUI input request
+    if line.strip().startswith(WEBUI_INPUT_REQUEST):
+        prompt = line.strip()[len(WEBUI_INPUT_REQUEST):].strip()
+        return {
+            "level": "INPUT_REQUEST",
+            "text": prompt,
+            "special": "input_request"
+        }
+    
+    # Regular log parsing
     allowed_levels = {"ERROR", "BRIEF", "INFO", "DETAIL", "DEBUG", "WARNING"}
     stripped = line.strip()
 
     parts = stripped.split(" ", 1)
     if len(parts) == 2 and parts[0] in allowed_levels:
+        # Skip empty BRIEF logs
+        if parts[0] == "BRIEF" and not parts[1].strip():
+            return None
         return {"level": parts[0], "text": parts[1]}
     else:
         return {"level": "other", "text": stripped}
 
 
-def start_run(run_id: str, cmd: list[str]):
+def start_run(run_id: str, cmd: List[str]):
     """
-    启动子进程，并在后台线程中持续读取 stdout/stderr，
-    将每一行 append 到 _runs[run_id]['logs']。
+    Start subprocess with stdin/stdout/stderr pipes.
+    Set AUTOGLUON_WEBUI environment variable to indicate WebUI environment.
     """
     _runs[run_id] = {
         "process": None,
         "logs": [],
         "pointer": 0,
         "finished": False,
+        "waiting_for_input": False,
+        "input_prompt": None,
+        "lock": threading.Lock(),
     }
 
     def _target():
-        # 创建新的进程组，这样可以一次性终止整个进程树
-        p = subprocess.Popen(
-            cmd, 
-            stdout=subprocess.PIPE, 
-            stderr=subprocess.STDOUT, 
-            text=True,
-            # 在Unix系统上创建新的进程组
-            preexec_fn=os.setsid if os.name != 'nt' else None,
-            # 在Windows上使用CREATE_NEW_PROCESS_GROUP
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
-        )
-        _runs[run_id]["process"] = p
-        
         try:
+            # Set environment variable to indicate WebUI
+            env = os.environ.copy()
+            env["AUTOGLUON_WEBUI"] = "true"
+            
+            # Create process with stdin pipe
+            p = subprocess.Popen(
+                cmd, 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.STDOUT,
+                stdin=subprocess.PIPE,  # Enable stdin pipe
+                text=True,
+                env=env,
+                bufsize=1,  # Line buffered
+                # Create new process group for proper termination
+                preexec_fn=os.setsid if os.name != 'nt' else None,
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
+            )
+            _runs[run_id]["process"] = p
+            
+            logger.info(f"Started task {run_id[:8]}...")
+            
+            # Read stdout line by line
             for line in p.stdout:
-                _runs[run_id]["logs"].append(line.rstrip("\n"))
+                line = line.rstrip("\n")
+                
+                with _runs[run_id]["lock"]:
+                    # Parse the line
+                    parsed = parse_log_line(line)
+                    
+                    # Skip None results (empty lines, etc.)
+                    if parsed is None:
+                        continue
+                    
+                    # Check if this is an input request
+                    if parsed.get("special") == "input_request":
+                        _runs[run_id]["waiting_for_input"] = True
+                        _runs[run_id]["input_prompt"] = parsed["text"]
+                        logger.info(f"Task {run_id[:8]} requesting user input")
+                    
+                    # Always append to logs (original line, not parsed)
+                    _runs[run_id]["logs"].append(line)
+            
             p.wait()
+            logger.info(f"Task {run_id[:8]} completed")
+            
         except Exception as e:
-            _runs[run_id]["logs"].append(f"Process error: {str(e)}")
+            logger.error(f"Error in task {run_id[:8]}: {str(e)}")
+            with _runs[run_id]["lock"]:
+                _runs[run_id]["logs"].append(f"Process error: {str(e)}")
         finally:
-            _runs[run_id]["finished"] = True
+            with _runs[run_id]["lock"]:
+                _runs[run_id]["finished"] = True
+                _runs[run_id]["waiting_for_input"] = False
 
     thread = threading.Thread(target=_target, daemon=True)
     thread.start()
 
-def get_logs(run_id: str) -> list[str]:
+
+def send_user_input(run_id: str, user_input: str) -> bool:
     """
-    返回自上次调用后新增的日志行列表。
+    Send user input to the subprocess stdin.
+    Returns True if successful, False otherwise.
+    """
+    info = _runs.get(run_id)
+    if not info:
+        logger.error(f"Run {run_id} not found")
+        return False
+    
+    with info["lock"]:
+        process = info.get("process")
+        if not process or not process.stdin or process.poll() is not None:
+            logger.error(f"Process not available for input: {run_id}")
+            return False
+        
+        try:
+            # Send input with special marker
+            input_line = f"{WEBUI_INPUT_MARKER}{user_input}\n"
+            process.stdin.write(input_line)
+            process.stdin.flush()
+            
+            # Reset input waiting state
+            info["waiting_for_input"] = False
+            info["input_prompt"] = None
+            
+            # Log the user input for display with proper formatting
+            if user_input:
+                info["logs"].append(f"BRIEF User input: {user_input}")
+            else:
+                info["logs"].append(f"BRIEF User input: (skipped)")
+            
+            logger.info(f"Sent input to task {run_id[:8]}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error sending input to task {run_id[:8]}: {str(e)}")
+            return False
+
+
+def get_logs(run_id: str) -> List[str]:
+    """
+    Return list of new log lines since last call.
     """
     info = _runs.get(run_id)
     if info is None:
         return []
-    logs = info["logs"]
-    ptr = info["pointer"]
-    new = logs[ptr:]
-    info["pointer"] = len(logs)
-    return new
+    
+    with info["lock"]:
+        logs = info["logs"]
+        ptr = info["pointer"]
+        new = logs[ptr:]
+        info["pointer"] = len(logs)
+        return new
+
 
 def get_status(run_id: str) -> dict:
     """
-    返回任务是否完成。
+    Return task status including whether it's waiting for input.
     """
     info = _runs.get(run_id)
     if info is None:
         return {"finished": True, "error": "run_id not found"}
-    return {"finished": info["finished"]}
+    
+    with info["lock"]:
+        return {
+            "finished": info["finished"],
+            "waiting_for_input": info.get("waiting_for_input", False),
+            "input_prompt": info.get("input_prompt", None)
+        }
+
 
 def cancel_run(run_id: str):
     """
-    终止对应 run 的子进程。
+    Terminate the subprocess for the given run.
     """
     info = _runs.get(run_id)
     if info and info["process"] and not info["finished"]:
@@ -101,27 +218,30 @@ def cancel_run(run_id: str):
         
         try:
             if os.name == 'nt':  # Windows
-                # 在Windows上使用terminate
                 process.terminate()
             else:  # Unix/Linux/Mac
-                # 发送SIGTERM到整个进程组，模拟Ctrl+C
+                # Send SIGTERM to entire process group
                 os.killpg(os.getpgid(process.pid), signal.SIGTERM)
             
-            # 给进程一些时间优雅地退出
+            # Give process time to exit gracefully
             try:
                 process.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                # 如果进程没有在5秒内退出，强制杀死
+                # Force kill if needed
                 if os.name == 'nt':
                     process.kill()
                 else:
                     os.killpg(os.getpgid(process.pid), signal.SIGKILL)
                 process.wait()
             
-            # 添加取消日志
-            _runs[run_id]["logs"].append("Task cancelled by user")
+            # Add cancellation log
+            with info["lock"]:
+                info["logs"].append("Task cancelled by user")
             
         except Exception as e:
-            _runs[run_id]["logs"].append(f"Error cancelling task: {str(e)}")
+            with info["lock"]:
+                info["logs"].append(f"Error cancelling task: {str(e)}")
         finally:
-            info["finished"] = True
+            with info["lock"]:
+                info["finished"] = True
+                info["waiting_for_input"] = False
