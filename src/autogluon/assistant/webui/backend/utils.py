@@ -176,7 +176,7 @@ def send_user_input(run_id: str, user_input: str) -> bool:
             process.stdin.write(input_line)
             process.stdin.flush()
             
-            # 立即重置输入等待状态
+            # Reset input waiting state
             info["waiting_for_input"] = False
             info["input_prompt"] = None
             
@@ -186,7 +186,7 @@ def send_user_input(run_id: str, user_input: str) -> bool:
             else:
                 info["logs"].append(f"BRIEF User input: (skipped)")
             
-            logger.info(f"Sent input to task {run_id[:8]}, waiting_for_input reset to False")
+            logger.info(f"Sent input to task {run_id[:8]}")
             return True
             
         except Exception as e:

@@ -37,8 +37,6 @@ class LogProcessor:
         self.waiting_for_input = False
         self.input_prompt = None
         self.output_dir = None
-        self.has_processed_input_request = False  # 防止重复处理输入请求
-        self.last_user_input_index = -1  # 记录最后处理的用户输入位置
         
     @property
     def progress(self) -> float:
@@ -67,13 +65,10 @@ class LogProcessor:
         # 只处理新日志
         new_entries = log_entries[self.processed_count:]
         
-        for i, entry in enumerate(new_entries):
+        for entry in new_entries:
             level = entry.get("level", "")
             text = entry.get("text", "")
             special = entry.get("special", "")
-            
-            # 计算实际的日志索引
-            actual_index = self.processed_count + i
             
             # Handle special messages
             if special == "output_dir":
@@ -82,26 +77,15 @@ class LogProcessor:
                 # Don't add to regular logs
                 continue
             elif special == "input_request":
-                # 只在没有等待输入且没有处理过输入请求时才设置
-                if not self.waiting_for_input and not self.has_processed_input_request:
-                    self.waiting_for_input = True
-                    self.input_prompt = text
-                    self.has_processed_input_request = True
-                    print(f"DEBUG LogProcessor: Got input request at index {actual_index}, waiting_for_input = True")
+                self.waiting_for_input = True
+                self.input_prompt = text
+                print(f"DEBUG LogProcessor: Got input request, waiting_for_input = True")
                 # Don't add input requests to regular logs
                 continue
             
             # Skip empty BRIEF logs
             if level == "BRIEF" and not text.strip():
                 continue
-            
-            # 检查是否是用户输入，并且是新的输入（在上次处理位置之后）
-            if "User input:" in text and actual_index > self.last_user_input_index:
-                self.waiting_for_input = False
-                self.input_prompt = None
-                self.has_processed_input_request = False  # 重置，允许处理下一个输入请求
-                self.last_user_input_index = actual_index
-                print(f"DEBUG LogProcessor: Detected user input at index {actual_index}, clearing waiting state")
                 
             # Process the log entry
             self._process_log_entry(text)
@@ -145,8 +129,6 @@ class LogProcessor:
         if m_start:
             phase_name = f"Iteration {m_start.group(1)}"
             if phase_name not in self.phase_states:
-                # 新的迭代开始，重置输入请求处理标志
-                self.has_processed_input_request = False
                 return (phase_name, "start")
         
         if self.patterns.ITER_END.search(text) and self.current_phase and self.current_phase.startswith("Iteration"):
@@ -215,9 +197,10 @@ def render_task_logs(phase_states: Dict, max_iter: int, show_progress: bool = Tr
     processor.render(show_progress=show_progress)
 
 
-def messages(log_entries: List[Dict], max_iter: int) -> None:
+def messages(log_entries: List[Dict], max_iter: int) -> Tuple[bool, Optional[str], Optional[str]]:
     """
     处理实时日志（用于运行中的任务）
+    Returns: (waiting_for_input, input_prompt, output_dir)
     """
     run_id = st.session_state.get("run_id", "unknown")
     processor_key = f"log_processor_{run_id}"
@@ -229,3 +212,5 @@ def messages(log_entries: List[Dict], max_iter: int) -> None:
     processor = st.session_state[processor_key]
     processor.process_new_logs(log_entries)
     processor.render(show_progress=True)
+    
+    return processor.waiting_for_input, processor.input_prompt, processor.output_dir

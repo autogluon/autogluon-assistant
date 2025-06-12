@@ -111,8 +111,6 @@ class SessionState:
             "input_prompt": None,
             "current_iteration": 0,
             "current_output_dir": None,
-            "hide_previous_files": False,  # 是否隐藏前一个迭代的文件
-            "hide_files_until_iteration": 0,  # 隐藏文件直到这个迭代
         }
         
         for key, value in defaults.items():
@@ -131,8 +129,6 @@ class SessionState:
         st.session_state.input_prompt = None
         st.session_state.current_iteration = 0
         st.session_state.current_output_dir = None
-        st.session_state.hide_previous_files = False
-        st.session_state.hide_files_until_iteration = 0
         
         # 清理旧的日志处理器
         SessionState._cleanup_processors()
@@ -148,8 +144,6 @@ class SessionState:
         st.session_state.input_prompt = None
         st.session_state.current_iteration = 0
         st.session_state.current_output_dir = None
-        st.session_state.hide_previous_files = False
-        st.session_state.hide_files_until_iteration = 0
         
         # 清理当前任务的处理器
         if st.session_state.run_id:
@@ -161,13 +155,9 @@ class SessionState:
     def set_waiting_for_input(waiting: bool, prompt: Optional[str] = None, iteration: Optional[int] = None):
         """设置等待输入状态"""
         st.session_state.waiting_for_input = waiting
-        if waiting:
-            st.session_state.input_prompt = prompt
-            if iteration is not None:
-                st.session_state.current_iteration = iteration
-        else:
-            # 清除等待时也清除提示信息
-            st.session_state.input_prompt = None
+        st.session_state.input_prompt = prompt
+        if iteration is not None:
+            st.session_state.current_iteration = iteration
     
     @staticmethod
     def add_message(message: Message):
@@ -501,24 +491,18 @@ class TaskManager:
         else:
             user_input = submission.strip()
         
-        # 设置一个特殊的标志，表示刚刚提交了输入，不要显示文件
-        st.session_state.hide_previous_files = True
-        st.session_state.hide_files_until_iteration = st.session_state.current_iteration + 1
+        # Don't add iteration prompt as a separate message - it will be shown in logs
         
         # Send input to backend
         if BackendAPI.send_user_input(st.session_state.run_id, user_input):
-            print(f"DEBUG: User submitted input for iteration {st.session_state.current_iteration}")
-            
-            # 清除所有缓存和处理器
+            SessionState.set_waiting_for_input(False)
+            # Force update by clearing the processor's waiting state
             run_id = st.session_state.run_id
             processor_key = f"log_processor_{run_id}"
             if processor_key in st.session_state:
-                del st.session_state[processor_key]
-            
-            st.cache_data.clear()
-            
-            # 给后端时间处理
-            time.sleep(0.5)
+                processor = st.session_state[processor_key]
+                processor.waiting_for_input = False
+                processor.input_prompt = None
         else:
             SessionState.add_message(Message.text("❌ Failed to send input to the process."))
         
@@ -663,80 +647,45 @@ class TaskManager:
             # Render the running task
             self.render_running_task()
             
-            # 检查是否应该隐藏文件
-            if (st.session_state.get('hide_previous_files', False) and 
-                st.session_state.current_iteration < st.session_state.get('hide_files_until_iteration', 0)):
-                # 还在隐藏期，不显示文件
-                print(f"DEBUG: Hiding files, current={st.session_state.current_iteration}, hide_until={st.session_state.get('hide_files_until_iteration', 0)}")
-                # Auto-refresh
-                if st.session_state.task_running:
-                    time.sleep(0.5)
-                    st.rerun()
-                return
-            else:
-                # 清除隐藏标志
-                st.session_state.hide_previous_files = False
-            
-            # 简化的逻辑：直接从日志判断是否应该显示 Previous Iteration Results
-            if self.config.control and st.session_state.get('current_iteration', 0) > 0:
-                # 检查最近的日志，看是否在等待输入
-                should_show_files = False
-                last_few_logs = st.session_state.current_task_logs[-20:] if st.session_state.current_task_logs else []
+            # 在任务显示之后，如果正在等待输入，显示前一个迭代的文件
+            if (st.session_state.waiting_for_input and 
+                self.config.control and 
+                st.session_state.current_iteration > 0):
                 
-                # 查找最后的输入请求和用户输入
-                last_input_request_idx = -1
-                last_user_input_idx = -1
+                # 尝试从日志中找到输出目录
+                output_dir = None
                 
-                for i, entry in enumerate(last_few_logs):
-                    text = entry.get("text", "")
-                    special = entry.get("special", "")
-                    
-                    if special == "input_request":
-                        last_input_request_idx = i
-                    elif "User input:" in text:
-                        last_user_input_idx = i
+                # 先尝试使用 session state 中的目录
+                if st.session_state.get('current_output_dir'):
+                    output_dir = st.session_state.current_output_dir
+                else:
+                    # 从日志中提取
+                    for entry in reversed(st.session_state.current_task_logs[-50:]):
+                        text = entry.get("text", "")
+                        if "Previous iteration files are in:" in text:
+                            try:
+                                import re
+                                # 匹配路径模式
+                                match = re.search(r'([/\w\-]+/runs/mlzero-[/\w\-]+)', text)
+                                if match:
+                                    full_path = match.group(1)
+                                    # 去掉 /iteration_X 部分获取基础目录
+                                    if "/iteration_" in full_path:
+                                        output_dir = full_path.rsplit("/iteration_", 1)[0]
+                                    else:
+                                        output_dir = full_path
+                                    print(f"DEBUG: Extracted output dir from logs: {output_dir}")
+                                    break
+                            except Exception as e:
+                                print(f"DEBUG: Error extracting path: {e}")
                 
-                # 如果最后的输入请求在用户输入之后，说明正在等待新的输入
-                if last_input_request_idx > last_user_input_idx:
-                    should_show_files = True
-                
-                # 显示文件
-                if should_show_files:
-                    # 尝试从日志中找到输出目录
-                    output_dir = None
-                    
-                    # 先尝试使用 session state 中的目录
-                    if st.session_state.get('current_output_dir'):
-                        output_dir = st.session_state.current_output_dir
-                    else:
-                        # 从日志中提取
-                        for entry in reversed(st.session_state.current_task_logs[-50:]):
-                            text = entry.get("text", "")
-                            if "Previous iteration files are in:" in text:
-                                try:
-                                    import re
-                                    # 匹配路径模式
-                                    match = re.search(r'([/\w\-]+/runs/mlzero-[/\w\-]+)', text)
-                                    if match:
-                                        full_path = match.group(1)
-                                        # 去掉 /iteration_X 部分获取基础目录
-                                        if "/iteration_" in full_path:
-                                            output_dir = full_path.rsplit("/iteration_", 1)[0]
-                                        else:
-                                            output_dir = full_path
-                                        break
-                                except Exception as e:
-                                    print(f"DEBUG: Error extracting path: {e}")
-                    
-                    if output_dir:
-                        # 使用唯一的 key 来避免重复渲染
-                        iteration_key = f"prev_iter_{st.session_state.current_iteration}_{int(should_show_files)}"
-                        
-                        with st.container(key=iteration_key):
-                            st.markdown("---")
-                            st.markdown("### 📁 Previous Iteration Results")
-                            self._render_previous_iteration_files(output_dir, st.session_state.current_iteration)
-                            st.markdown("---")
+                if output_dir:
+                    st.markdown("---")
+                    st.markdown("### 📁 Previous Iteration Results")
+                    self._render_previous_iteration_files(output_dir, st.session_state.current_iteration)
+                    st.markdown("---")
+                else:
+                    print(f"DEBUG: Could not find output directory")
                 
             # Auto-refresh logic
             if st.session_state.task_running:
@@ -906,8 +855,7 @@ class AutoMLAgentApp:
         if submission:
             # 如果正在等待输入
             if st.session_state.waiting_for_input:
-                self.task_manager.handle_iteration_input(submission)
-                return  # 提前返回，避免继续执行其他逻辑
+                self.task_manager.handle_submission(submission)
             # 如果任务正在运行
             elif st.session_state.task_running:
                 # 检查是否是取消命令
