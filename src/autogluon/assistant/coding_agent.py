@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 # Special marker for WebUI input requests
 WEBUI_INPUT_REQUEST = "###WEBUI_INPUT_REQUEST###"
 WEBUI_INPUT_MARKER = "###WEBUI_USER_INPUT###"
+WEBUI_OUTPUT_DIR = "###WEBUI_OUTPUT_DIR###"
 
 
 def is_webui_environment():
@@ -126,6 +127,11 @@ def run_agent(
 
     # Check if we're in WebUI environment
     is_webui = is_webui_environment()
+    
+    # Send output directory to WebUI if needed
+    if is_webui:
+        print(f"{WEBUI_OUTPUT_DIR} {output_dir}", flush=True)
+        logger.debug(f"Sent output directory to WebUI: {output_dir}")
 
     while manager.time_step + 1 < max_iterations:
         logger.brief(f"Starting iteration {manager.time_step + 1}!")

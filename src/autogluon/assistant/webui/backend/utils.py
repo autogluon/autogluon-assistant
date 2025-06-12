@@ -18,6 +18,7 @@ logging.getLogger('watchdog').setLevel(logging.WARNING)
 # Special markers for WebUI communication
 WEBUI_INPUT_REQUEST = "###WEBUI_INPUT_REQUEST###"
 WEBUI_INPUT_MARKER = "###WEBUI_USER_INPUT###"
+WEBUI_OUTPUT_DIR = "###WEBUI_OUTPUT_DIR###"
 
 # Global storage for each run's state
 _runs: Dict[str, Dict] = {}
@@ -25,7 +26,7 @@ _runs: Dict[str, Dict] = {}
 def parse_log_line(line: str) -> dict:
     """
     Parse a log line according to format "<LEVEL> <content>".
-    Also detect special WebUI input requests.
+    Also detect special WebUI input requests and output directory.
     
     Returns:
         {
@@ -37,6 +38,15 @@ def parse_log_line(line: str) -> dict:
     # Skip empty lines
     if not line.strip():
         return None
+        
+    # Check for special WebUI output directory
+    if line.strip().startswith(WEBUI_OUTPUT_DIR):
+        output_dir = line.strip()[len(WEBUI_OUTPUT_DIR):].strip()
+        return {
+            "level": "OUTPUT_DIR",
+            "text": output_dir,
+            "special": "output_dir"
+        }
         
     # Check for special WebUI input request
     if line.strip().startswith(WEBUI_INPUT_REQUEST):
@@ -73,6 +83,7 @@ def start_run(run_id: str, cmd: List[str]):
         "finished": False,
         "waiting_for_input": False,
         "input_prompt": None,
+        "output_dir": None,
         "lock": threading.Lock(),
     }
 
@@ -109,6 +120,13 @@ def start_run(run_id: str, cmd: List[str]):
                     
                     # Skip None results (empty lines, etc.)
                     if parsed is None:
+                        continue
+                    
+                    # Check if this is output directory notification
+                    if parsed.get("special") == "output_dir":
+                        _runs[run_id]["output_dir"] = parsed["text"]
+                        logger.info(f"Task {run_id[:8]} output directory: {parsed['text']}")
+                        # Don't add this to logs
                         continue
                     
                     # Check if this is an input request
@@ -158,7 +176,7 @@ def send_user_input(run_id: str, user_input: str) -> bool:
             process.stdin.write(input_line)
             process.stdin.flush()
             
-            # Reset input waiting state
+            # 立即重置输入等待状态
             info["waiting_for_input"] = False
             info["input_prompt"] = None
             
@@ -168,7 +186,7 @@ def send_user_input(run_id: str, user_input: str) -> bool:
             else:
                 info["logs"].append(f"BRIEF User input: (skipped)")
             
-            logger.info(f"Sent input to task {run_id[:8]}")
+            logger.info(f"Sent input to task {run_id[:8]}, waiting_for_input reset to False")
             return True
             
         except Exception as e:
@@ -194,7 +212,7 @@ def get_logs(run_id: str) -> List[str]:
 
 def get_status(run_id: str) -> dict:
     """
-    Return task status including whether it's waiting for input.
+    Return task status including whether it's waiting for input and output directory.
     """
     info = _runs.get(run_id)
     if info is None:
@@ -204,7 +222,8 @@ def get_status(run_id: str) -> dict:
         return {
             "finished": info["finished"],
             "waiting_for_input": info.get("waiting_for_input", False),
-            "input_prompt": info.get("input_prompt", None)
+            "input_prompt": info.get("input_prompt", None),
+            "output_dir": info.get("output_dir", None)
         }
 
 
