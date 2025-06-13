@@ -8,10 +8,7 @@
   "requirements": [],
   "prompt_template": [
     "DO NOT drop any data samples (to make sure the frequency is regular).",
-    "Use Autogluon Timeseries with the following parameters:",
-    "- time_limit: 1800 seconds",
-    "- presets: \\\"medium_quality\\\"",
-    "  - tuning_data: only use validation if there is a validation dataset.",
+    "tuning_data: only use validation if there is a validation dataset.",
     "Note that the prediction is given in a column named \"mean\". You need to rename the column in the result.",
     "`from_data_frame()` method of TimeSeriesDataFrame does not accept a 'target' parameter.",
     "If there are known covariates, they should be specified in both TimeSeriesPredictor initialization AND predict."

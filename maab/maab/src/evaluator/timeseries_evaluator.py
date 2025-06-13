@@ -128,13 +128,18 @@ class BaseTimeseriesEvaluator(BaseEvaluator):
                 predicted_df, id_column=id_column, timestamp_column=timestamp_column
             )
 
-            # Calculate metric
-            score = self.metric_func(
-                data=groundtruth_data,
-                predictions=predicted_data,
-                prediction_length=prediction_length,
-                target=target_column,
-            )
+            try:
+                # Calculate metric
+                score = self.metric_func(
+                    data=groundtruth_data,
+                    predictions=predicted_data,
+                    prediction_length=prediction_length,
+                    target=target_column,
+                )
+            except Exception as e:
+                print(groundtruth_data.index)
+                print(predicted_data.index)
+                raise e
 
             print(f"Evaluation Score ({self.name}): {score:.4f}")
             self.write_results(results_path, metadata, score, agent_name)

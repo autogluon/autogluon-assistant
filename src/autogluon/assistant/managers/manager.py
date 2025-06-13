@@ -220,7 +220,7 @@ class Manager:
     @property
     def all_previous_error_prompts(self) -> str:
         if self.time_step >= 1:
-            return "\n".join(self.error_prompts[: self.time_step])
+            return "\n\n".join(self.error_prompts[: self.time_step])
         else:
             return ""
 
@@ -246,14 +246,30 @@ class Manager:
         os.makedirs(iter_folder, exist_ok=True)
         return iter_folder
 
-    def step(self, user_input=None):
-        """Step the prompt generator forward.
+    def set_initial_user_input(self, need_user_input, initial_user_input):
+        self.need_user_input = need_user_input
+        self.initial_user_input = initial_user_input
 
-        Args:
-            user_inputs: Optional user inputs to generate user prompt
-            error_message: Optional error message to generate error prompt
-        """
+    def step(self):
+        """Step the prompt generator forward."""
         self.time_step += 1
+
+        user_input = self.initial_user_input
+        # Get per iter user inputs if needed
+        if self.need_user_input:
+            if self.time_step > 0:
+                logger.brief(
+                    f"\n[bold green]Previous iteration info is stored in:[/bold green] {os.path.join(self.output_folder, f'iteration_{self.time_step - 1}')}"
+                )
+            else:
+                logger.brief(
+                    f"\n[bold green]Initialization info is stored in:[/bold green] {os.path.join(self.output_folder, 'initialization')}"
+                )
+            if user_input is None:
+                user_input = ""
+            user_input += "\n" + input(
+                f"Enter your inputs for current iteration (iter {self.time_step}) (press Enter to skip): "
+            )
 
         assert len(self.user_inputs) == self.time_step
         self.user_inputs.append(user_input)
