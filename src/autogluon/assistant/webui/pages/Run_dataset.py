@@ -111,6 +111,7 @@ class SessionState:
             "input_prompt": None,
             "current_iteration": 0,
             "current_output_dir": None,
+            "prev_iter_placeholder": None,  # 新增：占位符对象
         }
         
         for key, value in defaults.items():
@@ -503,6 +504,10 @@ class TaskManager:
                 processor = st.session_state[processor_key]
                 processor.waiting_for_input = False
                 processor.input_prompt = None
+            
+            # 清空占位符中的内容
+            if st.session_state.prev_iter_placeholder:
+                st.session_state.prev_iter_placeholder.empty()
         else:
             SessionState.add_message(Message.text("❌ Failed to send input to the process."))
         
@@ -629,6 +634,10 @@ class TaskManager:
             # Process logs and check for input requests
             waiting_for_input, input_prompt, output_dir = messages(st.session_state.current_task_logs, config.max_iter)
             
+            # Update output directory in session state
+            if output_dir and not st.session_state.current_output_dir:
+                st.session_state.current_output_dir = output_dir
+            
             # Update session state if waiting for input
             if waiting_for_input and not st.session_state.waiting_for_input:
                 # Extract iteration number from logs if possible
@@ -646,6 +655,10 @@ class TaskManager:
         if st.session_state.task_running:
             # Render the running task
             self.render_running_task()
+            
+            # 创建一个占位符用于显示 Previous Iteration Results
+            if st.session_state.prev_iter_placeholder is None:
+                st.session_state.prev_iter_placeholder = st.empty()
             
             # 在任务显示之后，如果正在等待输入，显示前一个迭代的文件
             if (st.session_state.waiting_for_input and 
@@ -679,14 +692,21 @@ class TaskManager:
                             except Exception as e:
                                 print(f"DEBUG: Error extracting path: {e}")
                 
+                # 使用占位符显示内容
                 if output_dir:
-                    st.markdown("---")
-                    st.markdown("### 📁 Previous Iteration Results")
-                    self._render_previous_iteration_files(output_dir, st.session_state.current_iteration)
-                    st.markdown("---")
+                    with st.session_state.prev_iter_placeholder.container():
+                        st.markdown("---")
+                        st.markdown("### 📁 Previous Iteration Results")
+                        self._render_previous_iteration_files(output_dir, st.session_state.current_iteration)
+                        st.markdown("---")
                 else:
                     print(f"DEBUG: Could not find output directory")
-                
+                    # 清空占位符，确保没有内容残留
+                    st.session_state.prev_iter_placeholder.empty()
+            else:
+                # 不满足显示条件时，清空占位符
+                st.session_state.prev_iter_placeholder.empty()
+            
             # Auto-refresh logic
             if st.session_state.task_running:
                 time.sleep(0.5)
@@ -780,6 +800,11 @@ class TaskManager:
     
     def _complete_task(self):
         """完成任务"""
+        # 清空占位符
+        if st.session_state.prev_iter_placeholder:
+            st.session_state.prev_iter_placeholder.empty()
+            st.session_state.prev_iter_placeholder = None
+        
         # 保存任务日志
         if st.session_state.current_task_logs:
             processed = process_logs(

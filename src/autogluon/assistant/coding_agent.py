@@ -127,11 +127,6 @@ def run_agent(
 
     # Check if we're in WebUI environment
     is_webui = is_webui_environment()
-    
-    # Send output directory to WebUI if needed
-    if is_webui:
-        print(f"{WEBUI_OUTPUT_DIR} {output_dir}", flush=True)
-        logger.debug(f"Sent output directory to WebUI: {output_dir}")
 
     while manager.time_step + 1 < max_iterations:
         logger.brief(f"Starting iteration {manager.time_step + 1}!")
