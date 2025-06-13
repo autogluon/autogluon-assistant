@@ -22,10 +22,11 @@ class TutorialIndexer:
     def __init__(self, embedding_model_name: str = "BAAI/bge-base-en-v1.5"):
         self.registry = ToolsRegistry()
         self.embedding_model_name = embedding_model_name
+        self.sanitized_model_name = self.embedding_model_name.replace("/", "_")
         self.model = None
         self.indices: Dict[str, Dict[str, faiss.Index]] = {}  # {tool_name: {type: index}}
         self.metadata: Dict[str, Dict[str, List[Dict]]] = {}  # {tool_name: {type: [metadata]}}
-        self.index_dir = Path(__file__).parent / "indices"
+        self.index_dir = Path(__file__).parent / "indices" / self.sanitized_model_name
         self.index_dir.mkdir(exist_ok=True)
         
     def __del__(self):
@@ -247,6 +248,11 @@ class TutorialIndexer:
         
         self.indices = {}
         self.metadata = {}
+
+        # Check if index_dir is empty
+        if not any(self.index_dir.iterdir()):
+            logger.warning(f"No index exists at {self.index_dir}")
+            return False
         
         for tool_dir in self.index_dir.iterdir():
             if tool_dir.is_dir():
@@ -275,6 +281,7 @@ class TutorialIndexer:
                             logger.error(f"Error loading {tool_name} {tutorial_type} index: {e}")
                             return False
                     else:
+                        logger.error(f"There is no {index_file} or {metadata_file}.")
                         return False
         return True
 
