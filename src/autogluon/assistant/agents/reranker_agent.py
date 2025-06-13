@@ -1,7 +1,7 @@
 import logging
 from typing import List
 
-from ..prompts import RetrieverPrompt
+from ..prompts import RerankerPrompt
 from ..tools_registry import TutorialInfo
 from .base_agent import BaseAgent
 from .utils import init_llm
@@ -9,7 +9,7 @@ from .utils import init_llm
 logger = logging.getLogger(__name__)
 
 
-class RetrieverAgent(BaseAgent):
+class RerankerAgent(BaseAgent):
     """
     Agent for retrieving and selecting relevant tutorials based on task context.
 
@@ -21,7 +21,7 @@ class RetrieverAgent(BaseAgent):
         super().__init__(config=config, manager=manager)
         self.retrieval_llm_config = llm_config
         self.retrieval_prompt_template = prompt_template
-        self.retrieval_prompt = RetrieverPrompt(
+        self.retrieval_prompt = RerankerPrompt(
             llm_config=self.retrieval_llm_config,
             manager=self.manager,
             template=self.retrieval_prompt_template,
@@ -37,7 +37,7 @@ class RetrieverAgent(BaseAgent):
     def __call__(self):
         """Select relevant tutorials and format them into a prompt."""
 
-        self.manager.log_agent_start("RetrieverAgent: selecting relevant tutorials based on task context.")
+        self.manager.log_agent_start("RerankerAgent: selecting relevant tutorials based on task context.")
 
         # Build prompt for tutorial selection
         prompt = self.retrieval_prompt.build()
@@ -55,7 +55,7 @@ class RetrieverAgent(BaseAgent):
         # Generate tutorial prompt using selected tutorials
         tutorial_prompt = self._generate_tutorial_prompt(selected_tutorials)
 
-        self.manager.log_agent_end("RetrieverAgent: tutorial selection complete and prompt formatted.")
+        self.manager.log_agent_end("RerankerAgent: tutorial selection complete and prompt formatted.")
 
         return tutorial_prompt
 

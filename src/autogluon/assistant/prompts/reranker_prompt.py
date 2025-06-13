@@ -48,7 +48,7 @@ def get_all_tutorials(selected_tool: str, condensed: bool = False) -> List[Tutor
     return tutorial_files
 
 
-class RetrieverPrompt(BasePrompt):
+class RerankerPrompt(BasePrompt):
     """Handles prompts for tutorial retrieval and selection"""
 
     def default_template(self) -> str:
@@ -108,7 +108,7 @@ DO NOT include any other text, explanation, or formatting in your response.
         )
 
         self.manager.save_and_log_states(
-            content=prompt, save_name="retriever_prompt.txt", per_iteration=True, add_uuid=False
+            content=prompt, save_name="reranker_prompt.txt", per_iteration=True, add_uuid=False
         )
 
         return prompt
@@ -117,7 +117,7 @@ DO NOT include any other text, explanation, or formatting in your response.
         """Parse the LLM response to extract selected tutorial indices."""
 
         self.manager.save_and_log_states(
-            content=response, save_name="retriever_response.txt", per_iteration=True, add_uuid=False
+            content=response, save_name="reranker_response.txt", per_iteration=True, add_uuid=False
         )
 
         try:
