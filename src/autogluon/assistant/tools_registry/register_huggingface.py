@@ -10,9 +10,12 @@ This script registers Hugging Face as an ML library tool in the registry by:
 """
 
 import logging
+import re
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
+from urllib.parse import urlparse
 
+import requests
 from omegaconf import OmegaConf
 
 from .registry import ToolsRegistry
@@ -86,6 +89,7 @@ class HuggingFaceToolRegistrar:
     def create_model_tutorial(self, model: Dict, task: str) -> None:
         """
         Create a detailed tutorial file for a specific model using scraped content.
+        Checks for GitHub links and appends GitHub README content if found.
 
         Args:
             model: Model information dictionary
@@ -125,6 +129,8 @@ class HuggingFaceToolRegistrar:
 
 """
 
+        github_readme_contents = []
+
         if detailed_info and not detailed_info.get("error"):
             # Add description
             if detailed_info.get("description"):
@@ -158,6 +164,19 @@ class HuggingFaceToolRegistrar:
                 for key, value in detailed_info["metadata"].items():
                     content += f"- **{key.title()}**: {value}\n"
                 content += "\n"
+
+            github_links = self._extract_github_links(content, max_repos=3)
+            if github_links:
+                for github_link in github_links:
+                    logger.info(f"Found GitHub links for {model_id}: {github_link}")
+                    # Try to fetch README from the first GitHub repository
+                    github_readme_content = self._fetch_github_readme(github_link)
+                    content += f"""## GitHub Repository Documentation at {github_link}
+
+{github_readme_content}
+
+"""
+                    
         else:
             # Fallback content if scraping failed
             content += f"""## Description
@@ -171,6 +190,107 @@ This is a {task.replace('-', ' ')} model from Hugging Face. Detailed documentati
             f.write(content)
 
         logger.info(f"Created tutorial: {filename}")
+
+    def _extract_github_links(self, content: str, max_repos: int = 3) -> list:
+        """
+        Extract GitHub repository links from content.
+        
+        Args:
+            content: Text content to search for GitHub links
+            max_repos: Maximum number of unique repositories to return
+            
+        Returns:
+            List of unique GitHub repository URLs (limited by max_repos)
+        """
+        if not content:
+            return []
+        
+        # Pattern to match GitHub repository URLs, excluding common punctuation at the end
+        github_patterns = [
+            r"https?://github\.com/[^/\s]+/[^/\s]+(?:/[^/\s)]*)?",
+            r"github\.com/[^/\s]+/[^/\s]+(?:/[^/\s)]*)?",
+        ]
+        
+        github_links = []
+        
+        for pattern in github_patterns:
+            matches = re.findall(pattern, content, re.IGNORECASE)
+            for match in matches:
+                # Clean up the URL by removing trailing punctuation
+                match = match.rstrip('.,;:!?)')
+                
+                # Normalize the URL
+                if not match.startswith("http"):
+                    match = "https://" + match
+                
+                # Extract just the repository part (owner/repo)
+                parsed = urlparse(match)
+                path_parts = [p for p in parsed.path.split("/") if p]
+                
+                if len(path_parts) >= 2:
+                    repo_url = f"https://github.com/{path_parts[0]}/{path_parts[1]}"
+                    if repo_url not in github_links:
+                        github_links.append(repo_url)
+                        # Stop if we've reached the maximum number of repos
+                        if len(github_links) >= max_repos:
+                            return github_links
+        
+        return github_links
+
+    def _fetch_github_readme(self, github_url: str) -> Optional[str]:
+        """
+        Fetch README content from a GitHub repository.
+
+        Args:
+            github_url: GitHub repository URL
+
+        Returns:
+            README content as string, or None if not found
+        """
+        try:
+            # Parse the GitHub URL to get owner and repo
+            parsed = urlparse(github_url)
+            path_parts = [p for p in parsed.path.split("/") if p]
+
+            if len(path_parts) < 2:
+                return None
+
+            owner, repo = path_parts[0], path_parts[1]
+
+            # Try different README file names
+            readme_files = ["README.md", "readme.md", "README.rst", "readme.rst", "README.txt", "readme.txt"]
+
+            for readme_file in readme_files:
+                # Use GitHub's raw content URL
+                raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/main/{readme_file}"
+
+                print(raw_url)
+                try:
+                    response = requests.get(raw_url, timeout=10)
+                    if response.status_code == 200:
+                        logger.info(f"Successfully fetched {readme_file} from {github_url}")
+                        return response.text
+                except requests.RequestException:
+                    continue
+
+                # Try 'master' branch if 'main' doesn't work
+                raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/master/{readme_file}"
+
+                print(raw_url)
+                try:
+                    response = requests.get(raw_url, timeout=10)
+                    if response.status_code == 200:
+                        logger.info(f"Successfully fetched {readme_file} from {github_url} (master branch)")
+                        return response.text
+                except requests.RequestException as e:
+                    continue
+
+            logger.warning(f"Could not find README file for {github_url}")
+            return None
+
+        except Exception as e:
+            logger.warning(f"Error fetching GitHub README from {github_url}: {e}")
+            return None
 
     def create_master_index(self, models_by_task: Dict[str, List[Dict]]) -> None:
         """

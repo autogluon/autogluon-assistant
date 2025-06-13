@@ -155,7 +155,7 @@ class ToolsRegistry:
         condense: bool = True,
         llm_config=None,
         max_length: int = 9999,
-        chunk_size: int = 8192,  # Size of chunks for processing
+        chunk_size: int = 16384,  # Size of chunks for processing
     ) -> None:
         """
         Add tutorials to a registered tool, with option to condense them using LLM.
