@@ -37,6 +37,7 @@ llm: &default_llm
 coder:
   <<: *default_llm  # Merge llm_config
   temperature: 0.
+  multi_turn: True
   top_p: 1
 
 executer:
@@ -59,7 +60,8 @@ description_file_retriever:
 
 task_descriptor:
   <<: *default_llm  # Merge llm_config
-  max_description_files_length: 2048
+  max_description_files_length_to_show: 1024
+  max_description_files_length_for_summarization: 16384
 
 tool_selector:
   <<: *default_llm  # Merge llm_config

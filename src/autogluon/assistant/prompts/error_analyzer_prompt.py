@@ -16,7 +16,6 @@ class ErrorAnalyzerPrompt(BasePrompt):
 Analyze the error and provide your response in this exact format:
 
 ERROR_SUMMARY: [Brief technical description of the root cause in 1-3 sentences]
-
 SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
 
 ### Error Message

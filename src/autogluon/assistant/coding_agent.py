@@ -56,11 +56,11 @@ def run_agent(
     if output_folder is None or not output_folder:
         working_dir = os.path.join(current_file_dir.parent.parent.parent, "runs")
         # Get current date in YYYYMMDD format
-        current_date = datetime.now().strftime("%Y%m%d")
+        current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
         # Generate a random UUID4
         random_uuid = uuid.uuid4()
         # Create the folder name using the pattern
-        folder_name = f"mlzero-{current_date}-{random_uuid}"
+        folder_name = f"mlzero-{current_datetime}-{random_uuid}"
 
         # Create the full path for the new folder
         output_folder = os.path.join(working_dir, folder_name)
@@ -125,32 +125,12 @@ def run_agent(
             config=config,
         )
 
-    # Check if we're in WebUI environment
-    is_webui = is_webui_environment()
+    manager.set_initial_user_input(need_user_input=need_user_input, initial_user_input=initial_user_input)
 
     while manager.time_step + 1 < max_iterations:
         logger.brief(f"Starting iteration {manager.time_step + 1}!")
 
-        # TODO: move user_input logic to manager?
-        user_input = None
-        # Use initial user input at first iter
-        if manager.time_step + 1 == 0:
-            user_input = initial_user_input
-        # Get per iter user inputs if needed
-        if need_user_input:
-            if manager.time_step + 1 > 0:
-                # Only show the message if not the first iteration
-                logger.brief(
-                    f"Previous iteration files are in: {os.path.join(output_folder, f'iteration_{manager.time_step}')}"
-                )
-            
-            # Different behavior for WebUI vs CLI
-            if is_webui:
-                user_input = get_user_input_webui("Enter your inputs for this iteration (press Enter to skip): ")
-            else:
-                user_input = input("Enter your inputs for this iteration (press Enter to skip): ")
-
-        manager.step(user_input=user_input)
+        manager.step()
 
         # Generate code
         manager.update_python_code()

@@ -42,17 +42,18 @@ Even if the code executed without throwing errors, it might still have issues wi
 
     def build(self, stdout: str, stderr: str, python_code: str, task_description: str, data_prompt: str) -> str:
         """Build a prompt for the LLM to evaluate execution logs."""
+        self.manager.save_and_log_states(content=stdout, save_name="stdout.txt", per_iteration=True, add_uuid=True)
+        self.manager.save_and_log_states(content=stderr, save_name="stderr.txt", per_iteration=True, add_uuid=True)
 
         # Truncate outputs if they exceed max length
         stdout = self._truncate_output_mid(stdout, self.llm_config.max_stdout_length)
         stderr = self._truncate_output_mid(stderr, self.llm_config.max_stderr_length)
 
         self.manager.save_and_log_states(
-            content=stderr, save_name="stderr.txt", per_iteration=True, add_uuid=True
+            content=stdout, save_name="stdout(truncated).txt", per_iteration=True, add_uuid=True
         )
-
         self.manager.save_and_log_states(
-            content=stdout, save_name="stdout.txt", per_iteration=True, add_uuid=True
+            content=stderr, save_name="stderr(truncated).txt", per_iteration=True, add_uuid=True
         )
 
         # Format the prompt using the template
@@ -102,7 +103,7 @@ Even if the code executed without throwing errors, it might still have issues wi
                 error_summary = None
 
         self.manager.save_and_log_states(
-            content=response, save_name="executer_prompt.txt", per_iteration=True, add_uuid=True
+            content=response, save_name="executer_response.txt", per_iteration=True, add_uuid=True
         )
         self.manager.save_and_log_states(content=decision, save_name="decision.txt", per_iteration=True, add_uuid=True)
         self.manager.save_and_log_states(

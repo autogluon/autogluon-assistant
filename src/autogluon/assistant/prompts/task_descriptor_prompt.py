@@ -12,7 +12,7 @@ class TaskDescriptorPrompt(BasePrompt):
     def default_template(self) -> str:
         """Default template for task description generation"""
         return """
-Based ONLY on the information explicitly stated in the provided data structure and description files, provide a condensed description of the data science task. Include only details that are directly mentioned in the source materials. Do not add assumptions or infer unstated information.
+Based ONLY on the information explicitly stated in the provided data structure and description files, provide a condensed and precise description of the data science task. Include only details that are directly mentioned in the source materials. Do not add assumptions or infer unstated information.
 
 ### Data Structure:
 (IMPORTANT: The metadata of example files in Data Structure may not be representative - do not make assumptions about data statistics based on examples.)
@@ -22,20 +22,36 @@ Based ONLY on the information explicitly stated in the provided data structure a
 {description_file_contents}
 """
 
-    def get_description_files_contents(self):
+    def get_description_files_contents(self, to_show=False):
+        # if to show is false, it is used by LLM for summarization, and we use max_description_files_length_for_summarization and do not truncate the final output
+        # if to show is true, it is shown in prompts for coder, etc., then we keep only the file contents and truncate the final result
+
         file_contents = []
         for filename in self.manager.description_files:
             try:
                 with open(filename, "r") as f:
                     content = f.read()
-                file_contents.append(f"File: {filename}\nContent: {content}\n")
+                if to_show:
+                    file_contents.append(content)
+                else:
+                    file_contents.append(f"File: {filename}\nContent: {content}")
             except Exception as e:
                 logger.warning(f"Could not read content of {filename}: {e}")
                 continue
 
         description_file_contents = (
-            "\n".join(file_contents) if file_contents else "No description file contents could be read."
+            "\n\n".join(file_contents) if file_contents else "No description file contents could be read."
         )
+        if to_show:
+            description_file_contents = self._truncate_output_end(
+                output=file_contents,
+                max_length=self.manager.config.task_descriptor.max_description_files_length_to_show,
+            )
+        else:
+            description_file_contents = self._truncate_output_end(
+                output=file_contents,
+                max_length=self.manager.config.task_descriptor.max_description_files_length_for_summarization,
+            )
         return description_file_contents
 
     def build(self) -> str:
