@@ -675,19 +675,24 @@ class TaskManager:
                     # 从日志中提取
                     for entry in reversed(st.session_state.current_task_logs[-50:]):
                         text = entry.get("text", "")
-                        if "Previous iteration files are in:" in text:
+                        # 新的日志格式：匹配 "info is stored in:"
+                        if "info is stored in:" in text:
                             try:
                                 import re
-                                # 匹配路径模式
-                                match = re.search(r'([/\w\-]+/runs/mlzero-[/\w\-]+)', text)
+                                # 匹配路径模式，处理 [/bold green] 标记
+                                match = re.search(r'info is stored in:\[/bold green\]\s+([^\s]+)', text)
                                 if match:
                                     full_path = match.group(1)
-                                    # 去掉 /iteration_X 部分获取基础目录
-                                    if "/iteration_" in full_path:
+                                    # 提取基础目录，去掉 /initialization 或 /iteration_X
+                                    if "/initialization" in full_path:
+                                        output_dir = full_path.rsplit("/initialization", 1)[0]
+                                    elif "/iteration_" in full_path:
                                         output_dir = full_path.rsplit("/iteration_", 1)[0]
                                     else:
+                                        # 如果路径已经是基础目录，直接使用
                                         output_dir = full_path
                                     print(f"DEBUG: Extracted output dir from logs: {output_dir}")
+                                    st.session_state.current_output_dir = output_dir
                                     break
                             except Exception as e:
                                 print(f"DEBUG: Error extracting path: {e}")
@@ -727,25 +732,7 @@ class TaskManager:
                     pass
         return 1  # Default to 1 if not found
     
-    def _extract_output_dir_from_logs(self) -> Optional[str]:
-        """Extract output directory from iteration logs"""
-        # Look for "Previous iteration files are in:" message
-        for entry in reversed(st.session_state.current_task_logs[-20:]):
-            text = entry.get("text", "")
-            if "Previous iteration files are in:" in text:
-                try:
-                    import re
-                    # Extract path and get parent directory
-                    match = re.search(r'Previous iteration files are in:\s+([^\s]+)', text)
-                    if match:
-                        iter_path = match.group(1)
-                        # Get parent directory (remove /iteration_X)
-                        parent_dir = str(Path(iter_path).parent)
-                        return parent_dir
-                except:
-                    pass
-        return None
-    
+
     def _save_config(self, data_folder: str) -> str:
         """保存配置文件"""
         if self.config.uploaded_config:

@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import uuid
 from pathlib import Path
 from typing import List
@@ -22,6 +23,27 @@ logging.basicConfig(level=logging.INFO)
 
 # Create a logger
 logger = logging.getLogger(__name__)
+
+# Special marker for WebUI input requests
+WEBUI_INPUT_REQUEST = "###WEBUI_INPUT_REQUEST###"
+WEBUI_INPUT_MARKER = "###WEBUI_USER_INPUT###"
+WEBUI_OUTPUT_DIR = "###WEBUI_OUTPUT_DIR###"
+
+
+def get_user_input_webui(prompt: str) -> str:
+    """Get user input in WebUI environment"""
+    # Send special marker with the prompt
+    print(f"{WEBUI_INPUT_REQUEST} {prompt}", flush=True)
+    
+    # Read from stdin - Flask will send the user input here
+    while True:
+        line = sys.stdin.readline().strip()
+        if line.startswith(WEBUI_INPUT_MARKER):
+            # Extract the actual user input after the marker
+            user_input = line[len(WEBUI_INPUT_MARKER):].strip()
+            logger.debug(f"Received WebUI input: {user_input}")
+            return user_input
+
 
 
 class Manager:
@@ -267,9 +289,15 @@ class Manager:
                 )
             if user_input is None:
                 user_input = ""
-            user_input += "\n" + input(
-                f"Enter your inputs for current iteration (iter {self.time_step}) (press Enter to skip): "
-            )
+                if os.environ.get("AUTOGLUON_WEBUI", "false").lower() == "true":
+                    # If running in WebUI, get user input from stdin
+                    user_input +=  "\n" + get_user_input_webui(
+                        f"Enter your inputs for current iteration (iter {self.time_step}) (press Enter to skip): "
+                    )
+                else:
+                    user_input += "\n" + input(
+                        f"Enter your inputs for current iteration (iter {self.time_step}) (press Enter to skip): "
+                    )
 
         assert len(self.user_inputs) == self.time_step
         self.user_inputs.append(user_input)
