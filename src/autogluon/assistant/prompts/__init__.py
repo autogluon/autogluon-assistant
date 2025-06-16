@@ -5,5 +5,6 @@ from .executer_prompt import ExecuterPrompt
 from .python_coder_prompt import PythonCoderPrompt
 from .python_reader_prompt import PythonReaderPrompt
 from .reranker_prompt import RerankerPrompt
+from .retriever_prompt import RetrieverPrompt
 from .task_descriptor_prompt import TaskDescriptorPrompt
 from .tool_selector_prompt import ToolSelectorPrompt

@@ -7,6 +7,7 @@ max_file_group_size_to_show: 5
 num_example_files_to_show: 1
 
 max_chars_per_file: 1024
+num_tutorial_retrievals: 20
 max_num_tutorials: 5
 max_user_input_length: 2048
 max_error_message_length: 2048
@@ -50,6 +51,9 @@ reader:
   details: False
 
 error_analyzer:
+  <<: *default_llm  # Merge llm_config
+
+retriever:
   <<: *default_llm  # Merge llm_config
 
 reranker:

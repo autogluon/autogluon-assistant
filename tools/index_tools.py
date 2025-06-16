@@ -1,6 +1,5 @@
 from autogluon.assistant.tools_registry.indexing import TutorialIndexer
 
-
 if __name__ == "__main__":
     # Initialize indexer
     indexer = TutorialIndexer()
@@ -22,8 +21,8 @@ if __name__ == "__main__":
 
     # Access full content
     for result in results:
-        print(f"File: {result['relative_path']}")
+        print(f"File: {result['file_path']}")
         print(f"Score: {result['score']}")
         print(f"Content: {result['content'][:200]}...")
-    
+
     indexer.cleanup()
