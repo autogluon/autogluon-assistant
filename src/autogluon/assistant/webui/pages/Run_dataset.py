@@ -435,7 +435,11 @@ export AWS_SESSION_TOKEN=""",
     def render_single_message(msg):
         """Render a single message as a fragment to isolate interactions"""
         if msg.type == "text":
-            st.write(msg.content["text"])
+            # Handle special "success" role for success messages
+            if msg.role == "success":
+                st.success(msg.content["text"])
+            else:
+                st.write(msg.content["text"])
         elif msg.type == "user_summary":
             st.markdown(msg.content["summary"])
         elif msg.type == "command":
@@ -533,7 +537,7 @@ class TaskManager:
         stderr_path = iter_dir / "states" / "stderr"
         
         # Create tabs for the files
-        tabs = st.tabs(["Execution Script", "Generated Code", "Stderr"])
+        tabs = st.tabs(["🔧 Execution Script", "🐍 Generated Code", "❌ Stderr"])
         
         with tabs[0]:
             if exec_script_path.exists():
@@ -554,7 +558,9 @@ class TaskManager:
                 with open(stderr_path, 'r') as f:
                     content = f.read()
                     if content.strip():
-                        st.code(content, language='text')
+                        # Clean markup tags from stderr content
+                        cleaned_content = re.sub(r'\[/?bold\s*(green|red)\]', '', content)
+                        st.code(cleaned_content, language='text')
                     else:
                         st.info("No error logs")
             else:
@@ -911,6 +917,26 @@ class TaskManager:
                 return output_dir
         return None
     
+    def _check_task_failed(self, phase_states: Dict) -> bool:
+        """Check if the task failed by looking for failure message in the last iteration"""
+        # Find the highest iteration number
+        iteration_phases = [name for name in phase_states.keys() if name.startswith("Iteration")]
+        if not iteration_phases:
+            return False
+        
+        # Sort iterations by number
+        iteration_phases.sort(key=lambda x: int(x.split()[1]))
+        last_iteration = iteration_phases[-1]
+        
+        # Check logs in the last iteration
+        last_iter_logs = phase_states.get(last_iteration, {}).get("logs", [])
+        for log in last_iter_logs:
+            # Check if the log contains the failure marker
+            if "[bold red]Code generation failed in iteration" in log or "Code generation failed in iteration" in log:
+                return True
+        
+        return False
+    
     def _complete_task(self):
         """Complete task"""
         # Clear placeholder
@@ -938,8 +964,15 @@ class TaskManager:
                 )
             )
             
-            # Add success message
-            SessionState.add_message(Message.text(SUCCESS_MESSAGE))
+            # Check if task failed
+            task_failed = self._check_task_failed(processed["phase_states"])
+            
+            # Add success or failure message
+            if not task_failed:
+                # Use a special message type for success to render with st.success()
+                SessionState.add_message(Message.text(SUCCESS_MESSAGE, role="success"))
+            else:
+                SessionState.add_message(Message.text("❌ Task failed. Please check the logs for details."))
             
             # Add task results message if output directory found
             if output_dir:

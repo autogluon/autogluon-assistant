@@ -12,11 +12,10 @@ WEBUI_INPUT_REQUEST = "###WEBUI_INPUT_REQUEST###"
 WEBUI_INPUT_MARKER = "###WEBUI_USER_INPUT###"
 WEBUI_OUTPUT_DIR = "###WEBUI_OUTPUT_DIR###"
 
-SUCCESS_MESSAGE = """
-        🎉🎉Task completed successfully! If you found this useful, please consider:
-        ⭐ [Starring our repository](https://github.com/autogluon/autogluon-assistant)
-        ⭐ [Citing our paper](https://arxiv.org/abs/2505.13941)
-        """
+# Success message displayed after task completion
+SUCCESS_MESSAGE = """🎉🎉 Task completed successfully! If you found this useful, please consider:
+⭐ [Starring our repository](https://github.com/autogluon/autogluon-assistant)
+⭐ [Citing our paper](https://arxiv.org/abs/2505.13941)"""
 
 # TODO
 IGNORED_MESSAGES = [

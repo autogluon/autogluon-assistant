@@ -92,8 +92,17 @@ class LogProcessor:
             
         self.processed_count = len(log_entries)
     
+    def _clean_markup(self, text: str) -> str:
+        """Remove rich text markup tags from log text"""
+        # Remove [bold green], [bold red], [/bold green], [/bold red] tags
+        cleaned = re.sub(r'\[/?bold\s*(green|red)\]', '', text)
+        return cleaned
+    
     def _process_log_entry(self, text: str) -> None:
         """Process a single log entry"""
+        # Clean markup from text before processing
+        clean_text = self._clean_markup(text)
+        
         # Detect phase changes
         phase_change = self._detect_phase_change(text)
         
@@ -104,17 +113,17 @@ class LogProcessor:
                 self.current_phase = phase_name
                 if phase_name not in self.phase_states:
                     self.phase_states[phase_name] = PhaseInfo()
-                self.phase_states[phase_name].logs.append(text)
+                self.phase_states[phase_name].logs.append(clean_text)
                 
             elif action == "end":
                 if phase_name in self.phase_states:
                     self.phase_states[phase_name].status = "complete"
-                    self.phase_states[phase_name].logs.append(text)
+                    self.phase_states[phase_name].logs.append(clean_text)
                 self.current_phase = None
         else:
             # Add to current phase
             if self.current_phase and self.current_phase in self.phase_states:
-                self.phase_states[self.current_phase].logs.append(text)
+                self.phase_states[self.current_phase].logs.append(clean_text)
     
     def _detect_phase_change(self, text: str) -> Optional[Tuple[str, str]]:
         """Detect phase changes"""
@@ -162,6 +171,7 @@ class LogProcessor:
                 
                 with st.expander(phase_name, expanded=is_expanded):
                     for log in phase_info.logs:
+                        # Logs are already cleaned in _process_log_entry
                         st.write(log)
 
 
