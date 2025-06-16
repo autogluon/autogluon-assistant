@@ -2,6 +2,7 @@
 
 import os
 
+
 class Config:
     HOST = "0.0.0.0"
     PORT = int(os.getenv("PORT", 5000))

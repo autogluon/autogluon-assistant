@@ -32,7 +32,9 @@ class CoderAgent(BaseAgent):
         }
 
         self.coder_prompt = prompt_mapping[language][coding_mode](
-            llm_config=self.coder_llm_config, manager=self.manager, template=self.coder_prompt_template, 
+            llm_config=self.coder_llm_config,
+            manager=self.manager,
+            template=self.coder_prompt_template,
         )
 
         if self.coder_llm_config.multi_turn:

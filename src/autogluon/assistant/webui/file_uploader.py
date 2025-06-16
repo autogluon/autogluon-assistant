@@ -1,10 +1,8 @@
-import os
 import uuid
-from pathlib import Path
 import zipfile
-import streamlit as st
 
 from autogluon.assistant.webui.utils.utils import get_user_data_dir
+
 
 def handle_uploaded_files(uploaded_files) -> str:
     """

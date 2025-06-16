@@ -1,16 +1,18 @@
 # src/autogluon/assistant/webui/utils/utils.py
-import os
+import json
 import uuid
 import zipfile
-import json
 from pathlib import Path
+
 import streamlit as st
+
 
 def _path(session_id: str) -> Path:
     """Get path for session chat history file"""
     base = Path.home() / ".autogluon_assistant" / session_id
     base.mkdir(parents=True, exist_ok=True)
     return base / "chat.json"
+
 
 def load_messages(session_id: str) -> list[dict]:
     """Load messages from session file"""
@@ -19,10 +21,12 @@ def load_messages(session_id: str) -> list[dict]:
         return []
     return json.loads(p.read_text(encoding="utf-8"))
 
+
 def save_messages(session_id: str, messages: list[dict]) -> None:
     """Save messages to session file"""
     p = _path(session_id)
     p.write_text(json.dumps(messages, ensure_ascii=False, indent=2), encoding="utf-8")
+
 
 def get_user_data_dir() -> Path:
     """
@@ -31,6 +35,7 @@ def get_user_data_dir() -> Path:
     base = Path.home() / ".autogluon_assistant" / st.session_state.get("user_session_id", "default")
     base.mkdir(parents=True, exist_ok=True)
     return base
+
 
 def save_and_extract_zip(uploaded_zip) -> str:
     """

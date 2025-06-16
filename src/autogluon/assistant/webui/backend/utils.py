@@ -1,30 +1,30 @@
 # src/autogluon/assistant/webui/backend/utils.py
 
-import re
+import logging
+import os
+import signal
 import subprocess
 import threading
-import signal
-import os
-import logging
-from typing import Optional, Dict, List
+from typing import Dict, List, Optional
 
-from autogluon.assistant.constants import WEBUI_INPUT_REQUEST, WEBUI_INPUT_MARKER, WEBUI_OUTPUT_DIR
+from autogluon.assistant.constants import WEBUI_INPUT_MARKER, WEBUI_INPUT_REQUEST, WEBUI_OUTPUT_DIR
 
 # Setup logging - reduce verbosity
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Silence watchdog debug logs
-logging.getLogger('watchdog').setLevel(logging.WARNING)
+logging.getLogger("watchdog").setLevel(logging.WARNING)
 
 # Global storage for each run's state
 _runs: Dict[str, Dict] = {}
+
 
 def parse_log_line(line: str) -> dict:
     """
     Parse a log line according to format "<LEVEL> <content>".
     Also detect special WebUI input requests and output directory.
-    
+
     Returns:
         {
             "level": "<BRIEF/INFO/MODEL_INFO or other>",
@@ -35,25 +35,17 @@ def parse_log_line(line: str) -> dict:
     # Skip empty lines
     if not line.strip():
         return None
-        
+
     # Check for special WebUI output directory
     if line.strip().startswith(WEBUI_OUTPUT_DIR):
-        output_dir = line.strip()[len(WEBUI_OUTPUT_DIR):].strip()
-        return {
-            "level": "OUTPUT_DIR",
-            "text": output_dir,
-            "special": "output_dir"
-        }
-        
+        output_dir = line.strip()[len(WEBUI_OUTPUT_DIR) :].strip()
+        return {"level": "OUTPUT_DIR", "text": output_dir, "special": "output_dir"}
+
     # Check for special WebUI input request
     if line.strip().startswith(WEBUI_INPUT_REQUEST):
-        prompt = line.strip()[len(WEBUI_INPUT_REQUEST):].strip()
-        return {
-            "level": "INPUT_REQUEST",
-            "text": prompt,
-            "special": "input_request"
-        }
-    
+        prompt = line.strip()[len(WEBUI_INPUT_REQUEST) :].strip()
+        return {"level": "INPUT_REQUEST", "text": prompt, "special": "input_request"}
+
     # Regular log parsing
     allowed_levels = {"ERROR", "BRIEF", "INFO", "DETAIL", "DEBUG", "WARNING"}
     stripped = line.strip()
@@ -90,67 +82,67 @@ def start_run(run_id: str, cmd: List[str], aws_credentials: Optional[Dict[str, s
             # Set environment variable to indicate WebUI
             env = os.environ.copy()
             env["AUTOGLUON_WEBUI"] = "true"
-            
+
             # Set AWS credentials if provided
             if aws_credentials:
                 logger.info(f"Setting AWS credentials for task {run_id[:8]}...")
-                if 'ISENGARD_PRODUCTION_ACCOUNT' in aws_credentials:
-                    env['ISENGARD_PRODUCTION_ACCOUNT'] = aws_credentials['ISENGARD_PRODUCTION_ACCOUNT']
-                env['AWS_ACCESS_KEY_ID'] = aws_credentials['AWS_ACCESS_KEY_ID']
-                env['AWS_SECRET_ACCESS_KEY'] = aws_credentials['AWS_SECRET_ACCESS_KEY']
-                env['AWS_SESSION_TOKEN'] = aws_credentials['AWS_SESSION_TOKEN']
+                if "ISENGARD_PRODUCTION_ACCOUNT" in aws_credentials:
+                    env["ISENGARD_PRODUCTION_ACCOUNT"] = aws_credentials["ISENGARD_PRODUCTION_ACCOUNT"]
+                env["AWS_ACCESS_KEY_ID"] = aws_credentials["AWS_ACCESS_KEY_ID"]
+                env["AWS_SECRET_ACCESS_KEY"] = aws_credentials["AWS_SECRET_ACCESS_KEY"]
+                env["AWS_SESSION_TOKEN"] = aws_credentials["AWS_SESSION_TOKEN"]
                 # Also set AWS_DEFAULT_REGION if not already set
-                if 'AWS_DEFAULT_REGION' not in env:
-                    env['AWS_DEFAULT_REGION'] = 'us-east-1'
-            
+                if "AWS_DEFAULT_REGION" not in env:
+                    env["AWS_DEFAULT_REGION"] = "us-east-1"
+
             # Create process with stdin pipe
             p = subprocess.Popen(
-                cmd, 
-                stdout=subprocess.PIPE, 
+                cmd,
+                stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 stdin=subprocess.PIPE,  # Enable stdin pipe
                 text=True,
                 env=env,
                 bufsize=1,  # Line buffered
                 # Create new process group for proper termination
-                preexec_fn=os.setsid if os.name != 'nt' else None,
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
+                preexec_fn=os.setsid if os.name != "nt" else None,
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
             )
             _runs[run_id]["process"] = p
-            
+
             logger.info(f"Started task {run_id[:8]}...")
-            
+
             # Read stdout line by line
             for line in p.stdout:
                 line = line.rstrip("\n")
-                
+
                 with _runs[run_id]["lock"]:
                     # Parse the line
                     parsed = parse_log_line(line)
-                    
+
                     # Skip None results (empty lines, etc.)
                     if parsed is None:
                         continue
-                    
+
                     # Check if this is output directory notification
                     if parsed.get("special") == "output_dir":
                         _runs[run_id]["output_dir"] = parsed["text"]
                         logger.info(f"Task {run_id[:8]} output directory: {parsed['text']}")
                         # Don't add this to logs
                         continue
-                    
+
                     # Check if this is an input request
                     if parsed.get("special") == "input_request":
                         _runs[run_id]["waiting_for_input"] = True
                         _runs[run_id]["input_prompt"] = parsed["text"]
                         logger.info(f"Task {run_id[:8]} requesting user input")
-                    
+
                     # Always append to logs (original line, not parsed)
                     _runs[run_id]["logs"].append(line)
-            
+
             p.wait()
             logger.info(f"Task {run_id[:8]} completed")
-            
+
         except Exception as e:
             logger.error(f"Error in task {run_id[:8]}: {str(e)}")
             with _runs[run_id]["lock"]:
@@ -173,32 +165,32 @@ def send_user_input(run_id: str, user_input: str) -> bool:
     if not info:
         logger.error(f"Run {run_id} not found")
         return False
-    
+
     with info["lock"]:
         process = info.get("process")
         if not process or not process.stdin or process.poll() is not None:
             logger.error(f"Process not available for input: {run_id}")
             return False
-        
+
         try:
             # Send input with special marker
             input_line = f"{WEBUI_INPUT_MARKER}{user_input}\n"
             process.stdin.write(input_line)
             process.stdin.flush()
-            
+
             # Reset input waiting state
             info["waiting_for_input"] = False
             info["input_prompt"] = None
-            
+
             # Log the user input for display with proper formatting
             if user_input:
                 info["logs"].append(f"BRIEF User input: {user_input}")
             else:
-                info["logs"].append(f"BRIEF User input: (skipped)")
-            
+                info["logs"].append("BRIEF User input: (skipped)")
+
             logger.info(f"Sent input to task {run_id[:8]}")
             return True
-            
+
         except Exception as e:
             logger.error(f"Error sending input to task {run_id[:8]}: {str(e)}")
             return False
@@ -211,7 +203,7 @@ def get_logs(run_id: str) -> List[str]:
     info = _runs.get(run_id)
     if info is None:
         return []
-    
+
     with info["lock"]:
         logs = info["logs"]
         ptr = info["pointer"]
@@ -227,13 +219,13 @@ def get_status(run_id: str) -> dict:
     info = _runs.get(run_id)
     if info is None:
         return {"finished": True, "error": "run_id not found"}
-    
+
     with info["lock"]:
         return {
             "finished": info["finished"],
             "waiting_for_input": info.get("waiting_for_input", False),
             "input_prompt": info.get("input_prompt", None),
-            "output_dir": info.get("output_dir", None)
+            "output_dir": info.get("output_dir", None),
         }
 
 
@@ -244,29 +236,29 @@ def cancel_run(run_id: str):
     info = _runs.get(run_id)
     if info and info["process"] and not info["finished"]:
         process = info["process"]
-        
+
         try:
-            if os.name == 'nt':  # Windows
+            if os.name == "nt":  # Windows
                 process.terminate()
             else:  # Unix/Linux/Mac
                 # Send SIGTERM to entire process group
                 os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-            
+
             # Give process time to exit gracefully
             try:
                 process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 # Force kill if needed
-                if os.name == 'nt':
+                if os.name == "nt":
                     process.kill()
                 else:
                     os.killpg(os.getpgid(process.pid), signal.SIGKILL)
                 process.wait()
-            
+
             # Add cancellation log
             with info["lock"]:
                 info["logs"].append("Task cancelled by user")
-            
+
         except Exception as e:
             with info["lock"]:
                 info["logs"].append(f"Error cancelling task: {str(e)}")

@@ -1,6 +1,6 @@
 import logging
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from rich.console import Console
 from rich.logging import RichHandler
@@ -52,16 +52,16 @@ def _configure_logging(console_level: int, output_dir: Path = None) -> None:
     # handlers = [console_handler]
 
     if sys.stdout.isatty():
-       console = Console(file=sys.stderr)
-       console_handler = RichHandler(console=console, markup=True, rich_tracebacks=True)
-       console_handler.setLevel(console_level)
-       handlers = [console_handler]
+        console = Console(file=sys.stderr)
+        console_handler = RichHandler(console=console, markup=True, rich_tracebacks=True)
+        console_handler.setLevel(console_level)
+        handlers = [console_handler]
     else:
-       stdout_handler = logging.StreamHandler(sys.stdout)
-       stdout_handler.setLevel(console_level)
-       stdout_fmt = logging.Formatter("%(levelname)s %(message)s")
-       stdout_handler.setFormatter(stdout_fmt)
-       handlers = [stdout_handler]
+        stdout_handler = logging.StreamHandler(sys.stdout)
+        stdout_handler.setLevel(console_level)
+        stdout_fmt = logging.Formatter("%(levelname)s %(message)s")
+        stdout_handler.setFormatter(stdout_fmt)
+        handlers = [stdout_handler]
 
     # Add file handlers if output_dir is provided
     if output_dir is not None:

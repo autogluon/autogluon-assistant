@@ -1,7 +1,7 @@
 import logging
 import os
-import uuid
 import sys
+import uuid
 from datetime import datetime
 from pathlib import Path
 
@@ -28,13 +28,13 @@ def get_user_input_webui(prompt: str) -> str:
     """Get user input in WebUI environment"""
     # Send special marker with the prompt
     print(f"{WEBUI_INPUT_REQUEST} {prompt}", flush=True)
-    
+
     # Read from stdin - Flask will send the user input here
     while True:
         line = sys.stdin.readline().strip()
         if line.startswith(WEBUI_INPUT_MARKER):
             # Extract the actual user input after the marker
-            user_input = line[len(WEBUI_INPUT_MARKER):].strip()
+            user_input = line[len(WEBUI_INPUT_MARKER) :].strip()
             logger.debug(f"Received WebUI input: {user_input}")
             return user_input
 

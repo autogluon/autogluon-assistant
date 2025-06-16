@@ -1,11 +1,13 @@
 # src/autogluon/assistant/webui/backend/routes.py
 
 import uuid
-from flask import Blueprint, request, jsonify
 
-from .utils import start_run, get_logs, get_status, cancel_run, parse_log_line, send_user_input
+from flask import Blueprint, jsonify, request
+
+from .utils import cancel_run, get_logs, get_status, parse_log_line, send_user_input, start_run
 
 bp = Blueprint("api", __name__)
+
 
 @bp.route("/run", methods=["POST"])
 def run():
@@ -15,33 +17,42 @@ def run():
     """
     data = request.get_json()
     # Required parameters
-    data_src    = data["data_src"]
-    max_iter    = data["max_iter"]
-    verbosity   = data["verbosity"]
+    data_src = data["data_src"]
+    max_iter = data["max_iter"]
+    verbosity = data["verbosity"]
     config_path = data["config_path"]
     # Optional parameters
-    out_dir     = data.get("out_dir")
+    out_dir = data.get("out_dir")
     init_prompt = data.get("init_prompt")
-    control     = data.get("control")
+    control = data.get("control")
     extract_dir = data.get("extract_dir")
     aws_credentials = data.get("aws_credentials")  # AWS credentials
 
     # Build command line
     cmd = [
         "mlzero",
-        "-i", data_src,
-        "-n", str(max_iter),
-        "-v", str(verbosity),
-        "-c", config_path,
+        "-i",
+        data_src,
+        "-n",
+        str(max_iter),
+        "-v",
+        str(verbosity),
+        "-c",
+        config_path,
     ]
-    if out_dir:     cmd += ["-o", out_dir]
-    if init_prompt: cmd += ["-u", init_prompt]
-    if control:     cmd += ["--need-user-input"]
-    if extract_dir: cmd += ["-e", extract_dir]
+    if out_dir:
+        cmd += ["-o", out_dir]
+    if init_prompt:
+        cmd += ["-u", init_prompt]
+    if control:
+        cmd += ["--need-user-input"]
+    if extract_dir:
+        cmd += ["-e", extract_dir]
 
     run_id = uuid.uuid4().hex
     start_run(run_id, cmd, aws_credentials)  # Pass AWS credentials
     return jsonify({"run_id": run_id})
+
 
 @bp.route("/logs", methods=["GET"])
 def logs():
@@ -56,6 +67,7 @@ def logs():
     parsed = [p for p in parsed if p is not None]
     return jsonify({"lines": parsed})
 
+
 @bp.route("/status", methods=["GET"])
 def status():
     """
@@ -63,6 +75,7 @@ def status():
     """
     run_id = request.args.get("run_id", "")
     return jsonify(get_status(run_id))
+
 
 @bp.route("/cancel", methods=["POST"])
 def cancel():
@@ -73,6 +86,7 @@ def cancel():
     cancel_run(run_id)
     return jsonify({"cancelled": True})
 
+
 @bp.route("/input", methods=["POST"])
 def send_input():
     """
@@ -82,6 +96,6 @@ def send_input():
     data = request.get_json()
     run_id = data.get("run_id", "")
     user_input = data.get("input", "")
-    
+
     success = send_user_input(run_id, user_input)
     return jsonify({"success": success})

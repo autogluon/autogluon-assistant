@@ -1,1 +1,0 @@
-The code fails with a TypeError: '>' not supported between instances of 'NoneType' and 'int', likely due to issues handling None values when processing the CSV file or in the truncation logic for displaying columns.
