@@ -974,7 +974,7 @@ class TaskManager:
             # Add success or failure message
             if not task_failed:
                 # Use a special message type for success to render with st.success()
-                SessionState.add_message(Message.text(SUCCESS_MESSAGE, role="success"))
+                SessionState.add_message(Message.text(SUCCESS_MESSAGE, role="assistant"))
             else:
                 SessionState.add_message(Message.text("❌ Task failed. Please check the logs for details."))
             
