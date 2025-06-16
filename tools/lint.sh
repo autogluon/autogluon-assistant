@@ -6,14 +6,14 @@ echo "Formatting Python files in $PARENT_DIR (excluding maab folder)..."
 
 # Format with black
 echo "Running black..."
-black "$PARENT_DIR" --exclude "maab/"
+black "$PARENT_DIR" --exclude "maab/|runs/"
 
 # Run ruff with auto-fix
 echo "Running ruff..."
-ruff check --fix "$PARENT_DIR" --exclude "maab"
+ruff check --fix "$PARENT_DIR" --exclude "maab" --exclude "runs"
 
 # Sort imports
 echo "Running isort..."
-isort "$PARENT_DIR" --skip-glob="*/maab/*"
+isort "$PARENT_DIR" --skip-glob="*/maab/*" --skip-glob="*/runs/*"
 
 echo "Done! All Python files in $PARENT_DIR have been formatted (excluding maab folder)."

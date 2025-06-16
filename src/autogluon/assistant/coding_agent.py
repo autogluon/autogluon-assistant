@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -12,31 +11,6 @@ from .rich_logging import configure_logging
 from .utils import extract_archives
 
 logger = logging.getLogger(__name__)
-
-# Special marker for WebUI input requests
-WEBUI_INPUT_REQUEST = "###WEBUI_INPUT_REQUEST###"
-WEBUI_INPUT_MARKER = "###WEBUI_USER_INPUT###"
-WEBUI_OUTPUT_DIR = "###WEBUI_OUTPUT_DIR###"
-
-
-def is_webui_environment():
-    """Check if running in WebUI environment"""
-    return os.environ.get("AUTOGLUON_WEBUI", "false").lower() == "true"
-
-
-def get_user_input_webui(prompt: str) -> str:
-    """Get user input in WebUI environment"""
-    # Send special marker with the prompt
-    print(f"{WEBUI_INPUT_REQUEST} {prompt}", flush=True)
-
-    # Read from stdin - Flask will send the user input here
-    while True:
-        line = sys.stdin.readline().strip()
-        if line.startswith(WEBUI_INPUT_MARKER):
-            # Extract the actual user input after the marker
-            user_input = line[len(WEBUI_INPUT_MARKER) :].strip()
-            logger.debug(f"Received WebUI input: {user_input}")
-            return user_input
 
 
 def run_agent(

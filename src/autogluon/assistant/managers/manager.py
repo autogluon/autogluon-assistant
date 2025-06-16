@@ -15,6 +15,10 @@ from ..agents import (
     TaskDescriptorAgent,
     ToolSelectorAgent,
 )
+from ..constants import (
+    WEBUI_INPUT_MARKER,
+    WEBUI_INPUT_REQUEST,
+)
 from ..llm import ChatLLMFactory
 from ..tools_registry import registry
 
@@ -23,11 +27,6 @@ logging.basicConfig(level=logging.INFO)
 
 # Create a logger
 logger = logging.getLogger(__name__)
-
-# Special marker for WebUI input requests
-WEBUI_INPUT_REQUEST = "###WEBUI_INPUT_REQUEST###"
-WEBUI_INPUT_MARKER = "###WEBUI_USER_INPUT###"
-WEBUI_OUTPUT_DIR = "###WEBUI_OUTPUT_DIR###"
 
 
 def get_user_input_webui(prompt: str) -> str:

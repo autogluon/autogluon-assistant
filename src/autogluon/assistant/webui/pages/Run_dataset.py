@@ -124,8 +124,8 @@ class AWSCredentialsValidator:
 
         # Check if all required fields are present
         required_fields = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
-        for field in required_fields:
-            if field not in credentials or not credentials[field]:
+        for field_name in required_fields:
+            if field_name not in credentials or not credentials[field_name]:
                 return None
 
         return credentials

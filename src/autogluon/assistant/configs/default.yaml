@@ -21,11 +21,12 @@ llm: &default_llm
   # Note: bedrock is only supported in limited AWS regions
   #       and requires AWS credentials
   provider: bedrock
-  model: "anthropic.claude-3-haiku-20240307-v1:0"
+  model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+  # model: "anthropic.claude-3-haiku-20240307-v1:0"
   #provider: openai
   #model: gpt-4o-2024-08-06
   #provider: anthropic
-  #model: claude-3-7-sonnet-20250219
+  # model: claude-3-7-sonnet-20250219
   max_tokens: 8192
   proxy_url: null
   temperature: 1.
