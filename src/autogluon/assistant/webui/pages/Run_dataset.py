@@ -265,12 +265,6 @@ class SessionState:
                 i -= 1
                 continue
             
-            # Check for success message
-            elif msg.type == "success_message":
-                start_index = i
-                i -= 1
-                continue
-            
             # Check for cancel-related messages
             elif msg.type == "text" and msg.role == "user" and msg.content.get("text", "").strip().lower() == "cancel":
                 start_index = i
@@ -441,10 +435,11 @@ export AWS_SESSION_TOKEN=""",
     def render_single_message(msg):
         """Render a single message as a fragment to isolate interactions"""
         if msg.type == "text":
-            st.write(msg.content["text"])
-        elif msg.type == "success_message":
-            # Display success message in a success box
-            st.success(msg.content["text"])
+            # Handle special "success" role for success messages
+            if msg.role == "success":
+                st.success(msg.content["text"])
+            else:
+                st.write(msg.content["text"])
         elif msg.type == "user_summary":
             st.markdown(msg.content["summary"])
         elif msg.type == "command":
@@ -468,7 +463,6 @@ export AWS_SESSION_TOKEN=""",
     def render_messages():
         """Render message history"""
         for msg in st.session_state.messages:
-            # All messages use their defined role (user or assistant)
             with st.chat_message(msg.role):
                 UI.render_single_message(msg)
     
@@ -663,6 +657,10 @@ class TaskManager:
         # Try to cancel task
         if BackendAPI.cancel_task(run_id):
             SessionState.add_message(Message.text(f"🛑 Task {run_id[:8]}... has been cancelled."))
+            
+            if st.session_state.prev_iter_placeholder:
+                st.session_state.prev_iter_placeholder.empty()
+                st.session_state.prev_iter_placeholder = None
             # Save current logs
             if st.session_state.current_task_logs:
                 processed = process_logs(
@@ -975,12 +973,8 @@ class TaskManager:
             
             # Add success or failure message
             if not task_failed:
-                # Create a special success message type
-                SessionState.add_message(Message(
-                    role="assistant",
-                    type="success_message", 
-                    content={"text": SUCCESS_MESSAGE}
-                ))
+                # Use a special message type for success to render with st.success()
+                SessionState.add_message(Message.text(SUCCESS_MESSAGE, role="success"))
             else:
                 SessionState.add_message(Message.text("❌ Task failed. Please check the logs for details."))
             
