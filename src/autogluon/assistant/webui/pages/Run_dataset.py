@@ -9,6 +9,9 @@ import shutil
 from typing import Dict, List, Optional, Any, Tuple
 import requests
 from dataclasses import dataclass, field
+import re
+import boto3
+from botocore.exceptions import ClientError, NoCredentialsError
 
 import streamlit as st
 
@@ -89,6 +92,76 @@ class TaskConfig:
     max_iter: int
     control: bool
     log_verbosity: str
+    use_custom_credentials: bool = False
+    custom_credentials: Optional[Dict[str, str]] = None
+
+
+# ==================== AWS Credentials ====================
+class AWSCredentialsValidator:
+    """AWS凭证验证器"""
+    
+    @staticmethod
+    def parse_credentials(credentials_text: str) -> Optional[Dict[str, str]]:
+        """解析凭证文本"""
+        if not credentials_text:
+            return None
+            
+        credentials = {}
+        lines = credentials_text.strip().split('\n')
+        
+        for line in lines:
+            line = line.strip()
+            if line.startswith('export '):
+                line = line[7:]  # Remove 'export '
+            
+            if '=' in line:
+                key, value = line.split('=', 1)
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")  # Remove quotes if present
+                
+                if key in ['ISENGARD_PRODUCTION_ACCOUNT', 'AWS_ACCESS_KEY_ID', 
+                          'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN']:
+                    credentials[key] = value
+        
+        # Check if all required fields are present
+        required_fields = ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN']
+        for field in required_fields:
+            if field not in credentials or not credentials[field]:
+                return None
+                
+        return credentials
+    
+    @staticmethod
+    def validate_credentials(credentials: Dict[str, str]) -> Tuple[bool, str]:
+        """验证AWS凭证是否有效"""
+        try:
+            # Create a session with the provided credentials
+            session = boto3.Session(
+                aws_access_key_id=credentials['AWS_ACCESS_KEY_ID'],
+                aws_secret_access_key=credentials['AWS_SECRET_ACCESS_KEY'],
+                aws_session_token=credentials['AWS_SESSION_TOKEN']
+            )
+            
+            # Try to make a simple API call to verify credentials
+            sts = session.client('sts')
+            caller_identity = sts.get_caller_identity()
+            
+            return True, f"凭证有效 (Account: {caller_identity['Account']})"
+            
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == 'ExpiredToken':
+                return False, "凭证已过期"
+            elif error_code == 'InvalidClientTokenId':
+                return False, "无效的Access Key ID"
+            elif error_code == 'SignatureDoesNotMatch':
+                return False, "无效的Secret Access Key"
+            else:
+                return False, f"验证失败: {e.response['Error']['Message']}"
+        except NoCredentialsError:
+            return False, "凭证格式错误"
+        except Exception as e:
+            return False, f"验证失败: {str(e)}"
 
 
 # ==================== Session State ====================
@@ -247,6 +320,10 @@ class BackendAPI:
             "verbosity": VERBOSITY_MAP[config.log_verbosity],
         }
         
+        # Add AWS credentials if provided
+        if config.use_custom_credentials and config.custom_credentials:
+            payload["aws_credentials"] = config.custom_credentials
+        
         response = requests.post(f"{API_URL}/run", json=payload)
         return response.json()["run_id"]
     
@@ -315,6 +392,34 @@ class UI:
                         key="log_verbosity",
                     )
                 )
+                
+                # AWS Credentials section
+                st.markdown("---")
+                config.use_custom_credentials = st.checkbox(
+                    "使用自己的Credentials",
+                    key="use_custom_credentials",
+                    help="勾选此选项以使用您自己的AWS临时凭证"
+                )
+                
+                if config.use_custom_credentials:
+                    credentials_text = st.text_area(
+                        "粘贴您的AWS Temporary Credentials",
+                        height=150,
+                        key="aws_credentials_input",
+                        placeholder="""export ISENGARD_PRODUCTION_ACCOUNT=false
+export AWS_ACCESS_KEY_ID=
+export AWS_SECRET_ACCESS_KEY=
+export AWS_SESSION_TOKEN=""",
+                        help="请粘贴完整的凭证信息，包含所有export语句"
+                    )
+                    
+                    if credentials_text:
+                        parsed_creds = AWSCredentialsValidator.parse_credentials(credentials_text)
+                        if parsed_creds:
+                            config.custom_credentials = parsed_creds
+                            st.success("✅ 凭证格式正确")
+                        else:
+                            st.error("❌ 凭证格式错误，请确保包含所有必需字段")
             
             # 历史管理
             task_count = sum(1 for msg in st.session_state.messages if msg.type == "task_log")
@@ -368,9 +473,16 @@ class UI:
             f"- Max iterations: {config.max_iter}",
             f"- Manual prompts: {config.control}",
             f"- Log verbosity: {config.log_verbosity}",
+        ]
+        
+        if config.use_custom_credentials:
+            parts.append("- Using custom AWS credentials: ✅")
+        
+        parts.extend([
             "\n✏️ **Initial prompt:**\n",
             f"> {prompt or '(none)'}"
-        ]
+        ])
+        
         return "\n".join(parts)
 
 
@@ -463,6 +575,20 @@ class TaskManager:
             SessionState.add_message(Message.text("⚠️ No data files provided. Please drag and drop your data files or ZIP."))
             st.rerun()
             return
+        
+        # 如果使用自定义凭证，先验证
+        if self.config.use_custom_credentials:
+            if not self.config.custom_credentials:
+                SessionState.add_message(Message.text("❌ 请先粘贴您的AWS凭证"))
+                st.rerun()
+                return
+            
+            # 验证凭证
+            is_valid, message = AWSCredentialsValidator.validate_credentials(self.config.custom_credentials)
+            if not is_valid:
+                SessionState.add_message(Message.text(f"❌ AWS凭证验证失败: {message}"))
+                st.rerun()
+                return
         
         # 处理文件
         data_folder = handle_uploaded_files(files)

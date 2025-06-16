@@ -24,6 +24,7 @@ def run():
     init_prompt = data.get("init_prompt")
     control     = data.get("control")
     extract_dir = data.get("extract_dir")
+    aws_credentials = data.get("aws_credentials")  # 新增：AWS凭证
 
     # 构造命令行
     cmd = [
@@ -39,7 +40,7 @@ def run():
     if extract_dir: cmd += ["-e", extract_dir]
 
     run_id = uuid.uuid4().hex
-    start_run(run_id, cmd)
+    start_run(run_id, cmd, aws_credentials)  # 传递AWS凭证
     return jsonify({"run_id": run_id})
 
 @bp.route("/logs", methods=["GET"])

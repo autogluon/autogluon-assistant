@@ -71,10 +71,11 @@ def parse_log_line(line: str) -> dict:
         return {"level": "other", "text": stripped}
 
 
-def start_run(run_id: str, cmd: List[str]):
+def start_run(run_id: str, cmd: List[str], aws_credentials: Optional[Dict[str, str]] = None):
     """
     Start subprocess with stdin/stdout/stderr pipes.
     Set AUTOGLUON_WEBUI environment variable to indicate WebUI environment.
+    Optionally set AWS credentials if provided.
     """
     _runs[run_id] = {
         "process": None,
@@ -92,6 +93,18 @@ def start_run(run_id: str, cmd: List[str]):
             # Set environment variable to indicate WebUI
             env = os.environ.copy()
             env["AUTOGLUON_WEBUI"] = "true"
+            
+            # Set AWS credentials if provided
+            if aws_credentials:
+                logger.info(f"Setting AWS credentials for task {run_id[:8]}...")
+                if 'ISENGARD_PRODUCTION_ACCOUNT' in aws_credentials:
+                    env['ISENGARD_PRODUCTION_ACCOUNT'] = aws_credentials['ISENGARD_PRODUCTION_ACCOUNT']
+                env['AWS_ACCESS_KEY_ID'] = aws_credentials['AWS_ACCESS_KEY_ID']
+                env['AWS_SECRET_ACCESS_KEY'] = aws_credentials['AWS_SECRET_ACCESS_KEY']
+                env['AWS_SESSION_TOKEN'] = aws_credentials['AWS_SESSION_TOKEN']
+                # Also set AWS_DEFAULT_REGION if not already set
+                if 'AWS_DEFAULT_REGION' not in env:
+                    env['AWS_DEFAULT_REGION'] = 'us-east-1'
             
             # Create process with stdin pipe
             p = subprocess.Popen(
