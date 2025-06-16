@@ -1,4 +1,4 @@
-# /opt/dlami/nvme/autogluon-assistant/src/autogluon/assistant/webui/utils/utils.py
+# src/autogluon/assistant/webui/utils/utils.py
 import os
 import uuid
 import zipfile
@@ -7,17 +7,20 @@ from pathlib import Path
 import streamlit as st
 
 def _path(session_id: str) -> Path:
+    """Get path for session chat history file"""
     base = Path.home() / ".autogluon_assistant" / session_id
     base.mkdir(parents=True, exist_ok=True)
     return base / "chat.json"
 
 def load_messages(session_id: str) -> list[dict]:
+    """Load messages from session file"""
     p = _path(session_id)
     if not p.exists():
         return []
     return json.loads(p.read_text(encoding="utf-8"))
 
 def save_messages(session_id: str, messages: list[dict]) -> None:
+    """Save messages to session file"""
     p = _path(session_id)
     p.write_text(json.dumps(messages, ensure_ascii=False, indent=2), encoding="utf-8")
 

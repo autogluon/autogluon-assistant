@@ -18,7 +18,7 @@ import streamlit as st
 from autogluon.assistant.webui.file_uploader import handle_uploaded_files
 from autogluon.assistant.webui.log_processor import messages, process_logs, render_task_logs
 from autogluon.assistant.webui.result_manager import render_task_results
-from autogluon.assistant.constants import INITIAL_STAGE, SUCCESS_MESSAGE, API_URL
+from autogluon.assistant.constants import SUCCESS_MESSAGE, API_URL
 
 
 # ==================== Constants ====================
@@ -35,7 +35,7 @@ VERBOSITY_MAP = {
 # ==================== Data Classes ====================
 @dataclass
 class Message:
-    """聊天消息"""
+    """Chat message"""
     role: str
     type: str
     content: Dict[str, Any] = field(default_factory=dict)
@@ -87,7 +87,7 @@ class Message:
 
 @dataclass 
 class TaskConfig:
-    """任务配置"""
+    """Task configuration"""
     uploaded_config: Any
     max_iter: int
     control: bool
@@ -98,11 +98,11 @@ class TaskConfig:
 
 # ==================== AWS Credentials ====================
 class AWSCredentialsValidator:
-    """AWS凭证验证器"""
+    """AWS credentials validator"""
     
     @staticmethod
     def parse_credentials(credentials_text: str) -> Optional[Dict[str, str]]:
-        """解析凭证文本"""
+        """Parse credentials text"""
         if not credentials_text:
             return None
             
@@ -133,7 +133,7 @@ class AWSCredentialsValidator:
     
     @staticmethod
     def validate_credentials(credentials: Dict[str, str]) -> Tuple[bool, str]:
-        """验证AWS凭证是否有效"""
+        """Validate AWS credentials"""
         try:
             # Create a session with the provided credentials
             session = boto3.Session(
@@ -146,31 +146,31 @@ class AWSCredentialsValidator:
             sts = session.client('sts')
             caller_identity = sts.get_caller_identity()
             
-            return True, f"凭证有效 (Account: {caller_identity['Account']})"
+            return True, f"Credentials valid (Account: {caller_identity['Account']})"
             
         except ClientError as e:
             error_code = e.response['Error']['Code']
             if error_code == 'ExpiredToken':
-                return False, "凭证已过期"
+                return False, "Credentials expired"
             elif error_code == 'InvalidClientTokenId':
-                return False, "无效的Access Key ID"
+                return False, "Invalid Access Key ID"
             elif error_code == 'SignatureDoesNotMatch':
-                return False, "无效的Secret Access Key"
+                return False, "Invalid Secret Access Key"
             else:
-                return False, f"验证失败: {e.response['Error']['Message']}"
+                return False, f"Validation failed: {e.response['Error']['Message']}"
         except NoCredentialsError:
-            return False, "凭证格式错误"
+            return False, "Invalid credentials format"
         except Exception as e:
-            return False, f"验证失败: {str(e)}"
+            return False, f"Validation failed: {str(e)}"
 
 
 # ==================== Session State ====================
 class SessionState:
-    """会话状态管理器"""
+    """Session state manager"""
     
     @staticmethod
     def init():
-        """初始化会话状态"""
+        """Initialize session state"""
         defaults = {
             "user_session_id": uuid.uuid4().hex,
             "messages": [Message.text("Hello! Drag your data (folder or ZIP) into the chat box below, then press ENTER to start.")],
@@ -184,7 +184,7 @@ class SessionState:
             "input_prompt": None,
             "current_iteration": 0,
             "current_output_dir": None,
-            "prev_iter_placeholder": None,  # 新增：占位符对象
+            "prev_iter_placeholder": None,  # Placeholder object
         }
         
         for key, value in defaults.items():
@@ -193,7 +193,7 @@ class SessionState:
     
     @staticmethod
     def start_task(run_id: str, config: TaskConfig, input_dir: str):
-        """开始新任务"""
+        """Start new task"""
         st.session_state.task_running = True
         st.session_state.run_id = run_id
         st.session_state.current_task_logs = []
@@ -204,12 +204,12 @@ class SessionState:
         st.session_state.current_iteration = 0
         st.session_state.current_output_dir = None
         
-        # 清理旧的日志处理器
+        # Clean up old log processors
         SessionState._cleanup_processors()
     
     @staticmethod
     def finish_task():
-        """结束任务"""
+        """Finish task"""
         st.session_state.task_running = False
         st.session_state.running_config = None
         st.session_state.current_task_logs = []
@@ -219,7 +219,7 @@ class SessionState:
         st.session_state.current_iteration = 0
         st.session_state.current_output_dir = None
         
-        # 清理当前任务的处理器
+        # Clean up current task's processor
         if st.session_state.run_id:
             processor_key = f"log_processor_{st.session_state.run_id}"
             if processor_key in st.session_state:
@@ -227,7 +227,7 @@ class SessionState:
     
     @staticmethod
     def set_waiting_for_input(waiting: bool, prompt: Optional[str] = None, iteration: Optional[int] = None):
-        """设置等待输入状态"""
+        """Set waiting for input state"""
         st.session_state.waiting_for_input = waiting
         st.session_state.input_prompt = prompt
         if iteration is not None:
@@ -235,12 +235,12 @@ class SessionState:
     
     @staticmethod
     def add_message(message: Message):
-        """添加消息"""
+        """Add message"""
         st.session_state.messages.append(message)
     
     @staticmethod
     def delete_task_from_history(run_id: str):
-        """从历史中删除任务相关的消息"""
+        """Delete task-related messages from history"""
         # First, find the task_log message to get its index
         task_log_index = None
         for i, msg in enumerate(st.session_state.messages):
@@ -298,7 +298,7 @@ class SessionState:
     
     @staticmethod
     def _cleanup_processors():
-        """清理旧的日志处理器"""
+        """Clean up old log processors"""
         keys_to_delete = [k for k in st.session_state if k.startswith("log_processor_")]
         for key in keys_to_delete:
             del st.session_state[key]
@@ -306,11 +306,11 @@ class SessionState:
 
 # ==================== Backend API ====================
 class BackendAPI:
-    """后端API通信"""
+    """Backend API communication"""
     
     @staticmethod
     def start_task(data_src: str, config_path: str, user_prompt: str, config: TaskConfig) -> str:
-        """启动任务"""
+        """Start task"""
         payload = {
             "data_src": data_src,
             "config_path": config_path,
@@ -329,19 +329,19 @@ class BackendAPI:
     
     @staticmethod
     def fetch_logs(run_id: str) -> List[Dict]:
-        """获取日志"""
+        """Get logs"""
         response = requests.get(f"{API_URL}/logs", params={"run_id": run_id})
         return response.json().get("lines", [])
     
     @staticmethod
     def check_status(run_id: str) -> Dict:
-        """检查任务状态"""
+        """Check task status"""
         response = requests.get(f"{API_URL}/status", params={"run_id": run_id})
         return response.json()
     
     @staticmethod
     def send_user_input(run_id: str, user_input: str) -> bool:
-        """发送用户输入到后端"""
+        """Send user input to backend"""
         try:
             response = requests.post(f"{API_URL}/input", json={
                 "run_id": run_id,
@@ -354,7 +354,7 @@ class BackendAPI:
     
     @staticmethod
     def cancel_task(run_id: str) -> bool:
-        """取消任务"""
+        """Cancel task"""
         try:
             response = requests.post(f"{API_URL}/cancel", json={"run_id": run_id})
             return response.json().get("cancelled", False)
@@ -364,16 +364,16 @@ class BackendAPI:
 
 # ==================== UI Components ====================
 class UI:
-    """UI组件"""
+    """UI components"""
     
     @staticmethod
     def setup_page():
-        """设置页面"""
+        """Setup page"""
         st.set_page_config(page_title="AutoMLAgent Chat", layout="wide")
     
     @staticmethod
     def render_sidebar() -> TaskConfig:
-        """渲染侧边栏"""
+        """Render sidebar"""
         with st.sidebar:
             with st.expander("⚙️ Settings", expanded=False):
                 config = TaskConfig(
@@ -396,32 +396,32 @@ class UI:
                 # AWS Credentials section
                 st.markdown("---")
                 config.use_custom_credentials = st.checkbox(
-                    "使用自己的Credentials",
+                    "Use custom AWS credentials",
                     key="use_custom_credentials",
-                    help="勾选此选项以使用您自己的AWS临时凭证"
+                    help="Check this to use your own AWS temporary credentials"
                 )
                 
                 if config.use_custom_credentials:
                     credentials_text = st.text_area(
-                        "粘贴您的AWS Temporary Credentials",
+                        "Paste your AWS Temporary Credentials",
                         height=150,
                         key="aws_credentials_input",
                         placeholder="""export ISENGARD_PRODUCTION_ACCOUNT=false
 export AWS_ACCESS_KEY_ID=
 export AWS_SECRET_ACCESS_KEY=
 export AWS_SESSION_TOKEN=""",
-                        help="请粘贴完整的凭证信息，包含所有export语句"
+                        help="Please paste complete credentials including all export statements"
                     )
                     
                     if credentials_text:
                         parsed_creds = AWSCredentialsValidator.parse_credentials(credentials_text)
                         if parsed_creds:
                             config.custom_credentials = parsed_creds
-                            st.success("✅ 凭证格式正确")
+                            st.success("✅ Credentials format correct")
                         else:
-                            st.error("❌ 凭证格式错误，请确保包含所有必需字段")
+                            st.error("❌ Invalid credentials format, please ensure all required fields are included")
             
-            # 历史管理
+            # History management
             task_count = sum(1 for msg in st.session_state.messages if msg.type == "task_log")
             if task_count > 0:
                 st.markdown(f"### 📋 Task History ({task_count} tasks)")
@@ -457,14 +457,14 @@ export AWS_SESSION_TOKEN=""",
     
     @staticmethod
     def render_messages():
-        """渲染消息历史"""
+        """Render message history"""
         for msg in st.session_state.messages:
             with st.chat_message(msg.role):
                 UI.render_single_message(msg)
     
     @staticmethod
     def format_user_summary(files: List[str], config: TaskConfig, prompt: str, config_file: str) -> str:
-        """格式化用户输入摘要"""
+        """Format user input summary"""
         parts = [
             "📂 **Uploaded files:**",
             "\n".join(f"- {f}" for f in files) if files else "- (none)",
@@ -488,13 +488,13 @@ export AWS_SESSION_TOKEN=""",
 
 # ==================== Task Manager ====================
 class TaskManager:
-    """任务管理器"""
+    """Task manager"""
     
     def __init__(self, config: TaskConfig):
         self.config = config
     
     def _render_previous_iteration_files(self, output_dir: str, iteration: int):
-        """渲染前一个迭代的文件内容"""
+        """Render previous iteration file contents"""
         if iteration <= 0 or not output_dir:
             return
             
@@ -504,7 +504,7 @@ class TaskManager:
         print(f"DEBUG _render_previous_iteration_files: Looking for files in iteration {prev_iter}")
         print(f"DEBUG: Base output dir: {output_dir}")
         
-        # Check both possible directory names (优先使用 generation_iter_)
+        # Check both possible directory names (prefer generation_iter_)
         iter_dir = Path(output_dir) / f"generation_iter_{prev_iter}"
         print(f"DEBUG: Checking path: {iter_dir}")
         
@@ -514,17 +514,17 @@ class TaskManager:
             print(f"DEBUG: Checking alternative path: {iter_dir}")
         
         if not iter_dir.exists():
-            st.warning(f"找不到迭代目录")
+            st.warning(f"Cannot find iteration directory")
             # List what's actually in the output directory
             try:
                 if Path(output_dir).exists():
                     contents = list(Path(output_dir).iterdir())
                     available_dirs = [d.name for d in contents if d.is_dir()]
-                    st.info(f"可用的目录: {available_dirs}")
+                    st.info(f"Available directories: {available_dirs}")
                 else:
-                    st.error(f"输出目录不存在: {output_dir}")
+                    st.error(f"Output directory does not exist: {output_dir}")
             except Exception as e:
-                st.error(f"错误: {e}")
+                st.error(f"Error: {e}")
             return
         
         # File paths
@@ -533,21 +533,21 @@ class TaskManager:
         stderr_path = iter_dir / "states" / "stderr"
         
         # Create tabs for the files
-        tabs = st.tabs(["🔧 Execution Script", "🐍 Generated Code", "❌ Stderr"])
+        tabs = st.tabs(["Execution Script", "Generated Code", "Stderr"])
         
         with tabs[0]:
             if exec_script_path.exists():
                 with open(exec_script_path, 'r') as f:
                     st.code(f.read(), language='bash')
             else:
-                st.info(f"没有找到执行脚本")
+                st.info(f"Execution script not found")
         
         with tabs[1]:
             if gen_code_path.exists():
                 with open(gen_code_path, 'r') as f:
                     st.code(f.read(), language='python')
             else:
-                st.info(f"没有找到生成的代码")
+                st.info(f"Generated code not found")
         
         with tabs[2]:
             if stderr_path.exists():
@@ -556,12 +556,12 @@ class TaskManager:
                     if content.strip():
                         st.code(content, language='text')
                     else:
-                        st.info("没有错误记录")
+                        st.info("No error logs")
             else:
-                st.info(f"没有找到错误日志")
+                st.info(f"Error log not found")
     
     def handle_submission(self, submission):
-        """处理用户提交"""
+        """Handle user submission"""
         # If waiting for input, handle it as iteration input
         if st.session_state.waiting_for_input:
             self.handle_iteration_input(submission)
@@ -576,29 +576,29 @@ class TaskManager:
             st.rerun()
             return
         
-        # 如果使用自定义凭证，先验证
+        # Validate custom credentials if used
         if self.config.use_custom_credentials:
             if not self.config.custom_credentials:
-                SessionState.add_message(Message.text("❌ 请先粘贴您的AWS凭证"))
+                SessionState.add_message(Message.text("❌ Please paste your AWS credentials first"))
                 st.rerun()
                 return
             
-            # 验证凭证
+            # Validate credentials
             is_valid, message = AWSCredentialsValidator.validate_credentials(self.config.custom_credentials)
             if not is_valid:
-                SessionState.add_message(Message.text(f"❌ AWS凭证验证失败: {message}"))
+                SessionState.add_message(Message.text(f"❌ AWS credential validation failed: {message}"))
                 st.rerun()
                 return
         
-        # 处理文件
+        # Process files
         data_folder = handle_uploaded_files(files)
         st.session_state.data_src = data_folder
         
-        # 保存配置文件
+        # Save config file
         config_path = self._save_config(data_folder)
         config_name = self.config.uploaded_config.name if self.config.uploaded_config else "default.yaml"
         
-        # 添加用户摘要
+        # Add user summary
         summary = UI.format_user_summary(
             [f.name for f in files],
             self.config,
@@ -607,11 +607,11 @@ class TaskManager:
         )
         SessionState.add_message(Message.user_summary(summary, input_dir=data_folder))
         
-        # 启动任务
+        # Start task
         self._start_task(data_folder, config_path, user_text)
     
     def handle_iteration_input(self, submission):
-        """处理迭代输入"""
+        """Handle iteration input"""
         # When accept_file=False, submission is just a string
         if not submission:
             user_input = ""  # Empty input means skip
@@ -631,7 +631,7 @@ class TaskManager:
                 processor.waiting_for_input = False
                 processor.input_prompt = None
             
-            # 清空占位符中的内容
+            # Clear placeholder content
             if st.session_state.prev_iter_placeholder:
                 st.session_state.prev_iter_placeholder.empty()
         else:
@@ -640,18 +640,18 @@ class TaskManager:
         st.rerun()
     
     def handle_cancel_request(self):
-        """处理取消请求"""
+        """Handle cancel request"""
         run_id = st.session_state.run_id
         if not run_id:
             return
         
-        # 显示用户的取消命令
+        # Display user's cancel command
         SessionState.add_message(Message.text("cancel", role="user"))
         
-        # 尝试取消任务
+        # Try to cancel task
         if BackendAPI.cancel_task(run_id):
             SessionState.add_message(Message.text(f"🛑 Task {run_id[:8]}... has been cancelled."))
-            # 保存当前已有的日志
+            # Save current logs
             if st.session_state.current_task_logs:
                 processed = process_logs(
                     st.session_state.current_task_logs,
@@ -684,7 +684,7 @@ class TaskManager:
         st.rerun()
     
     def handle_task_deletion(self):
-        """处理任务删除请求"""
+        """Handle task deletion request"""
         # Check for deletion flags
         keys_to_check = [k for k in st.session_state if k.startswith("delete_task_")]
         
@@ -745,14 +745,14 @@ class TaskManager:
             st.error("Running configuration not found!")
             return
         
-        # 获取新日志
+        # Get new logs
         new_logs = BackendAPI.fetch_logs(run_id)
         st.session_state.current_task_logs.extend(new_logs)
         
-        # 获取状态
+        # Get status
         status = BackendAPI.check_status(run_id)
         
-        # 显示运行中的任务
+        # Display running task
         with st.chat_message("assistant"):
             st.markdown(f"### Current Task")
             st.caption(f"ID: {run_id[:8]}... | Type 'cancel' to stop the task")
@@ -771,51 +771,51 @@ class TaskManager:
                 SessionState.set_waiting_for_input(True, input_prompt, iteration)
                 # Don't rerun here - let the fragment cycle handle it
         
-        # 检查是否完成
+        # Check if finished
         if status.get("finished", False):
             self._complete_task()
             st.rerun()
     
     def monitor_running_task(self):
-        """监控运行中的任务"""
+        """Monitor running task"""
         if st.session_state.task_running:
             # Render the running task
             self.render_running_task()
             
-            # 创建一个占位符用于显示 Previous Iteration Results
+            # Create a placeholder for Previous Iteration Results
             if st.session_state.prev_iter_placeholder is None:
                 st.session_state.prev_iter_placeholder = st.empty()
             
-            # 在任务显示之后，如果正在等待输入，显示前一个迭代的文件
+            # If waiting for input, show previous iteration files
             if (st.session_state.waiting_for_input and 
                 self.config.control and 
                 st.session_state.current_iteration > 0):
                 
-                # 尝试从日志中找到输出目录
+                # Try to find output directory
                 output_dir = None
                 
-                # 先尝试使用 session state 中的目录
+                # First try session state directory
                 if st.session_state.get('current_output_dir'):
                     output_dir = st.session_state.current_output_dir
                 else:
-                    # 从日志中提取
+                    # Extract from logs
                     for entry in reversed(st.session_state.current_task_logs[-50:]):
                         text = entry.get("text", "")
-                        # 新的日志格式：匹配 "info is stored in:"
+                        # New log format: match "info is stored in:"
                         if "info is stored in:" in text:
                             try:
                                 import re
-                                # 匹配路径模式，处理 [/bold green] 标记
+                                # Match path pattern, handle [/bold green] markup
                                 match = re.search(r'info is stored in:\[/bold green\]\s+([^\s]+)', text)
                                 if match:
                                     full_path = match.group(1)
-                                    # 提取基础目录，去掉 /initialization 或 /iteration_X
+                                    # Extract base directory, remove /initialization or /iteration_X
                                     if "/initialization" in full_path:
                                         output_dir = full_path.rsplit("/initialization", 1)[0]
                                     elif "/iteration_" in full_path:
                                         output_dir = full_path.rsplit("/iteration_", 1)[0]
                                     else:
-                                        # 如果路径已经是基础目录，直接使用
+                                        # If path is already base directory, use directly
                                         output_dir = full_path
                                     print(f"DEBUG: Extracted output dir from logs: {output_dir}")
                                     st.session_state.current_output_dir = output_dir
@@ -823,7 +823,7 @@ class TaskManager:
                             except Exception as e:
                                 print(f"DEBUG: Error extracting path: {e}")
                 
-                # 使用占位符显示内容
+                # Display content using placeholder
                 if output_dir:
                     with st.session_state.prev_iter_placeholder.container():
                         st.markdown("---")
@@ -832,10 +832,10 @@ class TaskManager:
                         st.markdown("---")
                 else:
                     print(f"DEBUG: Could not find output directory")
-                    # 清空占位符，确保没有内容残留
+                    # Clear placeholder to ensure no residual content
                     st.session_state.prev_iter_placeholder.empty()
             else:
-                # 不满足显示条件时，清空占位符
+                # Clear placeholder when conditions not met
                 st.session_state.prev_iter_placeholder.empty()
             
             # Auto-refresh logic
@@ -860,7 +860,7 @@ class TaskManager:
     
 
     def _save_config(self, data_folder: str) -> str:
-        """保存配置文件"""
+        """Save config file"""
         if self.config.uploaded_config:
             config_path = Path(data_folder) / self.config.uploaded_config.name
             with open(config_path, "wb") as f:
@@ -869,11 +869,11 @@ class TaskManager:
         return str(DEFAULT_CONFIG_PATH)
     
     def _start_task(self, data_folder: str, config_path: str, user_prompt: str):
-        """启动任务"""
-        # 先生成 run_id
+        """Start task"""
+        # First generate run_id
         run_id = BackendAPI.start_task(data_folder, config_path, user_prompt, self.config)
         
-        # 构建命令
+        # Build command
         cmd_parts = [
             "mlzero",
             "-i", data_folder,
@@ -887,11 +887,11 @@ class TaskManager:
         if self.config.control:
             cmd_parts.append("--need-user-input")
         
-        # 显示命令
+        # Display command
         command_str = f"[{datetime.now().strftime('%H:%M:%S')}] Running AutoMLAgent: {' '.join(cmd_parts)}"
         SessionState.add_message(Message.command(command_str))
         
-        # 启动任务
+        # Start task
         SessionState.start_task(run_id, self.config, data_folder)
         st.rerun()
     
@@ -912,13 +912,13 @@ class TaskManager:
         return None
     
     def _complete_task(self):
-        """完成任务"""
-        # 清空占位符
+        """Complete task"""
+        # Clear placeholder
         if st.session_state.prev_iter_placeholder:
             st.session_state.prev_iter_placeholder.empty()
             st.session_state.prev_iter_placeholder = None
         
-        # 保存任务日志
+        # Save task logs
         if st.session_state.current_task_logs:
             processed = process_logs(
                 st.session_state.current_task_logs,
@@ -952,7 +952,7 @@ class TaskManager:
 
 # ==================== Main App ====================
 class AutoMLAgentApp:
-    """主应用"""
+    """Main application"""
     
     def __init__(self):
         UI.setup_page()
@@ -961,11 +961,11 @@ class AutoMLAgentApp:
         self.task_manager = TaskManager(self.config)
     
     def run(self):
-        """运行应用"""
+        """Run application"""
         # Check for task deletion requests first
         self.task_manager.handle_task_deletion()
         
-        # 渲染历史消息
+        # Render history messages
         UI.render_messages()
         
         # Determine chat input configuration based on state
@@ -982,7 +982,7 @@ class AutoMLAgentApp:
             placeholder = "Type optional prompt, or drag & drop your data files/ZIP here"
             accept_file = "multiple"
         
-        # 处理用户输入
+        # Handle user input
         submission = st.chat_input(
             placeholder=placeholder,
             accept_file=accept_file,
@@ -991,17 +991,17 @@ class AutoMLAgentApp:
         )
         
         if submission:
-            # 如果正在等待输入
+            # If waiting for input
             if st.session_state.waiting_for_input:
                 self.task_manager.handle_submission(submission)
-            # 如果任务正在运行
+            # If task is running
             elif st.session_state.task_running:
-                # 检查是否是取消命令
+                # Check if it's a cancel command
                 # When accept_file=False, submission is just a string
                 if submission and submission.strip().lower() == "cancel":
                     self.task_manager.handle_cancel_request()
                 else:
-                    # 显示提示信息
+                    # Show hint message
                     SessionState.add_message(
                         Message.text(
                             "⚠️ A task is currently running. Type 'cancel' to stop it, or wait for it to complete.",
@@ -1010,15 +1010,15 @@ class AutoMLAgentApp:
                     )
                     st.rerun()
             else:
-                # 没有任务运行，正常处理提交
+                # No task running, handle submission normally
                 self.task_manager.handle_submission(submission)
         
-        # 监控运行中的任务
+        # Monitor running task
         self.task_manager.monitor_running_task()
 
 
 def main():
-    """入口点"""
+    """Entry point"""
     app = AutoMLAgentApp()
     app.run()
 

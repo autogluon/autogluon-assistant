@@ -8,17 +8,14 @@ import os
 import logging
 from typing import Optional, Dict, List
 
+from autogluon.assistant.constants import WEBUI_INPUT_REQUEST, WEBUI_INPUT_MARKER, WEBUI_OUTPUT_DIR
+
 # Setup logging - reduce verbosity
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Silence watchdog debug logs
 logging.getLogger('watchdog').setLevel(logging.WARNING)
-
-# Special markers for WebUI communication
-WEBUI_INPUT_REQUEST = "###WEBUI_INPUT_REQUEST###"
-WEBUI_INPUT_MARKER = "###WEBUI_USER_INPUT###"
-WEBUI_OUTPUT_DIR = "###WEBUI_OUTPUT_DIR###"
 
 # Global storage for each run's state
 _runs: Dict[str, Dict] = {}

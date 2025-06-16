@@ -6,10 +6,10 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 
 
-# ─── 阶段匹配配置 ────────────────────────────────────────────
+# Phase matching configuration
 @dataclass
 class PhasePatterns:
-    """日志阶段匹配模式"""
+    """Log phase matching patterns"""
     READING_START = "DataPerceptionAgent: beginning to scan data folder and group similar files."
     READING_END = "ToolSelectorAgent: selected"
     ITER_START = re.compile(r"Starting iteration (\d+)!")
@@ -20,13 +20,13 @@ class PhasePatterns:
 
 @dataclass
 class PhaseInfo:
-    """阶段信息"""
+    """Phase information"""
     status: str = "running"  # running or complete
     logs: List[str] = field(default_factory=list)
 
 
 class LogProcessor:
-    """日志处理器 - 每个任务创建一个独立实例"""
+    """Log processor - create an independent instance for each task"""
     
     def __init__(self, max_iter: int):
         self.max_iter = max_iter
@@ -40,10 +40,10 @@ class LogProcessor:
         
     @property
     def progress(self) -> float:
-        """计算当前进度"""
+        """Calculate current progress"""
         total_stages = self.max_iter + 2
         
-        # 当前阶段的进度
+        # Progress of current phase
         if self.current_phase == "Reading":
             return 1.0 / total_stages
         elif self.current_phase == "Output":
@@ -55,14 +55,14 @@ class LogProcessor:
             except:
                 pass
         
-        # 基于已完成阶段计算
+        # Calculate based on completed phases
         completed = sum(1 for phase in self.phase_states.values() 
                        if phase.status == "complete")
         return min(completed / total_stages, 1.0)
     
     def process_new_logs(self, log_entries: List[Dict]) -> None:
-        """处理新的日志条目"""
-        # 只处理新日志
+        """Process new log entries"""
+        # Only process new logs
         new_entries = log_entries[self.processed_count:]
         
         for entry in new_entries:
@@ -93,8 +93,8 @@ class LogProcessor:
         self.processed_count = len(log_entries)
     
     def _process_log_entry(self, text: str) -> None:
-        """处理单条日志"""
-        # 检测阶段变化
+        """Process a single log entry"""
+        # Detect phase changes
         phase_change = self._detect_phase_change(text)
         
         if phase_change:
@@ -112,19 +112,19 @@ class LogProcessor:
                     self.phase_states[phase_name].logs.append(text)
                 self.current_phase = None
         else:
-            # 添加到当前阶段
+            # Add to current phase
             if self.current_phase and self.current_phase in self.phase_states:
                 self.phase_states[self.current_phase].logs.append(text)
     
     def _detect_phase_change(self, text: str) -> Optional[Tuple[str, str]]:
-        """检测阶段变化"""
-        # Reading 阶段
+        """Detect phase changes"""
+        # Reading phase
         if self.patterns.READING_START in text and "Reading" not in self.phase_states:
             return ("Reading", "start")
         elif self.patterns.READING_END in text and self.current_phase == "Reading":
             return ("Reading", "end")
         
-        # Iteration 阶段
+        # Iteration phase
         m_start = self.patterns.ITER_START.search(text)
         if m_start:
             phase_name = f"Iteration {m_start.group(1)}"
@@ -134,7 +134,7 @@ class LogProcessor:
         if self.patterns.ITER_END.search(text) and self.current_phase and self.current_phase.startswith("Iteration"):
             return (self.current_phase, "end")
         
-        # Output 阶段
+        # Output phase
         if self.patterns.OUTPUT_START in text and "Output" not in self.phase_states:
             return ("Output", "start")
         elif self.patterns.OUTPUT_END in text and self.current_phase == "Output":
@@ -143,7 +143,7 @@ class LogProcessor:
         return None
     
     def render(self, show_progress: bool = True) -> None:
-        """渲染日志UI"""
+        """Render log UI"""
         if show_progress:
             if self.waiting_for_input and self.input_prompt:
                 # Show input request prominently
@@ -152,7 +152,7 @@ class LogProcessor:
                 st.markdown(f"### {self.current_phase}")
             st.progress(self.progress)
         
-        # 渲染各阶段
+        # Render each phase
         phase_order = ["Reading"] + [f"Iteration {i}" for i in range(self.max_iter)] + ["Output"]
         
         for phase_name in phase_order:
@@ -165,10 +165,10 @@ class LogProcessor:
                         st.write(log)
 
 
-# ─── 便捷函数（保持向后兼容） ────────────────────────────────────
+# Convenience functions (maintain backward compatibility)
 
 def process_logs(log_entries: List[Dict], max_iter: int) -> Dict:
-    """处理完整的日志并返回结构化数据（用于已完成的任务）"""
+    """Process complete logs and return structured data (for completed tasks)"""
     processor = LogProcessor(max_iter)
     processor.process_new_logs(log_entries)
     
@@ -182,11 +182,11 @@ def process_logs(log_entries: List[Dict], max_iter: int) -> Dict:
 
 def render_task_logs(phase_states: Dict, max_iter: int, show_progress: bool = True, 
                      current_phase: str = None, progress: float = 0.0) -> None:
-    """渲染任务日志（用于已完成的任务）"""
-    # 创建临时处理器用于渲染
+    """Render task logs (for completed tasks)"""
+    # Create temporary processor for rendering
     processor = LogProcessor(max_iter)
     
-    # 恢复状态
+    # Restore state
     for phase_name, phase_data in phase_states.items():
         processor.phase_states[phase_name] = PhaseInfo(
             status=phase_data.get("status", "complete"),
@@ -199,13 +199,13 @@ def render_task_logs(phase_states: Dict, max_iter: int, show_progress: bool = Tr
 
 def messages(log_entries: List[Dict], max_iter: int) -> Tuple[bool, Optional[str], Optional[str]]:
     """
-    处理实时日志（用于运行中的任务）
+    Process real-time logs (for running tasks)
     Returns: (waiting_for_input, input_prompt, output_dir)
     """
     run_id = st.session_state.get("run_id", "unknown")
     processor_key = f"log_processor_{run_id}"
     
-    # 获取或创建处理器
+    # Get or create processor
     if processor_key not in st.session_state:
         st.session_state[processor_key] = LogProcessor(max_iter)
     

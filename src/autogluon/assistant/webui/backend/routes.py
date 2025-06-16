@@ -10,23 +10,23 @@ bp = Blueprint("api", __name__)
 @bp.route("/run", methods=["POST"])
 def run():
     """
-    接收前端启动请求，参数同原 mlzero CLI。
-    返回 JSON { "run_id": "<uuid>" }。
+    Receive frontend startup request with parameters similar to original mlzero CLI.
+    Returns JSON { "run_id": "<uuid>" }.
     """
     data = request.get_json()
-    # 必要参数
+    # Required parameters
     data_src    = data["data_src"]
     max_iter    = data["max_iter"]
     verbosity   = data["verbosity"]
     config_path = data["config_path"]
-    # 可选
+    # Optional parameters
     out_dir     = data.get("out_dir")
     init_prompt = data.get("init_prompt")
     control     = data.get("control")
     extract_dir = data.get("extract_dir")
-    aws_credentials = data.get("aws_credentials")  # 新增：AWS凭证
+    aws_credentials = data.get("aws_credentials")  # AWS credentials
 
-    # 构造命令行
+    # Build command line
     cmd = [
         "mlzero",
         "-i", data_src,
@@ -40,14 +40,14 @@ def run():
     if extract_dir: cmd += ["-e", extract_dir]
 
     run_id = uuid.uuid4().hex
-    start_run(run_id, cmd, aws_credentials)  # 传递AWS凭证
+    start_run(run_id, cmd, aws_credentials)  # Pass AWS credentials
     return jsonify({"run_id": run_id})
 
 @bp.route("/logs", methods=["GET"])
 def logs():
     """
-    返回指定 run_id 的新增日志行列表，每行是一个 JSON 对象：
-      { "level": "...", "text": "...", "special": "..." }
+    Return list of new log lines for specified run_id.
+    Each line is a JSON object: { "level": "...", "text": "...", "special": "..." }
     """
     run_id = request.args.get("run_id", "")
     raw_lines = get_logs(run_id)
@@ -59,7 +59,7 @@ def logs():
 @bp.route("/status", methods=["GET"])
 def status():
     """
-    返回 {"finished": true/false, "waiting_for_input": true/false, "input_prompt": "..."}
+    Return {"finished": true/false, "waiting_for_input": true/false, "input_prompt": "..."}
     """
     run_id = request.args.get("run_id", "")
     return jsonify(get_status(run_id))
@@ -67,7 +67,7 @@ def status():
 @bp.route("/cancel", methods=["POST"])
 def cancel():
     """
-    接收 {"run_id": "..."}，终止该 run。
+    Receive {"run_id": "..."} and terminate the run.
     """
     run_id = request.get_json().get("run_id", "")
     cancel_run(run_id)
@@ -77,7 +77,7 @@ def cancel():
 def send_input():
     """
     Send user input to a waiting process.
-    接收 {"run_id": "...", "input": "..."}
+    Receive {"run_id": "...", "input": "..."}
     """
     data = request.get_json()
     run_id = data.get("run_id", "")
