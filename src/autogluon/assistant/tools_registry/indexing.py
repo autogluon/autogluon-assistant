@@ -26,7 +26,7 @@ class TutorialIndexer:
         self.indices: Dict[str, Dict[str, faiss.Index]] = {}  # {tool_name: {type: index}}
         self.metadata: Dict[str, Dict[str, List[Dict]]] = {}  # {tool_name: {type: [metadata]}}
         self.index_dir = Path(__file__).parent / "indices" / self.sanitized_model_name
-        self.index_dir.mkdir(exist_ok=True)
+        self.index_dir.mkdir(parents=True, exist_ok=True)
 
     def __del__(self):
         """Cleanup method to properly close the embedding model."""
