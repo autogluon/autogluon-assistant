@@ -15,7 +15,7 @@ def create_app() -> Flask:
 def main() -> None:  # console‑script entry‑point expects this name
     """Console entry‑point:  `mlzero-backend`."""
     app = create_app()
-    app.run(host=Config.HOST, port=Config.PORT, debug=Config.DEBUG)
+    app.run(host=Config.HOST, port=Config.PORT, debug=Config.DEBUG,use_reloader=False)
 
 
 # still let “python -m …app.py” work

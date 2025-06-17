@@ -39,17 +39,9 @@ def _configure_logging(console_level: int, output_dir: Path = None) -> None:
         console_level: Logging level for terminal output
         output_dir: If provided, creates both debug and info level file loggers in this directory
     """
-    # console = Console()
 
-    # # Set root logger level to DEBUG to allow file handlers to capture all logs
+    # Set root logger level to DEBUG to allow file handlers to capture all logs
     root_level = logging.DEBUG
-
-    # # Create RichHandler with the specified console level
-    # console_handler = RichHandler(console=console, markup=True, rich_tracebacks=True)
-    # console_handler.setLevel(console_level)
-    # console_handler.name = CONSOLE_HANDLER
-
-    # handlers = [console_handler]
 
     if sys.stdout.isatty():
         console = Console(file=sys.stderr)
