@@ -4,6 +4,7 @@ import re
 import shutil
 import time
 import uuid
+import yaml
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -26,6 +27,13 @@ VERBOSITY_MAP = {
     "DETAIL": "3",
     "INFO": "2",
     "BRIEF": "1",
+}
+
+# Provider defaults
+PROVIDER_DEFAULTS = {
+    "bedrock": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+    "openai": "gpt-4o-2024-08-06",
+    "anthropic": "claude-3-7-sonnet-20250219",
 }
 
 
@@ -78,6 +86,14 @@ class Message:
     def task_results(cls, run_id: str, output_dir: str) -> "Message":
         return cls(role="assistant", type="task_results", content={"run_id": run_id, "output_dir": output_dir})
 
+    @classmethod
+    def debug_config(cls, config_path: str, config_content: str) -> "Message":
+        return cls(
+            role="assistant", 
+            type="debug_config", 
+            content={"path": config_path, "content": config_content}
+        )
+
 
 @dataclass
 class TaskConfig:
@@ -87,17 +103,18 @@ class TaskConfig:
     max_iter: int
     control: bool
     log_verbosity: str
-    use_custom_credentials: bool = False
-    custom_credentials: Optional[Dict[str, str]] = None
+    provider: str
+    model: str
+    credentials: Optional[Dict[str, str]] = None
 
 
-# ==================== AWS Credentials ====================
-class AWSCredentialsValidator:
-    """AWS credentials validator"""
+# ==================== Credentials Validators ====================
+class CredentialsValidator:
+    """Base credentials validator"""
 
     @staticmethod
-    def parse_credentials(credentials_text: str) -> Optional[Dict[str, str]]:
-        """Parse credentials text"""
+    def parse_credentials(credentials_text: str, required_vars: List[str]) -> Optional[Dict[str, str]]:
+        """Parse credentials text for environment variables"""
         if not credentials_text:
             return None
 
@@ -114,19 +131,59 @@ class AWSCredentialsValidator:
                 key = key.strip()
                 value = value.strip().strip('"').strip("'")  # Remove quotes if present
 
-                if key in [
-                    "ISENGARD_PRODUCTION_ACCOUNT",
-                    "AWS_ACCESS_KEY_ID",
-                    "AWS_SECRET_ACCESS_KEY",
-                    "AWS_SESSION_TOKEN",
-                ]:
+                if key in required_vars:
                     credentials[key] = value
 
         # Check if all required fields are present
-        required_fields = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
-        for field_name in required_fields:
+        for field_name in required_vars:
             if field_name not in credentials or not credentials[field_name]:
                 return None
+
+        return credentials
+
+
+class BedrockCredentialsValidator(CredentialsValidator):
+    """AWS/Bedrock credentials validator"""
+
+    @staticmethod
+    def parse_credentials(credentials_text: str) -> Optional[Dict[str, str]]:
+        """Parse AWS credentials text"""
+        if not credentials_text:
+            return None
+
+        credentials = {}
+        lines = credentials_text.strip().split("\n")
+
+        for line in lines:
+            line = line.strip()
+            if line.startswith("export "):
+                line = line[7:]  # Remove 'export '
+
+            if "=" in line:
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")  # Remove quotes if present
+
+                # Collect all AWS-related environment variables
+                if key in [
+                    "ISENGARD_PRODUCTION_ACCOUNT",
+                    "AWS_DEFAULT_REGION", 
+                    "AWS_ACCESS_KEY_ID",
+                    "AWS_SECRET_ACCESS_KEY",
+                    "AWS_SESSION_TOKEN"
+                ]:
+                    credentials[key] = value
+
+        # Check if minimum required fields are present
+        # For AWS, we need at least ACCESS_KEY_ID and SECRET_ACCESS_KEY
+        if "AWS_ACCESS_KEY_ID" not in credentials or not credentials["AWS_ACCESS_KEY_ID"]:
+            return None
+        if "AWS_SECRET_ACCESS_KEY" not in credentials or not credentials["AWS_SECRET_ACCESS_KEY"]:
+            return None
+
+        # Set default region if not provided
+        if "AWS_DEFAULT_REGION" not in credentials:
+            credentials["AWS_DEFAULT_REGION"] = "us-east-1"
 
         return credentials
 
@@ -135,11 +192,17 @@ class AWSCredentialsValidator:
         """Validate AWS credentials"""
         try:
             # Create a session with the provided credentials
-            session = boto3.Session(
-                aws_access_key_id=credentials["AWS_ACCESS_KEY_ID"],
-                aws_secret_access_key=credentials["AWS_SECRET_ACCESS_KEY"],
-                aws_session_token=credentials["AWS_SESSION_TOKEN"],
-            )
+            session_params = {
+                "aws_access_key_id": credentials["AWS_ACCESS_KEY_ID"],
+                "aws_secret_access_key": credentials["AWS_SECRET_ACCESS_KEY"],
+                "region_name": credentials.get("AWS_DEFAULT_REGION", "us-east-1"),
+            }
+            
+            # Add session token if present (for temporary credentials)
+            if "AWS_SESSION_TOKEN" in credentials:
+                session_params["aws_session_token"] = credentials["AWS_SESSION_TOKEN"]
+            
+            session = boto3.Session(**session_params)
 
             # Try to make a simple API call to verify credentials
             sts = session.client("sts")
@@ -161,6 +224,140 @@ class AWSCredentialsValidator:
             return False, "Invalid credentials format"
         except Exception as e:
             return False, f"Validation failed: {str(e)}"
+
+
+class OpenAICredentialsValidator(CredentialsValidator):
+    """OpenAI credentials validator"""
+
+    @staticmethod
+    def parse_credentials(credentials_text: str) -> Optional[Dict[str, str]]:
+        """Parse OpenAI credentials text"""
+        required_vars = ["OPENAI_API_KEY"]
+        return CredentialsValidator.parse_credentials(credentials_text, required_vars)
+
+    @staticmethod
+    def validate_credentials(credentials: Dict[str, str]) -> Tuple[bool, str]:
+        """Validate OpenAI credentials"""
+        try:
+            import openai
+        except ImportError:
+            return False, "OpenAI library not installed. Please install with: pip install openai"
+
+        try:
+            # Set the API key
+            client = openai.OpenAI(api_key=credentials["OPENAI_API_KEY"])
+
+            # Try to list models to verify the key
+            models = client.models.list()
+            # If we can list models, the key is valid
+            return True, "OpenAI API key is valid"
+
+        except Exception as e:
+            if "401" in str(e) or "Unauthorized" in str(e):
+                return False, "Invalid OpenAI API key"
+            elif "429" in str(e):
+                return False, "Rate limit exceeded (key is valid but rate limited)"
+            else:
+                return False, f"Validation failed: {str(e)}"
+
+
+class AnthropicCredentialsValidator(CredentialsValidator):
+    """Anthropic credentials validator"""
+
+    @staticmethod
+    def parse_credentials(credentials_text: str) -> Optional[Dict[str, str]]:
+        """Parse Anthropic credentials text"""
+        required_vars = ["ANTHROPIC_API_KEY"]
+        return CredentialsValidator.parse_credentials(credentials_text, required_vars)
+
+    @staticmethod
+    def validate_credentials(credentials: Dict[str, str]) -> Tuple[bool, str]:
+        """Validate Anthropic credentials"""
+        try:
+            import anthropic
+        except ImportError:
+            return False, "Anthropic library not installed. Please install with: pip install anthropic"
+
+        try:
+            # Create client with the API key
+            client = anthropic.Anthropic(api_key=credentials["ANTHROPIC_API_KEY"])
+
+            # Try a minimal API call to verify the key
+            # Using a very small prompt to minimize cost
+            response = client.messages.create(
+                model="claude-3-haiku-20240307",  # Use the cheapest model
+                max_tokens=1,
+                messages=[{"role": "user", "content": "Hi"}],
+            )
+            return True, "Anthropic API key is valid"
+
+        except Exception as e:
+            if "401" in str(e) or "authentication" in str(e).lower():
+                return False, "Invalid Anthropic API key"
+            elif "429" in str(e):
+                return False, "Rate limit exceeded (key is valid but rate limited)"
+            else:
+                return False, f"Validation failed: {str(e)}"
+
+
+# ==================== Config File Handler ====================
+class ConfigFileHandler:
+    """Handle config file operations"""
+
+    @staticmethod
+    def load_default_config() -> Dict:
+        """Load the default config file"""
+        try:
+            with open(DEFAULT_CONFIG_PATH, "r") as f:
+                return yaml.safe_load(f)
+        except Exception as e:
+            st.error(f"Failed to load default config: {str(e)}")
+            return {}
+
+    @staticmethod
+    def extract_provider_model(config_dict: Dict) -> Tuple[Optional[str], Optional[str]]:
+        """Extract provider and model from config dictionary"""
+        try:
+            llm_config = config_dict.get("llm", {})
+            provider = llm_config.get("provider")
+            model = llm_config.get("model")
+            return provider, model
+        except Exception:
+            return None, None
+
+    @staticmethod
+    def save_modified_config(base_config: Dict, provider: str, model: str, save_path: Path) -> str:
+        """Save config with modified provider and model"""
+        try:
+            # Deep copy to avoid modifying the original
+            import copy
+
+            config = copy.deepcopy(base_config)
+
+            # Update the llm section
+            if "llm" not in config:
+                config["llm"] = {}
+            config["llm"]["provider"] = provider
+            config["llm"]["model"] = model
+
+            # Update all agent sections that have provider/model
+            agent_sections = ["coder", "executer", "reader", "error_analyzer", 
+                            "retriever", "description_file_retriever", 
+                            "task_descriptor", "tool_selector"]
+            
+            for agent in agent_sections:
+                if agent in config and isinstance(config[agent], dict):
+                    config[agent]["provider"] = provider
+                    config[agent]["model"] = model
+
+            # Save to file
+            with open(save_path, "w") as f:
+                yaml.dump(config, f, default_flow_style=False)
+
+            return str(save_path)
+        except Exception as e:
+            st.error(f"Failed to save config: {str(e)}")
+            return str(DEFAULT_CONFIG_PATH)
 
 
 # ==================== Session State ====================
@@ -188,6 +385,10 @@ class SessionState:
             "current_iteration": 0,
             "current_output_dir": None,
             "prev_iter_placeholder": None,  # Placeholder object
+            # New provider-related states
+            "config_from_file": False,
+            "config_provider": None,
+            "config_model": None,
         }
 
         for key, value in defaults.items():
@@ -263,7 +464,7 @@ class SessionState:
             msg = st.session_state.messages[i]
 
             # Check for various message types
-            if msg.type in ["command", "user_summary"]:
+            if msg.type in ["command", "user_summary", "debug_config"]:
                 start_index = i
                 i -= 1
                 continue
@@ -327,9 +528,13 @@ class BackendAPI:
             "verbosity": VERBOSITY_MAP[config.log_verbosity],
         }
 
-        # Add AWS credentials if provided
-        if config.use_custom_credentials and config.custom_credentials:
-            payload["aws_credentials"] = config.custom_credentials
+        # Add credentials based on provider
+        if config.provider == "bedrock" and config.credentials:
+            # For bedrock, use the AWS credentials structure
+            payload["aws_credentials"] = config.credentials
+        elif config.provider in ["openai", "anthropic"] and config.credentials:
+            # For other providers, pass the credentials as environment variables
+            payload["aws_credentials"] = config.credentials  # Reusing the field for all credentials
 
         response = requests.post(f"{API_URL}/run", json=payload)
         return response.json()["run_id"]
@@ -380,52 +585,152 @@ class UI:
         """Render sidebar"""
         with st.sidebar:
             with st.expander("⚙️ Settings", expanded=False):
-                config = TaskConfig(
-                    uploaded_config=st.file_uploader(
-                        "Config file (optional)",
-                        type=["yaml", "yml"],
-                        key="config_uploader",
-                        help="Upload a custom YAML config file. If not provided, default config will be used.",
-                    ),
-                    max_iter=st.number_input(
-                        "Max iterations", min_value=1, max_value=20, value=5, key="max_iterations"
-                    ),
-                    control=st.checkbox("Manual prompts between iterations", key="control_prompts"),
-                    log_verbosity=st.select_slider(
-                        "Log verbosity",
-                        options=["BRIEF", "INFO", "DETAIL"],
-                        value="BRIEF",
-                        key="log_verbosity",
-                    ),
+                # Upper section: iterations, control, verbosity
+                max_iter = st.number_input(
+                    "Max iterations", min_value=1, max_value=20, value=5, key="max_iterations"
+                )
+                control = st.checkbox("Manual prompts between iterations", key="control_prompts")
+                log_verbosity = st.select_slider(
+                    "Log verbosity",
+                    options=["BRIEF", "INFO", "DETAIL"],
+                    value="BRIEF",
+                    key="log_verbosity",
                 )
 
-                # AWS Credentials section
+                # Single divider
                 st.markdown("---")
-                config.use_custom_credentials = st.checkbox(
-                    "Use custom AWS credentials",
-                    key="use_custom_credentials",
-                    help="Check this to use your own AWS temporary credentials",
+
+                # Lower section: config, provider, model, credentials (compact)
+                # Config file uploader
+                uploaded_config = st.file_uploader(
+                    "Config file (optional)",
+                    type=["yaml", "yml"],
+                    key="config_uploader",
+                    help="Upload a custom YAML config file. If not provided, default config will be used.",
                 )
 
-                if config.use_custom_credentials:
+                # Parse config if uploaded
+                config_provider = None
+                config_model = None
+                disable_provider_model = False
+
+                if uploaded_config:
+                    try:
+                        config_content = yaml.safe_load(uploaded_config.getvalue())
+                        config_provider, config_model = ConfigFileHandler.extract_provider_model(config_content)
+                        if config_provider and config_model:
+                            st.session_state.config_from_file = True
+                            st.session_state.config_provider = config_provider
+                            st.session_state.config_model = config_model
+                            disable_provider_model = True
+                    except Exception as e:
+                        st.error(f"Failed to parse config file: {str(e)}")
+                else:
+                    st.session_state.config_from_file = False
+                    st.session_state.config_provider = None
+                    st.session_state.config_model = None
+
+                # Provider selection
+                provider = st.selectbox(
+                    "LLM Provider",
+                    options=["bedrock", "openai", "anthropic"],
+                    index=0 if not config_provider else ["bedrock", "openai", "anthropic"].index(config_provider),
+                    key="llm_provider",
+                    disabled=disable_provider_model,
+                )
+
+                # Model input (with default based on provider)
+                model_default = config_model if config_model else PROVIDER_DEFAULTS.get(provider, "")
+                model = st.text_input(
+                    "Model Name",
+                    value=model_default,
+                    key="model_name",
+                    disabled=disable_provider_model,
+                    help="Enter the model identifier",
+                )
+
+                # Credentials section (dynamic based on provider)
+                credentials = None
+                if provider == "bedrock":
+                    use_custom_creds = st.checkbox(
+                        "Use custom AWS credentials",
+                        key="bedrock_custom_creds",
+                        help="If unchecked, will use EC2 IAM role",
+                    )
+
+                    if use_custom_creds:
+                        credentials_text = st.text_area(
+                            "AWS Credentials",
+                            height=120,
+                            key="bedrock_credentials",
+                            placeholder='export AWS_ACCESS_KEY_ID="ASIA..."\nexport AWS_SECRET_ACCESS_KEY="..."\nexport AWS_SESSION_TOKEN="..."  # For temporary credentials\nexport AWS_DEFAULT_REGION="us-east-1"  # Optional',
+                            help="Paste your AWS credentials (permanent or temporary)",
+                        )
+
+                        if credentials_text:
+                            parsed_creds = BedrockCredentialsValidator.parse_credentials(credentials_text)
+                            if parsed_creds:
+                                is_valid, message = BedrockCredentialsValidator.validate_credentials(parsed_creds)
+                                if is_valid:
+                                    st.success(f"✅ {message}")
+                                    credentials = parsed_creds
+                                else:
+                                    st.error(f"❌ {message}")
+                            else:
+                                st.error("❌ Invalid format. Please include all required fields.")
+
+                elif provider == "openai":
                     credentials_text = st.text_area(
-                        "Paste your AWS Temporary Credentials",
-                        height=150,
-                        key="aws_credentials_input",
-                        placeholder="""export ISENGARD_PRODUCTION_ACCOUNT=false
-export AWS_ACCESS_KEY_ID=
-export AWS_SECRET_ACCESS_KEY=
-export AWS_SESSION_TOKEN=""",
-                        help="Please paste complete credentials including all export statements",
+                        "OpenAI API Key",
+                        height=68,
+                        key="openai_credentials",
+                        placeholder='export OPENAI_API_KEY="sk-..."',
+                        help="Paste your OpenAI API key",
                     )
 
                     if credentials_text:
-                        parsed_creds = AWSCredentialsValidator.parse_credentials(credentials_text)
+                        parsed_creds = OpenAICredentialsValidator.parse_credentials(credentials_text)
                         if parsed_creds:
-                            config.custom_credentials = parsed_creds
-                            st.success("✅ Credentials format correct")
+                            is_valid, message = OpenAICredentialsValidator.validate_credentials(parsed_creds)
+                            if is_valid:
+                                st.success(f"✅ {message}")
+                                credentials = parsed_creds
+                            else:
+                                st.error(f"❌ {message}")
                         else:
-                            st.error("❌ Invalid credentials format, please ensure all required fields are included")
+                            st.error("❌ Invalid format. Please use: export OPENAI_API_KEY=\"sk-...\"")
+
+                elif provider == "anthropic":
+                    credentials_text = st.text_area(
+                        "Anthropic API Key",
+                        height=68,
+                        key="anthropic_credentials",
+                        placeholder='export ANTHROPIC_API_KEY="your-anthropic-api-key"',
+                        help="Paste your Anthropic API key",
+                    )
+
+                    if credentials_text:
+                        parsed_creds = AnthropicCredentialsValidator.parse_credentials(credentials_text)
+                        if parsed_creds:
+                            is_valid, message = AnthropicCredentialsValidator.validate_credentials(parsed_creds)
+                            if is_valid:
+                                st.success(f"✅ {message}")
+                                credentials = parsed_creds
+                            else:
+                                st.error(f"❌ {message}")
+                        else:
+                            st.error("❌ Invalid format. Please use: export ANTHROPIC_API_KEY=\"...\"")
+
+                # Create config object
+                config = TaskConfig(
+                    uploaded_config=uploaded_config,
+                    max_iter=max_iter,
+                    control=control,
+                    log_verbosity=log_verbosity,
+                    provider=provider,
+                    model=model,
+                    credentials=credentials,
+                )
 
             # History management
             task_count = sum(1 for msg in st.session_state.messages if msg.type == "task_log")
@@ -449,11 +754,17 @@ export AWS_SESSION_TOKEN=""",
             if msg.role == "success":
                 st.success(msg.content["text"])
             else:
-                st.write(msg.content["text"])
+                # Use markdown for text messages to properly render code blocks
+                st.markdown(msg.content["text"])
         elif msg.type == "user_summary":
             st.markdown(msg.content["summary"])
         elif msg.type == "command":
             st.code(msg.content["command"], language="bash")
+        elif msg.type == "debug_config":
+            content = msg.content
+            with st.expander("🔍 DEBUG: Final Config File", expanded=True):
+                st.caption(f"Path: `{content['path']}`")
+                st.code(content['content'], language="yaml")
         elif msg.type == "task_log":
             content = msg.content
             st.caption(f"ID: {content['run_id'][:8]}... | Completed: {content['timestamp']}")
@@ -484,10 +795,14 @@ export AWS_SESSION_TOKEN=""",
             f"- Max iterations: {config.max_iter}",
             f"- Manual prompts: {config.control}",
             f"- Log verbosity: {config.log_verbosity}",
+            f"- LLM Provider: {config.provider}",
+            f"- Model: {config.model}",
         ]
 
-        if config.use_custom_credentials:
+        if config.provider == "bedrock" and config.credentials:
             parts.append("- Using custom AWS credentials: ✅")
+        elif config.provider in ["openai", "anthropic"] and config.credentials:
+            parts.append(f"- Using {config.provider} API key: ✅")
 
         parts.extend(["\n✏️ **Initial prompt:**\n", f"> {prompt or '(none)'}"])
 
@@ -588,19 +903,11 @@ class TaskManager:
             st.rerun()
             return
 
-        # Validate custom credentials if used
-        if self.config.use_custom_credentials:
-            if not self.config.custom_credentials:
-                SessionState.add_message(Message.text("❌ Please paste your AWS credentials first"))
-                st.rerun()
-                return
-
-            # Validate credentials
-            is_valid, message = AWSCredentialsValidator.validate_credentials(self.config.custom_credentials)
-            if not is_valid:
-                SessionState.add_message(Message.text(f"❌ AWS credential validation failed: {message}"))
-                st.rerun()
-                return
+        # Validate credentials if needed
+        if self.config.provider in ["openai", "anthropic"] and not self.config.credentials:
+            SessionState.add_message(Message.text(f"❌ Please provide {self.config.provider} API key first"))
+            st.rerun()
+            return
 
         # Process files
         data_folder = handle_uploaded_files(files)
@@ -608,11 +915,51 @@ class TaskManager:
 
         # Save config file
         config_path = self._save_config(data_folder)
-        config_name = self.config.uploaded_config.name if self.config.uploaded_config else "default.yaml"
+        config_name = self.config.uploaded_config.name if self.config.uploaded_config else "default.yaml (modified)"
 
         # Add user summary
         summary = UI.format_user_summary([f.name for f in files], self.config, user_text, config_name)
         SessionState.add_message(Message.user_summary(summary, input_dir=data_folder))
+
+        # DEBUG: Add config file content and environment info as a message
+        try:
+            with open(config_path, "r") as f:
+                config_content = f.read()
+            
+            # Parse config to show provider/model in debug
+            debug_parts = []
+            try:
+                parsed_config = yaml.safe_load(config_content)
+                
+                # Show all sections with provider/model
+                debug_parts.append("\n**Parsed Config (provider/model for each section):**")
+                sections = ["llm", "coder", "executer", "reader", "error_analyzer", 
+                           "retriever", "description_file_retriever", "task_descriptor", "tool_selector"]
+                
+                for section in sections:
+                    if section in parsed_config and isinstance(parsed_config[section], dict):
+                        provider = parsed_config[section].get("provider", "not found")
+                        model = parsed_config[section].get("model", "not found")
+                        debug_parts.append(f"- {section}: provider=`{provider}`, model=`{model}`")
+            except Exception as e:
+                debug_parts.append(f"\nError parsing config: {str(e)}")
+            
+            # Add credential debug info
+            if self.config.credentials:
+                debug_parts.append("\n**Environment Variables:**")
+                for key in sorted(self.config.credentials.keys()):
+                    if "KEY" in key or "TOKEN" in key:
+                        masked = self.config.credentials[key][:4] + "..." if len(self.config.credentials[key]) > 4 else "***"
+                        debug_parts.append(f"- {key}: `{masked}`")
+                    else:
+                        debug_parts.append(f"- {key}: `{self.config.credentials[key]}`")
+            else:
+                debug_parts.append("\n**Environment Variables:** None (using system defaults)")
+            
+            debug_info = "".join(debug_parts)
+            SessionState.add_message(Message.debug_config(config_path, config_content + debug_info))
+        except Exception as e:
+            SessionState.add_message(Message.text(f"❌ DEBUG: Failed to read config file: {str(e)}"))
 
         # Start task
         self._start_task(data_folder, config_path, user_text)
@@ -763,19 +1110,32 @@ class TaskManager:
             st.markdown("### Current Task")
             st.caption(f"ID: {run_id[:8]}... | Type 'cancel' to stop the task")
 
+            # Check for process errors in logs
+            error_found = False
+            for log_entry in st.session_state.current_task_logs:
+                # log_entry is a dict with 'level', 'text', 'special' keys
+                if isinstance(log_entry, dict) and log_entry.get("text", "").startswith("Process error:"):
+                    st.error(f"❌ {log_entry['text']}")
+                    error_found = True
+                elif isinstance(log_entry, str) and log_entry.startswith("Process error:"):
+                    # Fallback for string entries
+                    st.error(f"❌ {log_entry}")
+                    error_found = True
+
             # Process logs and check for input requests
-            waiting_for_input, input_prompt, output_dir = messages(st.session_state.current_task_logs, config.max_iter)
+            if not error_found:
+                waiting_for_input, input_prompt, output_dir = messages(st.session_state.current_task_logs, config.max_iter)
 
-            # Update output directory in session state
-            if output_dir and not st.session_state.current_output_dir:
-                st.session_state.current_output_dir = output_dir
+                # Update output directory in session state
+                if output_dir and not st.session_state.current_output_dir:
+                    st.session_state.current_output_dir = output_dir
 
-            # Update session state if waiting for input
-            if waiting_for_input and not st.session_state.waiting_for_input:
-                # Extract iteration number from logs if possible
-                iteration = self._extract_current_iteration()
-                SessionState.set_waiting_for_input(True, input_prompt, iteration)
-                # Don't rerun here - let the fragment cycle handle it
+                # Update session state if waiting for input
+                if waiting_for_input and not st.session_state.waiting_for_input:
+                    # Extract iteration number from logs if possible
+                    iteration = self._extract_current_iteration()
+                    SessionState.set_waiting_for_input(True, input_prompt, iteration)
+                    # Don't rerun here - let the fragment cycle handle it
 
         # Check if finished
         if status.get("finished", False):
@@ -867,11 +1227,29 @@ class TaskManager:
     def _save_config(self, data_folder: str) -> str:
         """Save config file"""
         if self.config.uploaded_config:
-            config_path = Path(data_folder) / self.config.uploaded_config.name
-            with open(config_path, "wb") as f:
-                f.write(self.config.uploaded_config.getbuffer())
-            return str(config_path)
-        return str(DEFAULT_CONFIG_PATH)
+            # If user uploaded a config and controls are disabled, use the file as-is
+            if st.session_state.get("config_from_file", False):
+                # Save the uploaded config as-is
+                config_path = Path(data_folder) / self.config.uploaded_config.name
+                with open(config_path, "wb") as f:
+                    f.write(self.config.uploaded_config.getbuffer())
+                return str(config_path)
+            else:
+                # This shouldn't happen, but handle it anyway
+                config_path = Path(data_folder) / self.config.uploaded_config.name
+                with open(config_path, "wb") as f:
+                    f.write(self.config.uploaded_config.getbuffer())
+                return str(config_path)
+        else:
+            # No uploaded config, create modified default config with UI selections
+            default_config = ConfigFileHandler.load_default_config()
+            if default_config:
+                config_path = Path(data_folder) / "autogluon_config.yaml"
+                return ConfigFileHandler.save_modified_config(
+                    default_config, self.config.provider, self.config.model, config_path
+                )
+            else:
+                return str(DEFAULT_CONFIG_PATH)
 
     def _start_task(self, data_folder: str, config_path: str, user_prompt: str):
         """Start task"""
@@ -899,6 +1277,14 @@ class TaskManager:
         # Display command
         command_str = f"[{datetime.now().strftime('%H:%M:%S')}] Running AutoMLAgent: {' '.join(cmd_parts)}"
         SessionState.add_message(Message.command(command_str))
+        
+        # DEBUG: Show final config being used
+        debug_msg = f"🔧 **DEBUG: Task Configuration**\n"
+        debug_msg += f"- Provider: `{self.config.provider}`\n"
+        debug_msg += f"- Model: `{self.config.model}`\n"
+        debug_msg += f"- Config Source: {'Uploaded file' if self.config.uploaded_config else 'Modified default'}\n"
+        debug_msg += f"- Credentials: {'Provided' if self.config.credentials else 'System default'}"
+        SessionState.add_message(Message.text(debug_msg))
 
         # Start task
         SessionState.start_task(run_id, self.config, data_folder)

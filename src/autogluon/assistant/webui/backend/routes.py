@@ -26,7 +26,6 @@ def run():
     init_prompt = data.get("init_prompt")
     control = data.get("control")
     extract_dir = data.get("extract_dir")
-    aws_credentials = data.get("aws_credentials")  # AWS credentials
 
     # Build command line
     cmd = [
@@ -50,7 +49,9 @@ def run():
         cmd += ["-e", extract_dir]
 
     run_id = uuid.uuid4().hex
-    start_run(run_id, cmd, aws_credentials)  # Pass AWS credentials
+    # Get credentials from request (now supports multiple providers)
+    credentials = data.get("aws_credentials")  # Keep field name for backward compatibility
+    start_run(run_id, cmd, credentials)
     return jsonify({"run_id": run_id})
 
 
