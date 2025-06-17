@@ -86,7 +86,7 @@ def start_run(run_id: str, cmd: List[str], credentials: Optional[Dict[str, str]]
             # Set credentials if provided
             if credentials:
                 logger.info(f"Setting credentials for task {run_id[:8]}...")
-                
+
                 # Apply all provided environment variables
                 for key, value in credentials.items():
                     env[key] = value
@@ -96,7 +96,7 @@ def start_run(run_id: str, cmd: List[str], credentials: Optional[Dict[str, str]]
                         logger.info(f"Task {run_id[:8]}: Setting {key}={masked_value}")
                     else:
                         logger.info(f"Task {run_id[:8]}: Setting {key}={value}")
-                    
+
                 # Log which type of credentials were set based on what's actually present
                 if "AWS_ACCESS_KEY_ID" in credentials:
                     logger.info(f"Task {run_id[:8]}: AWS credentials configured")

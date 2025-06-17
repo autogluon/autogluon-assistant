@@ -4,7 +4,6 @@ import re
 import shutil
 import time
 import uuid
-import yaml
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -13,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import boto3
 import requests
 import streamlit as st
+import yaml
 from botocore.exceptions import ClientError, NoCredentialsError
 
 from autogluon.assistant.constants import API_URL, SUCCESS_MESSAGE
@@ -85,14 +85,6 @@ class Message:
     @classmethod
     def task_results(cls, run_id: str, output_dir: str) -> "Message":
         return cls(role="assistant", type="task_results", content={"run_id": run_id, "output_dir": output_dir})
-
-    @classmethod
-    def debug_config(cls, config_path: str, config_content: str) -> "Message":
-        return cls(
-            role="assistant", 
-            type="debug_config", 
-            content={"path": config_path, "content": config_content}
-        )
 
 
 @dataclass
@@ -167,10 +159,10 @@ class BedrockCredentialsValidator(CredentialsValidator):
                 # Collect all AWS-related environment variables
                 if key in [
                     "ISENGARD_PRODUCTION_ACCOUNT",
-                    "AWS_DEFAULT_REGION", 
+                    "AWS_DEFAULT_REGION",
                     "AWS_ACCESS_KEY_ID",
                     "AWS_SECRET_ACCESS_KEY",
-                    "AWS_SESSION_TOKEN"
+                    "AWS_SESSION_TOKEN",
                 ]:
                     credentials[key] = value
 
@@ -197,11 +189,11 @@ class BedrockCredentialsValidator(CredentialsValidator):
                 "aws_secret_access_key": credentials["AWS_SECRET_ACCESS_KEY"],
                 "region_name": credentials.get("AWS_DEFAULT_REGION", "us-east-1"),
             }
-            
+
             # Add session token if present (for temporary credentials)
             if "AWS_SESSION_TOKEN" in credentials:
                 session_params["aws_session_token"] = credentials["AWS_SESSION_TOKEN"]
-            
+
             session = boto3.Session(**session_params)
 
             # Try to make a simple API call to verify credentials
@@ -245,10 +237,10 @@ class OpenAICredentialsValidator(CredentialsValidator):
 
         try:
             # Set the API key
-            client = openai.OpenAI(api_key=credentials["OPENAI_API_KEY"])
+            _client = openai.OpenAI(api_key=credentials["OPENAI_API_KEY"])
 
             # Try to list models to verify the key
-            models = client.models.list()
+            _models = _client.models.list()
             # If we can list models, the key is valid
             return True, "OpenAI API key is valid"
 
@@ -280,12 +272,11 @@ class AnthropicCredentialsValidator(CredentialsValidator):
 
         try:
             # Create client with the API key
-            client = anthropic.Anthropic(api_key=credentials["ANTHROPIC_API_KEY"])
+            _client = anthropic.Anthropic(api_key=credentials["ANTHROPIC_API_KEY"])
 
             # Try a minimal API call to verify the key
-            # Using a very small prompt to minimize cost
-            response = client.messages.create(
-                model="claude-3-haiku-20240307",  # Use the cheapest model
+            _response = _client.messages.create(
+                model="claude-3-haiku-20240307",
                 max_tokens=1,
                 messages=[{"role": "user", "content": "Hi"}],
             )
@@ -341,10 +332,17 @@ class ConfigFileHandler:
             config["llm"]["model"] = model
 
             # Update all agent sections that have provider/model
-            agent_sections = ["coder", "executer", "reader", "error_analyzer", 
-                            "retriever", "description_file_retriever", 
-                            "task_descriptor", "tool_selector"]
-            
+            agent_sections = [
+                "coder",
+                "executer",
+                "reader",
+                "error_analyzer",
+                "retriever",
+                "description_file_retriever",
+                "task_descriptor",
+                "tool_selector",
+            ]
+
             for agent in agent_sections:
                 if agent in config and isinstance(config[agent], dict):
                     config[agent]["provider"] = provider
@@ -464,7 +462,7 @@ class SessionState:
             msg = st.session_state.messages[i]
 
             # Check for various message types
-            if msg.type in ["command", "user_summary", "debug_config"]:
+            if msg.type in ["command", "user_summary"]:
                 start_index = i
                 i -= 1
                 continue
@@ -586,9 +584,7 @@ class UI:
         with st.sidebar:
             with st.expander("⚙️ Settings", expanded=False):
                 # Upper section: iterations, control, verbosity
-                max_iter = st.number_input(
-                    "Max iterations", min_value=1, max_value=20, value=5, key="max_iterations"
-                )
+                max_iter = st.number_input("Max iterations", min_value=1, max_value=20, value=5, key="max_iterations")
                 control = st.checkbox("Manual prompts between iterations", key="control_prompts")
                 log_verbosity = st.select_slider(
                     "Log verbosity",
@@ -698,7 +694,7 @@ class UI:
                             else:
                                 st.error(f"❌ {message}")
                         else:
-                            st.error("❌ Invalid format. Please use: export OPENAI_API_KEY=\"sk-...\"")
+                            st.error('❌ Invalid format. Please use: export OPENAI_API_KEY="sk-..."')
 
                 elif provider == "anthropic":
                     credentials_text = st.text_area(
@@ -719,7 +715,7 @@ class UI:
                             else:
                                 st.error(f"❌ {message}")
                         else:
-                            st.error("❌ Invalid format. Please use: export ANTHROPIC_API_KEY=\"...\"")
+                            st.error('❌ Invalid format. Please use: export ANTHROPIC_API_KEY="..."')
 
                 # Create config object
                 config = TaskConfig(
@@ -760,11 +756,6 @@ class UI:
             st.markdown(msg.content["summary"])
         elif msg.type == "command":
             st.code(msg.content["command"], language="bash")
-        elif msg.type == "debug_config":
-            content = msg.content
-            with st.expander("🔍 DEBUG: Final Config File", expanded=True):
-                st.caption(f"Path: `{content['path']}`")
-                st.code(content['content'], language="yaml")
         elif msg.type == "task_log":
             content = msg.content
             st.caption(f"ID: {content['run_id'][:8]}... | Completed: {content['timestamp']}")
@@ -823,18 +814,12 @@ class TaskManager:
 
         prev_iter = iteration - 1
 
-        # Debug: Print what we're looking for
-        print(f"DEBUG _render_previous_iteration_files: Looking for files in iteration {prev_iter}")
-        print(f"DEBUG: Base output dir: {output_dir}")
-
         # Check both possible directory names (prefer generation_iter_)
         iter_dir = Path(output_dir) / f"generation_iter_{prev_iter}"
-        print(f"DEBUG: Checking path: {iter_dir}")
 
         if not iter_dir.exists():
             # Try the alternative naming
             iter_dir = Path(output_dir) / f"iteration_{prev_iter}"
-            print(f"DEBUG: Checking alternative path: {iter_dir}")
 
         if not iter_dir.exists():
             st.warning("Cannot find iteration directory")
@@ -920,46 +905,6 @@ class TaskManager:
         # Add user summary
         summary = UI.format_user_summary([f.name for f in files], self.config, user_text, config_name)
         SessionState.add_message(Message.user_summary(summary, input_dir=data_folder))
-
-        # DEBUG: Add config file content and environment info as a message
-        try:
-            with open(config_path, "r") as f:
-                config_content = f.read()
-            
-            # Parse config to show provider/model in debug
-            debug_parts = []
-            try:
-                parsed_config = yaml.safe_load(config_content)
-                
-                # Show all sections with provider/model
-                debug_parts.append("\n**Parsed Config (provider/model for each section):**")
-                sections = ["llm", "coder", "executer", "reader", "error_analyzer", 
-                           "retriever", "description_file_retriever", "task_descriptor", "tool_selector"]
-                
-                for section in sections:
-                    if section in parsed_config and isinstance(parsed_config[section], dict):
-                        provider = parsed_config[section].get("provider", "not found")
-                        model = parsed_config[section].get("model", "not found")
-                        debug_parts.append(f"- {section}: provider=`{provider}`, model=`{model}`")
-            except Exception as e:
-                debug_parts.append(f"\nError parsing config: {str(e)}")
-            
-            # Add credential debug info
-            if self.config.credentials:
-                debug_parts.append("\n**Environment Variables:**")
-                for key in sorted(self.config.credentials.keys()):
-                    if "KEY" in key or "TOKEN" in key:
-                        masked = self.config.credentials[key][:4] + "..." if len(self.config.credentials[key]) > 4 else "***"
-                        debug_parts.append(f"- {key}: `{masked}`")
-                    else:
-                        debug_parts.append(f"- {key}: `{self.config.credentials[key]}`")
-            else:
-                debug_parts.append("\n**Environment Variables:** None (using system defaults)")
-            
-            debug_info = "".join(debug_parts)
-            SessionState.add_message(Message.debug_config(config_path, config_content + debug_info))
-        except Exception as e:
-            SessionState.add_message(Message.text(f"❌ DEBUG: Failed to read config file: {str(e)}"))
 
         # Start task
         self._start_task(data_folder, config_path, user_text)
@@ -1124,7 +1069,9 @@ class TaskManager:
 
             # Process logs and check for input requests
             if not error_found:
-                waiting_for_input, input_prompt, output_dir = messages(st.session_state.current_task_logs, config.max_iter)
+                waiting_for_input, input_prompt, output_dir = messages(
+                    st.session_state.current_task_logs, config.max_iter
+                )
 
                 # Update output directory in session state
                 if output_dir and not st.session_state.current_output_dir:
@@ -1182,11 +1129,10 @@ class TaskManager:
                                     else:
                                         # If path is already base directory, use directly
                                         output_dir = full_path
-                                    print(f"DEBUG: Extracted output dir from logs: {output_dir}")
                                     st.session_state.current_output_dir = output_dir
                                     break
-                            except Exception as e:
-                                print(f"DEBUG: Error extracting path: {e}")
+                            except Exception:
+                                pass
 
                 # Display content using placeholder
                 if output_dir:
@@ -1196,7 +1142,6 @@ class TaskManager:
                         self._render_previous_iteration_files(output_dir, st.session_state.current_iteration)
                         st.markdown("---")
                 else:
-                    print("DEBUG: Could not find output directory")
                     # Clear placeholder to ensure no residual content
                     st.session_state.prev_iter_placeholder.empty()
             else:
@@ -1277,14 +1222,6 @@ class TaskManager:
         # Display command
         command_str = f"[{datetime.now().strftime('%H:%M:%S')}] Running AutoMLAgent: {' '.join(cmd_parts)}"
         SessionState.add_message(Message.command(command_str))
-        
-        # DEBUG: Show final config being used
-        debug_msg = f"🔧 **DEBUG: Task Configuration**\n"
-        debug_msg += f"- Provider: `{self.config.provider}`\n"
-        debug_msg += f"- Model: `{self.config.model}`\n"
-        debug_msg += f"- Config Source: {'Uploaded file' if self.config.uploaded_config else 'Modified default'}\n"
-        debug_msg += f"- Credentials: {'Provided' if self.config.credentials else 'System default'}"
-        SessionState.add_message(Message.text(debug_msg))
 
         # Start task
         SessionState.start_task(run_id, self.config, data_folder)
