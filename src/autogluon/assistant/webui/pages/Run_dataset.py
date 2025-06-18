@@ -15,13 +15,26 @@ import streamlit as st
 import yaml
 from botocore.exceptions import ClientError, NoCredentialsError
 
-from autogluon.assistant.constants import API_URL, PROVIDER_DEFAULTS, SUCCESS_MESSAGE, VERBOSITY_MAP
+from autogluon.assistant.constants import API_URL, SUCCESS_MESSAGE
 from autogluon.assistant.webui.file_uploader import handle_uploaded_files
 from autogluon.assistant.webui.log_processor import messages, process_logs, render_task_logs
 
 # ==================== Constants ====================
 PACKAGE_ROOT = Path(__file__).parents[2]
 DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "configs" / "default.yaml"
+
+VERBOSITY_MAP = {
+    "DETAIL": "3",
+    "INFO": "2",
+    "BRIEF": "1",
+}
+
+# Provider defaults
+PROVIDER_DEFAULTS = {
+    "bedrock": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+    "openai": "gpt-4o-2024-08-06",
+    "anthropic": "claude-3-7-sonnet-20250219",
+}
 
 
 # ==================== Data Classes ====================
@@ -1069,39 +1082,37 @@ class TaskManager:
             st.error("Running configuration not found!")
             return
 
-        # Check if task is still queued
-        if st.session_state.queue_position is not None and st.session_state.queue_position > 0:
-            # Task is queued, show queue status
-            with st.chat_message("assistant"):
-                st.markdown("### Queued Task")
-                st.caption(f"ID: {task_id[:8]}... | Type 'cancel' to remove from queue")
-                
-                # Check queue status
-                queue_status = BackendAPI.check_queue_status(task_id)
-                if queue_status and "position" in queue_status:
-                    new_position = queue_status["position"]
-                    st.session_state.queue_position = new_position
-                    
-                    if new_position == 0:
-                        # Task has started
-                        st.session_state.run_id = queue_status.get("run_id")
-                        st.rerun()
-                    else:
-                        st.info(f"⏳ Waiting in queue... Position: {new_position}")
-                        # Update the queue_status message
-                        for i, msg in enumerate(st.session_state.messages):
-                            if msg.type == "queue_status" and msg.content.get("task_id") == task_id:
-                                st.session_state.messages[i] = Message.queue_status(task_id, new_position)
-                                break
-                else:
-                    st.error("Failed to get queue status")
-            return
-
-        # Task is running
+        # If we don't have a run_id yet, check task status
         if not run_id:
-            st.error("Run ID not found!")
+            queue_status = BackendAPI.check_queue_status(task_id)
+            
+            if not queue_status:
+                with st.chat_message("assistant"):
+                    st.error("Failed to get task status")
+                return
+            
+            position = queue_status.get("position", 0)
+            st.session_state.queue_position = position
+            
+            # Update run_id if available
+            if queue_status.get("run_id"):
+                st.session_state.run_id = queue_status["run_id"]
+                st.rerun()  # Rerun to process with run_id
+                return
+            
+            # Display appropriate status based on position
+            with st.chat_message("assistant"):
+                if position > 0:
+                    st.markdown("### Queued Task")
+                    st.caption(f"ID: {task_id[:8]}... | Type 'cancel' to remove from queue")
+                    st.info(f"⏳ Waiting in queue... Position: {position}")
+                else:
+                    st.markdown("### Starting Task")
+                    st.caption(f"ID: {task_id[:8]}...")
+                    st.info("🚀 Task is starting, please wait...")
             return
 
+        # Task is running with valid run_id
         # Get new logs
         new_logs = BackendAPI.fetch_logs(run_id)
         st.session_state.current_task_logs.extend(new_logs)

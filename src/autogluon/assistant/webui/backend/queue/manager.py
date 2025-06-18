@@ -122,6 +122,9 @@ class QueueManager:
                         # Update the actual run_id in database
                         self.db.update_task_run_id(task_id, run_id)
                         
+                        # Small delay to ensure database update is visible
+                        time.sleep(0.1)
+                        
                         logger.info(f"Task {task_id} started with run_id {run_id}")
                         
                     except Exception as e:

@@ -23,7 +23,8 @@ class TaskDatabase:
 
     def _init_db(self):
         """Initialize database with tasks table"""
-        with self._get_connection() as conn:
+        conn = sqlite3.connect(self.db_path)
+        try:
             # Create table
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS tasks (
@@ -41,6 +42,10 @@ class TaskDatabase:
             # Create indexes separately
             conn.execute("CREATE INDEX IF NOT EXISTS idx_status ON tasks(status)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_created_at ON tasks(created_at)")
+            
+            conn.commit()
+        finally:
+            conn.close()
 
     @contextmanager
     def _get_connection(self):
@@ -58,7 +63,9 @@ class TaskDatabase:
         Add a new task to the queue
         Returns: queue position (0 means will run immediately)
         """
-        with self._get_connection() as conn:
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
             # Check if there are any running or queued tasks
             cursor = conn.execute(
                 "SELECT COUNT(*) as count FROM tasks WHERE status IN ('queued', 'running')"
@@ -74,15 +81,20 @@ class TaskDatabase:
                 json.dumps(command_data),
                 json.dumps(credentials) if credentials else None
             ))
+            conn.commit()  # Ensure immediate commit
             
             return position
+        finally:
+            conn.close()
 
     def get_next_task(self) -> Optional[Tuple[str, Dict, Optional[Dict]]]:
         """
         Get the next queued task and mark it as running
         Returns: (task_id, command_data, credentials) or None
         """
-        with self._get_connection() as conn:
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
             # Check if there's already a running task
             cursor = conn.execute("SELECT COUNT(*) as count FROM tasks WHERE status = 'running'")
             if cursor.fetchone()['count'] > 0:
@@ -107,24 +119,33 @@ class TaskDatabase:
                 SET status = 'running', started_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             """, (row['id'],))
+            conn.commit()  # Ensure immediate commit
             
             return (
                 row['task_id'],
                 json.loads(row['command_json']),
                 json.loads(row['credentials_json']) if row['credentials_json'] else None
             )
+        finally:
+            conn.close()
 
     def update_task_run_id(self, task_id: str, run_id: str):
         """Update the run_id after task starts"""
-        with self._get_connection() as conn:
+        conn = sqlite3.connect(self.db_path)
+        try:
             conn.execute(
                 "UPDATE tasks SET run_id = ? WHERE task_id = ?",
                 (run_id, task_id)
             )
+            conn.commit()  # Ensure immediate commit
+        finally:
+            conn.close()
 
     def get_task_status(self, task_id: str) -> Optional[Dict]:
         """Get task status and position"""
-        with self._get_connection() as conn:
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
             cursor = conn.execute("""
                 SELECT id, status, run_id, created_at, started_at
                 FROM tasks
@@ -143,8 +164,8 @@ class TaskDatabase:
                 'started_at': row['started_at']
             }
             
-            # Calculate position if queued
-            if row['status'] == 'queued':
+            # Calculate position if queued or running
+            if row['status'] in ('queued', 'running'):
                 cursor = conn.execute("""
                     SELECT COUNT(*) as position
                     FROM tasks
@@ -152,13 +173,17 @@ class TaskDatabase:
                 """, (row['id'],))
                 result['position'] = cursor.fetchone()['position']
             else:
-                result['position'] = 0
+                result['position'] = None
             
             return result
+        finally:
+            conn.close()
 
     def get_queue_info(self) -> Dict:
         """Get overall queue information"""
-        with self._get_connection() as conn:
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
             cursor = conn.execute("""
                 SELECT 
                     SUM(CASE WHEN status = 'queued' THEN 1 ELSE 0 END) as queued,
@@ -172,13 +197,17 @@ class TaskDatabase:
                 'running': row['running'] or 0,
                 'total_waiting': (row['queued'] or 0) + (row['running'] or 0)
             }
+        finally:
+            conn.close()
 
     def cancel_task(self, task_id: str) -> bool:
         """
         Cancel a task (only if queued)
         Returns: True if cancelled, False if not found or already running
         """
-        with self._get_connection() as conn:
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
             cursor = conn.execute(
                 "SELECT status FROM tasks WHERE task_id = ?",
                 (task_id,)
@@ -190,28 +219,43 @@ class TaskDatabase:
             
             # Delete the task (as per requirement)
             conn.execute("DELETE FROM tasks WHERE task_id = ?", (task_id,))
+            conn.commit()  # Ensure immediate commit
             return True
+        finally:
+            conn.close()
 
     def complete_task(self, task_id: str):
         """Mark task as completed and remove from database"""
-        with self._get_connection() as conn:
+        conn = sqlite3.connect(self.db_path)
+        try:
             conn.execute("DELETE FROM tasks WHERE task_id = ?", (task_id,))
+            conn.commit()  # Ensure immediate commit
+        finally:
+            conn.close()
 
     def get_task_by_run_id(self, run_id: str) -> Optional[str]:
         """Get task_id by run_id"""
-        with self._get_connection() as conn:
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
             cursor = conn.execute(
                 "SELECT task_id FROM tasks WHERE run_id = ?",
                 (run_id,)
             )
             row = cursor.fetchone()
             return row['task_id'] if row else None
+        finally:
+            conn.close()
 
     def cleanup_stale_tasks(self, timeout_seconds: int = 3600):
         """Clean up tasks that have been running too long (likely crashed)"""
-        with self._get_connection() as conn:
+        conn = sqlite3.connect(self.db_path)
+        try:
             conn.execute("""
                 DELETE FROM tasks
                 WHERE status = 'running'
                 AND datetime(started_at, '+' || ? || ' seconds') < datetime('now')
             """, (timeout_seconds,))
+            conn.commit()
+        finally:
+            conn.close()
