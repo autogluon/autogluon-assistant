@@ -25,13 +25,13 @@ ONLY save files to the working directory: {output_folder}.
    - If a model is trained, save it in a folder with random timestamp within {output_folder}
 
 3. Prediction:
-   - Make predictions on the test data
+   - Make predictions on the test data. Always preserve and use the original indexing column from the test data to maintain exact row correspondence - do not generate new indices or rely on assumed ordering.
    - Save the predicted results to {output_folder}, result file name should be "results", the format and extension should be same as the test data file
    - Output column names must exactly match those in the training or sample submission files without adding "predicted_" prefixes or creating any new columns.
 
 4. Documentation:
    - Add a brief docstring at the beginning of the script explaining its purpose
-   - Also include additional installation steps with comments at the beginning of the script
+   - Include additional installation steps with comments at the beginning of the script
    - Include comments explaining any complex operations or design decisions
 
 5. Others:

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 from .registry import ToolsRegistry
 
@@ -28,3 +28,5 @@ class TutorialInfo(NamedTuple):
     path: Path
     title: str
     summary: str
+    score: Optional[float] = None
+    content: Optional[str] = None

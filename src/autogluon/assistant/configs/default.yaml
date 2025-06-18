@@ -7,6 +7,7 @@ max_file_group_size_to_show: 5
 num_example_files_to_show: 1
 
 max_chars_per_file: 1024
+num_tutorial_retrievals: 20
 max_num_tutorials: 5
 max_user_input_length: 2048
 max_error_message_length: 2048
@@ -37,6 +38,7 @@ llm: &default_llm
 coder:
   <<: *default_llm  # Merge llm_config
   temperature: 0.
+  multi_turn: True
   top_p: 1
 
 executer:
@@ -54,12 +56,16 @@ error_analyzer:
 retriever:
   <<: *default_llm  # Merge llm_config
 
+reranker:
+  <<: *default_llm  # Merge llm_config
+
 description_file_retriever:
   <<: *default_llm  # Merge llm_config
 
 task_descriptor:
   <<: *default_llm  # Merge llm_config
-  max_description_files_length: 2048
+  max_description_files_length_to_show: 1024
+  max_description_files_length_for_summarization: 16384
 
 tool_selector:
   <<: *default_llm  # Merge llm_config

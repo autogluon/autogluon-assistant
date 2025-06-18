@@ -10,6 +10,7 @@ from ..agents import (
     DescriptionFileRetrieverAgent,
     ErrorAnalyzerAgent,
     ExecuterAgent,
+    RerankerAgent,
     RetrieverAgent,
     TaskDescriptorAgent,
     ToolSelectorAgent,
@@ -93,6 +94,7 @@ class Manager:
         self.python_codes: List[str] = []
         self.python_file_paths: List[str] = []
         self.bash_scripts: List[str] = []
+        self.tutorial_retrievals: List[str] = []
         self.tutorial_prompts: List[str] = []
 
         self.error_analyzer = ErrorAnalyzerAgent(
@@ -106,6 +108,13 @@ class Manager:
             config=self.config,
             manager=self,
             llm_config=self.config.retriever,
+            prompt_template=None,  # TODO: Add prompt_template to argument
+        )
+
+        self.reranker = RerankerAgent(
+            config=self.config,
+            manager=self,
+            llm_config=self.config.reranker,
             prompt_template=None,  # TODO: Add prompt_template to argument
         )
 
@@ -220,7 +229,7 @@ class Manager:
     @property
     def all_previous_error_prompts(self) -> str:
         if self.time_step >= 1:
-            return "\n".join(self.error_prompts[: self.time_step])
+            return "\n\n".join(self.error_prompts[: self.time_step])
         else:
             return ""
 
@@ -238,6 +247,19 @@ class Manager:
             return ""
 
     @property
+    def tutorial_retrieval(self) -> str:
+        assert self.time_step >= 0, "No tutorial retrieval because the prompt generator is not stepped yet."
+        assert len(self.tutorial_retrievals) == self.time_step + 1, "tutorial retrieval is not updated yet"
+        return self.tutorial_retrievals[self.time_step]
+
+    @property
+    def previous_tutorial_retrieval(self) -> str:
+        if self.time_step >= 1:
+            return self.tutorial_retrievals[self.time_step - 1]
+        else:
+            return ""
+
+    @property
     def iteration_folder(self) -> str:
         if self.time_step >= 0:
             iter_folder = os.path.join(self.output_folder, f"generation_iter_{self.time_step}")
@@ -246,14 +268,30 @@ class Manager:
         os.makedirs(iter_folder, exist_ok=True)
         return iter_folder
 
-    def step(self, user_input=None):
-        """Step the prompt generator forward.
+    def set_initial_user_input(self, need_user_input, initial_user_input):
+        self.need_user_input = need_user_input
+        self.initial_user_input = initial_user_input
 
-        Args:
-            user_inputs: Optional user inputs to generate user prompt
-            error_message: Optional error message to generate error prompt
-        """
+    def step(self):
+        """Step the prompt generator forward."""
         self.time_step += 1
+
+        user_input = self.initial_user_input
+        # Get per iter user inputs if needed
+        if self.need_user_input:
+            if self.time_step > 0:
+                logger.brief(
+                    f"\n[bold green]Previous iteration info is stored in:[/bold green] {os.path.join(self.output_folder, f'iteration_{self.time_step - 1}')}"
+                )
+            else:
+                logger.brief(
+                    f"\n[bold green]Initialization info is stored in:[/bold green] {os.path.join(self.output_folder, 'initialization')}"
+                )
+            if user_input is None:
+                user_input = ""
+            user_input += "\n" + input(
+                f"Enter your inputs for current iteration (iter {self.time_step}) (press Enter to skip): "
+            )
 
         assert len(self.user_inputs) == self.time_step
         self.user_inputs.append(user_input)
@@ -264,8 +302,11 @@ class Manager:
             assert len(self.error_prompts) == self.time_step - 1
             self.error_prompts.append(previous_error_prompt)
 
-        tutorial_prompt = self.retriever()
+        retrieved_tutorials = self.retriever()
+        assert len(self.tutorial_retrievals) == self.time_step
+        self.tutorial_retrievals.append(retrieved_tutorials)
 
+        tutorial_prompt = self.reranker()
         assert len(self.tutorial_prompts) == self.time_step
         self.tutorial_prompts.append(tutorial_prompt)
 
@@ -379,3 +420,12 @@ class Manager:
         )
 
         logger.info(f"Full token usage detail:\n{usage}")
+
+    def cleanup(self):
+        """Clean up resources."""
+        if hasattr(self, "retriever"):
+            self.retriever.cleanup()
+
+    def __del__(self):
+        """Destructor to ensure cleanup."""
+        self.cleanup()
