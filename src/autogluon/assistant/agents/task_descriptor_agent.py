@@ -71,6 +71,6 @@ class TaskDescriptorAgent(BaseAgent):
 
         task_description = self.task_descriptor_prompt.parse(response)
 
-        self.manager.log_agent_end("TaskDescriptorAgent: task description generated using condensed description.")
+        self.manager.log_agent_end("TaskDescriptorAgent: task description generated.")
 
         return task_description

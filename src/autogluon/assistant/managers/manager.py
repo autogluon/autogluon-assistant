@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 import uuid
 from pathlib import Path
 from typing import List
@@ -15,33 +14,15 @@ from ..agents import (
     TaskDescriptorAgent,
     ToolSelectorAgent,
 )
-from ..constants import (
-    WEBUI_INPUT_MARKER,
-    WEBUI_INPUT_REQUEST,
-)
 from ..llm import ChatLLMFactory
 from ..tools_registry import registry
+from ..utils import get_user_input_webui
 
 # Basic configuration
 logging.basicConfig(level=logging.INFO)
 
 # Create a logger
 logger = logging.getLogger(__name__)
-
-
-def get_user_input_webui(prompt: str) -> str:
-    """Get user input in WebUI environment"""
-    # Send special marker with the prompt
-    print(f"{WEBUI_INPUT_REQUEST} {prompt}", flush=True)
-
-    # Read from stdin - Flask will send the user input here
-    while True:
-        line = sys.stdin.readline().strip()
-        if line.startswith(WEBUI_INPUT_MARKER):
-            # Extract the actual user input after the marker
-            user_input = line[len(WEBUI_INPUT_MARKER) :].strip()
-            logger.debug(f"Received WebUI input: {user_input}")
-            return user_input
 
 
 class Manager:

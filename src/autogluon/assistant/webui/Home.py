@@ -40,7 +40,7 @@ reload_warning = """
 <script>
   window.onbeforeunload = function () {
 
-    return  "Are you sure want to LOGOUT the session ?";
+    return  "Are you sure you want to LOGOUT this session?";
 };
 </script>
 """

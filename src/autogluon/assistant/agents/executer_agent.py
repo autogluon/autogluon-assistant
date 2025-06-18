@@ -191,6 +191,8 @@ class ExecuterAgent(BaseAgent):
 
         # Log the decision and error summary
         logger.brief(f"Planner decision: {decision}")
+        if error_summary:
+            logger.info(f"Error summary: {error_summary}")
 
         self.manager.log_agent_end("ExecuterAgent: execution finished; planner decision logged.")
 
