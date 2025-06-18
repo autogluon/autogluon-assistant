@@ -121,3 +121,4 @@ def run_agent(
 
     manager.report_token_usage()
     logger.brief(f"output saved in {output_dir}.")
+    manager.cleanup()

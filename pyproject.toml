@@ -16,7 +16,7 @@ dependencies = [
   "autogluon==1.2.0",
   "autogluon.tabular[skex]==1.2.0",
   "chardet>=5.2.0",
-  "FlagEmbedding",
+  "FlagEmbedding>=1.3.5",
   "faiss-cpu",
   "importlib-resources>=6.4.5",
   "langchain>=0.3.3",
@@ -39,6 +39,7 @@ dependencies = [
   "streamlit-aggrid>=1.0.2",
   "streamlit-extras>=0.4",
   "psutil>=5.9.8",
+  "peft>=0.15.2",
 ]
 
 [project.scripts]

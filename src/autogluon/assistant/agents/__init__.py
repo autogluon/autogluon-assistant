@@ -3,6 +3,7 @@ from .data_perception_agent import DataPerceptionAgent
 from .description_file_retriever_agent import DescriptionFileRetrieverAgent
 from .error_analyzer_agent import ErrorAnalyzerAgent
 from .executer_agent import ExecuterAgent
+from .reranker_agent import RerankerAgent
 from .retriever_agent import RetrieverAgent
 from .task_descriptor_agent import TaskDescriptorAgent
 from .tool_selector_agent import ToolSelectorAgent

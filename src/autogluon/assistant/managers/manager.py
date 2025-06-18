@@ -10,6 +10,7 @@ from ..agents import (
     DescriptionFileRetrieverAgent,
     ErrorAnalyzerAgent,
     ExecuterAgent,
+    RerankerAgent,
     RetrieverAgent,
     TaskDescriptorAgent,
     ToolSelectorAgent,
@@ -94,6 +95,7 @@ class Manager:
         self.python_codes: List[str] = []
         self.python_file_paths: List[str] = []
         self.bash_scripts: List[str] = []
+        self.tutorial_retrievals: List[str] = []
         self.tutorial_prompts: List[str] = []
 
         self.error_analyzer = ErrorAnalyzerAgent(
@@ -107,6 +109,13 @@ class Manager:
             config=self.config,
             manager=self,
             llm_config=self.config.retriever,
+            prompt_template=None,  # TODO: Add prompt_template to argument
+        )
+
+        self.reranker = RerankerAgent(
+            config=self.config,
+            manager=self,
+            llm_config=self.config.reranker,
             prompt_template=None,  # TODO: Add prompt_template to argument
         )
 
@@ -239,6 +248,19 @@ class Manager:
             return ""
 
     @property
+    def tutorial_retrieval(self) -> str:
+        assert self.time_step >= 0, "No tutorial retrieval because the prompt generator is not stepped yet."
+        assert len(self.tutorial_retrievals) == self.time_step + 1, "tutorial retrieval is not updated yet"
+        return self.tutorial_retrievals[self.time_step]
+
+    @property
+    def previous_tutorial_retrieval(self) -> str:
+        if self.time_step >= 1:
+            return self.tutorial_retrievals[self.time_step - 1]
+        else:
+            return ""
+
+    @property
     def iteration_folder(self) -> str:
         if self.time_step >= 0:
             iter_folder = os.path.join(self.output_folder, f"generation_iter_{self.time_step}")
@@ -287,8 +309,11 @@ class Manager:
             assert len(self.error_prompts) == self.time_step - 1
             self.error_prompts.append(previous_error_prompt)
 
-        tutorial_prompt = self.retriever()
+        retrieved_tutorials = self.retriever()
+        assert len(self.tutorial_retrievals) == self.time_step
+        self.tutorial_retrievals.append(retrieved_tutorials)
 
+        tutorial_prompt = self.reranker()
         assert len(self.tutorial_prompts) == self.time_step
         self.tutorial_prompts.append(tutorial_prompt)
 
@@ -402,3 +427,12 @@ class Manager:
         )
 
         logger.info(f"Full token usage detail:\n{usage}")
+
+    def cleanup(self):
+        """Clean up resources."""
+        if hasattr(self, "retriever"):
+            self.retriever.cleanup()
+
+    def __del__(self):
+        """Destructor to ensure cleanup."""
+        self.cleanup()
