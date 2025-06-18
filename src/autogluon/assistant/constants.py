@@ -21,3 +21,16 @@ SUCCESS_MESSAGE = """🎉🎉 Task completed successfully! If you found this use
 IGNORED_MESSAGES = [
     "Too many requests, please wait before trying again",
 ]
+
+VERBOSITY_MAP = {
+    "DETAIL": "3",
+    "INFO": "2",
+    "BRIEF": "1",
+}
+
+# Provider defaults
+PROVIDER_DEFAULTS = {
+    "bedrock": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+    "openai": "gpt-4o-2024-08-06",
+    "anthropic": "claude-3-7-sonnet-20250219",
+}
