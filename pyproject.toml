@@ -16,6 +16,7 @@ dependencies = [
   "autogluon==1.2.0",
   "autogluon.tabular[skex]==1.2.0",
   "FlagEmbedding",
+  "chardet>=5.2.0",
   "faiss-cpu",
   "importlib-resources>=6.4.5",
   "langchain>=0.3.3",
