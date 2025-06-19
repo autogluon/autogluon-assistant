@@ -1316,7 +1316,7 @@ class AutoMLAgentApp:
         # Determine chat input configuration based on state
         if st.session_state.waiting_for_input:
             # When waiting for iteration input
-            placeholder = st.session_state.input_prompt or "Enter your input for this iteration (press Enter to skip)"
+            placeholder = st.session_state.input_prompt or "Enter your input for this iteration (press Space then Enter to skip)"
             accept_file = False  # Don't accept files during iteration prompts
         elif st.session_state.task_running:
             # When task is running but not waiting for input
