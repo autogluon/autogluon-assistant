@@ -162,7 +162,7 @@ class BedrockCredentialsValidator(CredentialsValidator):
 
         # Set default region if not provided
         if "AWS_DEFAULT_REGION" not in credentials:
-            credentials["AWS_DEFAULT_REGION"] = "us-east-1"
+            credentials["AWS_DEFAULT_REGION"] = "us-west-2"
 
         return credentials
 
@@ -174,7 +174,7 @@ class BedrockCredentialsValidator(CredentialsValidator):
             session_params = {
                 "aws_access_key_id": credentials["AWS_ACCESS_KEY_ID"],
                 "aws_secret_access_key": credentials["AWS_SECRET_ACCESS_KEY"],
-                "region_name": credentials.get("AWS_DEFAULT_REGION", "us-east-1"),
+                "region_name": credentials.get("AWS_DEFAULT_REGION", "us-west-2"),
             }
 
             # Add session token if present (for temporary credentials)
@@ -649,7 +649,7 @@ class UI:
                             "AWS Credentials",
                             height=120,
                             key="bedrock_credentials",
-                            placeholder='export AWS_ACCESS_KEY_ID="ASIA..."\nexport AWS_SECRET_ACCESS_KEY="..."\nexport AWS_SESSION_TOKEN="..."  # For temporary credentials\nexport AWS_DEFAULT_REGION="us-east-1"  # Optional',
+                            placeholder='export AWS_ACCESS_KEY_ID="ASIA..."\nexport AWS_SECRET_ACCESS_KEY="..."\nexport AWS_SESSION_TOKEN="..."  # For temporary credentials\nexport AWS_DEFAULT_REGION="us-west-2"  # Optional',
                             help="Paste your AWS credentials (permanent or temporary)",
                         )
 
@@ -1316,7 +1316,9 @@ class AutoMLAgentApp:
         # Determine chat input configuration based on state
         if st.session_state.waiting_for_input:
             # When waiting for iteration input
-            placeholder = st.session_state.input_prompt or "Enter your input for this iteration (press Space then Enter to skip)"
+            placeholder = (
+                st.session_state.input_prompt or "Enter your input for this iteration (press Space then Enter to skip)"
+            )
             accept_file = False  # Don't accept files during iteration prompts
         elif st.session_state.task_running:
             # When task is running but not waiting for input
