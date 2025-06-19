@@ -15,13 +15,26 @@ import streamlit as st
 import yaml
 from botocore.exceptions import ClientError, NoCredentialsError
 
-from autogluon.assistant.constants import API_URL, PROVIDER_DEFAULTS, SUCCESS_MESSAGE, VERBOSITY_MAP
+from autogluon.assistant.constants import API_URL, SUCCESS_MESSAGE
 from autogluon.assistant.webui.file_uploader import handle_uploaded_files
 from autogluon.assistant.webui.log_processor import messages, process_logs, render_task_logs
 
 # ==================== Constants ====================
 PACKAGE_ROOT = Path(__file__).parents[2]
 DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "configs" / "default.yaml"
+
+VERBOSITY_MAP = {
+    "DETAIL": "3",
+    "INFO": "2",
+    "BRIEF": "1",
+}
+
+# Provider defaults
+PROVIDER_DEFAULTS = {
+    "bedrock": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+    "openai": "gpt-4o-2024-08-06",
+    "anthropic": "claude-3-7-sonnet-20250219",
+}
 
 
 # ==================== Data Classes ====================
@@ -72,6 +85,10 @@ class Message:
     @classmethod
     def task_results(cls, run_id: str, output_dir: str) -> "Message":
         return cls(role="assistant", type="task_results", content={"run_id": run_id, "output_dir": output_dir})
+
+    @classmethod
+    def queue_status(cls, task_id: str, position: int) -> "Message":
+        return cls(role="assistant", type="queue_status", content={"task_id": task_id, "position": position})
 
 
 @dataclass
@@ -322,8 +339,8 @@ class ConfigFileHandler:
             agent_sections = [
                 "coder",
                 "executer",
-                "reader",
                 "error_analyzer",
+                "reader",
                 "retriever",
                 "description_file_retriever",
                 "task_descriptor",
@@ -362,6 +379,8 @@ class SessionState:
             "data_src": None,
             "task_running": False,
             "run_id": None,
+            "task_id": None,  # New: track task_id separately
+            "queue_position": None,  # New: track queue position
             "current_task_logs": [],
             "running_config": None,
             "current_input_dir": None,
@@ -381,10 +400,12 @@ class SessionState:
                 st.session_state[key] = value
 
     @staticmethod
-    def start_task(run_id: str, config: TaskConfig, input_dir: str):
-        """Start new task"""
+    def start_task(task_id: str, config: TaskConfig, input_dir: str, position: int):
+        """Start new task (or queue it)"""
         st.session_state.task_running = True
-        st.session_state.run_id = run_id
+        st.session_state.task_id = task_id
+        st.session_state.queue_position = position
+        st.session_state.run_id = None  # Will be set when task actually starts
         st.session_state.current_task_logs = []
         st.session_state.running_config = config
         st.session_state.current_input_dir = input_dir
@@ -400,6 +421,8 @@ class SessionState:
     def finish_task():
         """Finish task"""
         st.session_state.task_running = False
+        st.session_state.task_id = None
+        st.session_state.queue_position = None
         st.session_state.running_config = None
         st.session_state.current_task_logs = []
         st.session_state.current_input_dir = None
@@ -440,7 +463,7 @@ class SessionState:
         if task_log_index is None:
             return
 
-        # Find the associated messages (user_summary, command, iteration_prompts, etc.)
+        # Find the associated messages (user_summary, command, queue_status, etc.)
         start_index = task_log_index
 
         # Look backwards for related messages
@@ -449,7 +472,7 @@ class SessionState:
             msg = st.session_state.messages[i]
 
             # Check for various message types
-            if msg.type in ["command", "user_summary"]:
+            if msg.type in ["command", "user_summary", "queue_status"]:
                 start_index = i
                 i -= 1
                 continue
@@ -502,8 +525,8 @@ class BackendAPI:
     """Backend API communication"""
 
     @staticmethod
-    def start_task(data_src: str, config_path: str, user_prompt: str, config: TaskConfig) -> str:
-        """Start task"""
+    def start_task(data_src: str, config_path: str, user_prompt: str, config: TaskConfig) -> Tuple[str, int]:
+        """Start task - returns (task_id, position)"""
         payload = {
             "data_src": data_src,
             "config_path": config_path,
@@ -522,7 +545,8 @@ class BackendAPI:
             payload["aws_credentials"] = config.credentials  # Reusing the field for all credentials
 
         response = requests.post(f"{API_URL}/run", json=payload)
-        return response.json()["run_id"]
+        result = response.json()
+        return result["task_id"], result["position"]
 
     @staticmethod
     def fetch_logs(run_id: str) -> List[Dict]:
@@ -537,6 +561,12 @@ class BackendAPI:
         return response.json()
 
     @staticmethod
+    def check_queue_status(task_id: str) -> Dict:
+        """Check queue status for a task"""
+        response = requests.get(f"{API_URL}/queue/status/{task_id}")
+        return response.json()
+
+    @staticmethod
     def send_user_input(run_id: str, user_input: str) -> bool:
         """Send user input to backend"""
         try:
@@ -547,10 +577,16 @@ class BackendAPI:
             return False
 
     @staticmethod
-    def cancel_task(run_id: str) -> bool:
-        """Cancel task"""
+    def cancel_task(run_id: str = None, task_id: str = None) -> bool:
+        """Cancel task (either running or queued)"""
         try:
-            response = requests.post(f"{API_URL}/cancel", json={"run_id": run_id})
+            payload = {}
+            if run_id:
+                payload["run_id"] = run_id
+            if task_id:
+                payload["task_id"] = task_id
+                
+            response = requests.post(f"{API_URL}/cancel", json=payload)
             return response.json().get("cancelled", False)
         except:
             return False
@@ -606,9 +642,6 @@ class UI:
                             st.session_state.config_provider = config_provider
                             st.session_state.config_model = config_model
                             disable_provider_model = True
-
-                            st.session_state["llm_provider"] = config_provider
-                            st.session_state["model_name"] = config_model
                     except Exception as e:
                         st.error(f"Failed to parse config file: {str(e)}")
                 else:
@@ -746,6 +779,10 @@ class UI:
             st.markdown(msg.content["summary"])
         elif msg.type == "command":
             st.code(msg.content["command"], language="bash")
+        elif msg.type == "queue_status":
+            content = msg.content
+            position = content.get("position", 0)
+            st.info(f"⏳ Task submitted! Position in queue: {position} (0 means running immediately)")
         elif msg.type == "task_log":
             content = msg.content
             st.caption(f"ID: {content['run_id'][:8]}... | Completed: {content['timestamp']}")
@@ -930,44 +967,55 @@ class TaskManager:
 
     def handle_cancel_request(self):
         """Handle cancel request"""
-        run_id = st.session_state.run_id
-        if not run_id:
-            return
-
         # Display user's cancel command
         SessionState.add_message(Message.text("cancel", role="user"))
-
-        # Try to cancel task
-        if BackendAPI.cancel_task(run_id):
-            SessionState.add_message(Message.text(f"🛑 Task {run_id[:8]}... has been cancelled."))
-
-            if st.session_state.prev_iter_placeholder:
-                st.session_state.prev_iter_placeholder.empty()
-                st.session_state.prev_iter_placeholder = None
-            # Save current logs
-            if st.session_state.current_task_logs:
-                processed = process_logs(st.session_state.current_task_logs, st.session_state.running_config.max_iter)
-
-                # Extract output directory if available
-                output_dir = self._extract_output_dir(processed["phase_states"])
-
-                SessionState.add_message(
-                    Message.task_log(
-                        st.session_state.run_id,
-                        processed["phase_states"],
-                        st.session_state.running_config.max_iter,
-                        output_dir,
-                        st.session_state.current_input_dir,
-                    )
-                )
-
-                # Add task results message if output directory found
-                if output_dir:
-                    SessionState.add_message(Message.task_results(st.session_state.run_id, output_dir))
-
-            SessionState.finish_task()
+        
+        # Check if task is queued or running
+        if st.session_state.queue_position is not None and st.session_state.queue_position > 0:
+            # Task is queued, cancel from queue
+            task_id = st.session_state.task_id
+            if BackendAPI.cancel_task(task_id=task_id):
+                SessionState.add_message(Message.text(f"🛑 Queued task {task_id[:8]}... has been cancelled."))
+                SessionState.finish_task()
+            else:
+                SessionState.add_message(Message.text("❌ Failed to cancel the queued task."))
         else:
-            SessionState.add_message(Message.text("❌ Failed to cancel the task."))
+            # Task is running, cancel the run
+            run_id = st.session_state.run_id
+            if not run_id:
+                return
+
+            # Try to cancel task
+            if BackendAPI.cancel_task(run_id=run_id):
+                SessionState.add_message(Message.text(f"🛑 Task {run_id[:8]}... has been cancelled."))
+
+                if st.session_state.prev_iter_placeholder:
+                    st.session_state.prev_iter_placeholder.empty()
+                    st.session_state.prev_iter_placeholder = None
+                # Save current logs
+                if st.session_state.current_task_logs:
+                    processed = process_logs(st.session_state.current_task_logs, st.session_state.running_config.max_iter)
+
+                    # Extract output directory if available
+                    output_dir = self._extract_output_dir(processed["phase_states"])
+
+                    SessionState.add_message(
+                        Message.task_log(
+                            st.session_state.run_id,
+                            processed["phase_states"],
+                            st.session_state.running_config.max_iter,
+                            output_dir,
+                            st.session_state.current_input_dir,
+                        )
+                    )
+
+                    # Add task results message if output directory found
+                    if output_dir:
+                        SessionState.add_message(Message.task_results(st.session_state.run_id, output_dir))
+
+                SessionState.finish_task()
+            else:
+                SessionState.add_message(Message.text("❌ Failed to cancel the task."))
 
         st.rerun()
 
@@ -1023,9 +1071,10 @@ class TaskManager:
 
     def render_running_task(self):
         """Render the currently running task"""
-        if not st.session_state.task_running or not st.session_state.run_id:
+        if not st.session_state.task_running:
             return
 
+        task_id = st.session_state.task_id
         run_id = st.session_state.run_id
         config = st.session_state.running_config
 
@@ -1033,6 +1082,37 @@ class TaskManager:
             st.error("Running configuration not found!")
             return
 
+        # If we don't have a run_id yet, check task status
+        if not run_id:
+            queue_status = BackendAPI.check_queue_status(task_id)
+            
+            if not queue_status:
+                with st.chat_message("assistant"):
+                    st.error("Failed to get task status")
+                return
+            
+            position = queue_status.get("position", 0)
+            st.session_state.queue_position = position
+            
+            # Update run_id if available
+            if queue_status.get("run_id"):
+                st.session_state.run_id = queue_status["run_id"]
+                st.rerun()  # Rerun to process with run_id
+                return
+            
+            # Display appropriate status based on position
+            with st.chat_message("assistant"):
+                if position > 0:
+                    st.markdown("### Queued Task")
+                    st.caption(f"ID: {task_id[:8]}... | Type 'cancel' to remove from queue")
+                    st.info(f"⏳ Waiting in queue... Position: {position}")
+                else:
+                    st.markdown("### Starting Task")
+                    st.caption(f"ID: {task_id[:8]}...")
+                    st.info("🚀 Task is starting, please wait...")
+            return
+
+        # Task is running with valid run_id
         # Get new logs
         new_logs = BackendAPI.fetch_logs(run_id)
         st.session_state.current_task_logs.extend(new_logs)
@@ -1188,10 +1268,10 @@ class TaskManager:
 
     def _start_task(self, data_folder: str, config_path: str, user_prompt: str):
         """Start task"""
-        # First generate run_id
-        run_id = BackendAPI.start_task(data_folder, config_path, user_prompt, self.config)
+        # Submit task to queue
+        task_id, position = BackendAPI.start_task(data_folder, config_path, user_prompt, self.config)
 
-        # Build command
+        # Build command for display
         cmd_parts = [
             "mlzero",
             "-i",
@@ -1210,11 +1290,14 @@ class TaskManager:
             cmd_parts.append("--need-user-input")
 
         # Display command
-        command_str = f"[{datetime.now().strftime('%H:%M:%S')}] Running AutoMLAgent: {' '.join(cmd_parts)}"
+        command_str = f"[{datetime.now().strftime('%H:%M:%S')}] Submitting AutoMLAgent task: {' '.join(cmd_parts)}"
         SessionState.add_message(Message.command(command_str))
+        
+        # Add queue status message
+        SessionState.add_message(Message.queue_status(task_id, position))
 
-        # Start task
-        SessionState.start_task(run_id, self.config, data_folder)
+        # Start task monitoring
+        SessionState.start_task(task_id, self.config, data_folder, position)
         st.rerun()
 
     def _extract_output_dir(self, phase_states: Dict) -> Optional[str]:
