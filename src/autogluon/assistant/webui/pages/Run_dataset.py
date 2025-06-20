@@ -15,26 +15,13 @@ import streamlit as st
 import yaml
 from botocore.exceptions import ClientError, NoCredentialsError
 
-from autogluon.assistant.constants import API_URL, SUCCESS_MESSAGE
+from autogluon.assistant.constants import API_URL, PROVIDER_DEFAULTS, SUCCESS_MESSAGE, VERBOSITY_MAP
 from autogluon.assistant.webui.file_uploader import handle_uploaded_files
 from autogluon.assistant.webui.log_processor import messages, process_logs, render_task_logs
 
 # ==================== Constants ====================
 PACKAGE_ROOT = Path(__file__).parents[2]
 DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "configs" / "default.yaml"
-
-VERBOSITY_MAP = {
-    "DETAIL": "3",
-    "INFO": "2",
-    "BRIEF": "1",
-}
-
-# Provider defaults
-PROVIDER_DEFAULTS = {
-    "bedrock": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
-    "openai": "gpt-4o-2024-08-06",
-    "anthropic": "claude-3-7-sonnet-20250219",
-}
 
 
 # ==================== Data Classes ====================
@@ -642,6 +629,8 @@ class UI:
                             st.session_state.config_provider = config_provider
                             st.session_state.config_model = config_model
                             disable_provider_model = True
+
+                            st.session_state["llm_provider"] = config_provider
                     except Exception as e:
                         st.error(f"Failed to parse config file: {str(e)}")
                 else:
