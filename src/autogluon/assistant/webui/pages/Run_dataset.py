@@ -771,7 +771,7 @@ class UI:
         elif msg.type == "queue_status":
             content = msg.content
             position = content.get("position", 0)
-            st.info(f"⏳ Task submitted! Position in queue: {position} (0 means running immediately)")
+            st.info(f"⏳ Task submitted! Position in queue: {position}")
         elif msg.type == "task_log":
             content = msg.content
             st.caption(f"ID: {content['run_id'][:8]}... | Completed: {content['timestamp']}")
