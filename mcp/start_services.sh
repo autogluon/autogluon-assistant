@@ -13,6 +13,22 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Parse arguments
+REMOTE_MODE=false
+for arg in "$@"; do
+    case $arg in
+        --remote)
+            REMOTE_MODE=true
+            shift
+            ;;
+        --help|-h)
+            echo "Usage: $0 [--remote]"
+            echo "  --remote  Start server in remote mode (listen on all interfaces)"
+            exit 0
+            ;;
+    esac
+done
+
 # Check if Flask backend is running
 check_flask_backend() {
     echo -n "Checking Flask backend on port 5000... "
@@ -59,7 +75,14 @@ start_mcp_server() {
     fi
     
     # Start MCP server
-    echo "Starting MCP server on port 8000..."
+    if [ "$REMOTE_MODE" = true ]; then
+        echo "Starting MCP server in REMOTE mode (listening on 0.0.0.0:8000)..."
+        echo -e "${YELLOW}WARNING: Server will be accessible from any IP address${NC}"
+        echo -e "${YELLOW}Make sure your EC2 security group is properly configured${NC}"
+    else
+        echo "Starting MCP server in LOCAL mode (listening on 127.0.0.1:8000)..."
+    fi
+    
     python ./mcp/server.py &
     MCP_PID=$!
     echo "MCP Server PID: $MCP_PID"
@@ -105,11 +128,22 @@ main() {
     echo
     echo "Services running:"
     echo "  - Flask Backend: http://localhost:5000"
-    echo "  - MCP Server: http://localhost:8000"
-    echo
-    echo "To test the setup, run:"
-    echo "  cd examples"
-    echo "  python client_example.py /path/to/data /path/to/output"
+    
+    if [ "$REMOTE_MODE" = true ]; then
+        # Get EC2 public IP
+        PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "your-server-ip")
+        echo "  - MCP Server: http://$PUBLIC_IP:8000 (remote access)"
+        echo
+        echo "Connect from your local machine:"
+        echo "  python client_example.py /local/data /local/output --server http://$PUBLIC_IP:8000"
+    else
+        echo "  - MCP Server: http://localhost:8000 (local only)"
+        echo
+        echo "To test the setup, run:"
+        echo "  cd examples"
+        echo "  python client_example.py /path/to/data /path/to/output"
+    fi
+    
     echo
     echo "To stop services, run: ./stop_services.sh"
     echo
