@@ -15,8 +15,6 @@ maxdepth: 2
 hidden: true
 ---
 
-Essentials <autogluon-cloud>
-Image Modality <image-modality>
-Distributed Training <distributed-training>
-FAQ <faq>
+Essentials <getting_started>
+
 ```

@@ -71,7 +71,6 @@ mlzero-frontend
 :::
 
 
-
 ```{toctree}
 ---
 caption: Tutorials
@@ -79,27 +78,5 @@ maxdepth: 3
 hidden:
 ---
 
-Cloud <tutorials/index>
-```
-
-```{toctree}
----
-caption: Resources
-maxdepth: 1
-hidden:
----
-
-Versions <versions.rst>
-```
-
-```{toctree}
----
-caption: API
-maxdepth: 1
-hidden:
----
-
-TabularCloudPredictor <api/autogluon.cloud.TabularCloudPredictor>
-MultiModalCloudPredictor <api/autogluon.cloud.MultiModalCloudPredictor>
-TimeSeriesCloudPredictor <api/autogluon.cloud.TimeSeriesCloudPredictor>
+Assistant <tutorials/index>
 ```
