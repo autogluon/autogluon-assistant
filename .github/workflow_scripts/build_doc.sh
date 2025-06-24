@@ -43,7 +43,7 @@ then
     other_doc_version_branch='dev'
 fi
 
-setup_build_env
+setup_build_contrib_env
 
 install_all
 cd docs && sphinx-build -b html . _build/html
