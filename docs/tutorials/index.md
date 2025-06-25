@@ -17,5 +17,6 @@ hidden: true
 
 Essentials <getting_started>
 FAQ <faq>
+Advanced Settings <advance_setting>
 
 ```
