@@ -1,18 +1,18 @@
 # Tutorial Prompt Generator Configuration
 
-per_execution_timeout: 86400
+per_execution_timeout: 7200
 
 # Data Perception
 max_file_group_size_to_show: 5
 num_example_files_to_show: 1
 
 max_chars_per_file: 1024
-num_tutorial_retrievals: 20
-max_num_tutorials: 5
+num_tutorial_retrievals: 50
+max_num_tutorials: 1
 max_user_input_length: 2048
 max_error_message_length: 2048
 max_tutorial_length: 8192
-create_venv: false
+create_venv: True
 condense_tutorials: True
 use_tutorial_summary: True
 

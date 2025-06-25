@@ -176,7 +176,7 @@ class HuggingFaceToolRegistrar:
 {github_readme_content}
 
 """
-                    
+
         else:
             # Fallback content if scraping failed
             content += f"""## Description
@@ -194,39 +194,39 @@ This is a {task.replace('-', ' ')} model from Hugging Face. Detailed documentati
     def _extract_github_links(self, content: str, max_repos: int = 3) -> list:
         """
         Extract GitHub repository links from content.
-        
+
         Args:
             content: Text content to search for GitHub links
             max_repos: Maximum number of unique repositories to return
-            
+
         Returns:
             List of unique GitHub repository URLs (limited by max_repos)
         """
         if not content:
             return []
-        
+
         # Pattern to match GitHub repository URLs, excluding common punctuation at the end
         github_patterns = [
             r"https?://github\.com/[^/\s]+/[^/\s]+(?:/[^/\s)]*)?",
             r"github\.com/[^/\s]+/[^/\s]+(?:/[^/\s)]*)?",
         ]
-        
+
         github_links = []
-        
+
         for pattern in github_patterns:
             matches = re.findall(pattern, content, re.IGNORECASE)
             for match in matches:
                 # Clean up the URL by removing trailing punctuation
-                match = match.rstrip('.,;:!?)')
-                
+                match = match.rstrip(".,;:!?)")
+
                 # Normalize the URL
                 if not match.startswith("http"):
                     match = "https://" + match
-                
+
                 # Extract just the repository part (owner/repo)
                 parsed = urlparse(match)
                 path_parts = [p for p in parsed.path.split("/") if p]
-                
+
                 if len(path_parts) >= 2:
                     repo_url = f"https://github.com/{path_parts[0]}/{path_parts[1]}"
                     if repo_url not in github_links:
@@ -234,7 +234,7 @@ This is a {task.replace('-', ' ')} model from Hugging Face. Detailed documentati
                         # Stop if we've reached the maximum number of repos
                         if len(github_links) >= max_repos:
                             return github_links
-        
+
         return github_links
 
     def _fetch_github_readme(self, github_url: str) -> Optional[str]:

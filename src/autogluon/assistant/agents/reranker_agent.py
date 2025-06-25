@@ -37,9 +37,6 @@ class RerankerAgent(BaseAgent):
         """Select and rerank relevant tutorials from retrieved candidates."""
         self.manager.log_agent_start("RerankerAgent: reranking and selecting top tutorials from retrieved candidates.")
 
-        # Get retrieved tutorials from manager
-        retrieved_tutorials = self.manager.tutorial_retrieval
-
         # Build prompt for tutorial reranking
         prompt = self.reranker_prompt.build()
 
@@ -56,7 +53,7 @@ class RerankerAgent(BaseAgent):
         # Fallback: if parsing fails or returns empty, use top tutorials by score
         if not selected_tutorials:
             logger.warning("Tutorial reranking failed, falling back to top tutorials by retrieval score.")
-            selected_tutorials = self._select_top_by_score(retrieved_tutorials)
+            selected_tutorials = self._select_top_by_score(self.reranker_prompt.tutorials)
 
         # Generate tutorial prompt using selected tutorials
         tutorial_prompt = self._generate_tutorial_prompt(selected_tutorials)

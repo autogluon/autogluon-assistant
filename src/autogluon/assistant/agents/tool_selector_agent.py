@@ -56,6 +56,8 @@ class ToolSelectorAgent(BaseAgent):
 
         selected_tool = self.tool_selector_prompt.parse(response)
 
+        selected_tool = "huggingface"
+
         self.manager.log_agent_end("ToolSelectorAgent: selected tool and recorded justification.")
 
         return selected_tool

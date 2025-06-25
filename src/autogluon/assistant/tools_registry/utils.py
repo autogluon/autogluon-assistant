@@ -154,8 +154,6 @@ class HuggingFaceModelsFetcher:
 
     def get_all_pipeline_tags(self) -> List[str]:
         """Get all available pipeline tags/tasks from Hugging Face"""
-        return ["any-to-any", "audio-text-to-text"]
-        """
         return [
             # Multimodal
             "any-to-any",
@@ -215,7 +213,6 @@ class HuggingFaceModelsFetcher:
             "robotics",
             "other",
         ]
-        """
 
     def extract_model_info(self, model: Dict) -> Dict:
         """Extract relevant information from model data"""
