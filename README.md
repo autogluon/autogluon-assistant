@@ -34,7 +34,7 @@ uv pip install git+https://github.com/autogluon/autogluon-assistant.git
 
 For detailed usage instructions, OpenAI/Azure setup, and advanced configuration options, see our [Getting Started Tutorial](docs/tutorials/getting_started.md).
 
-### API Setup
+## API Setup
 MLZero uses AWS Bedrock by default. Configure your AWS credentials:
 
 ```bash
@@ -45,13 +45,45 @@ export AWS_SECRET_ACCESS_KEY="<your-secret-key>"
 
 We also support OpenAI. More LLM providers' support (e.g. Anthropic, Azure, etc.) will be added soon.
 
-### Basic Usage
+## Basic Usage for CLI UI
 
 ![Demo](https://github.com/autogluon/autogluon-assistant/blob/main/docs/assets/cli_demo.gif)
 
 ```bash
 mlzero -i <input_data_folder> [-u <optional_user_instructions>]
 ```
+
+## Basic Usage for WEB UI
+
+![Demo](https://github.com/autogluon/autogluon-assistant/blob/main/docs/assets/web_demo.gif)
+
+### Model Execution Settings
+
+The settings above the divider line control how the model runs, while the settings below the divider line relate to the model being used (including provider, credentials, and model parameters).
+
+### Model Execution Configuration
+
+**Max Iterations**: The number of rounds the model will run. The program automatically stops when this limit is reached. Default is 5, adjustable as needed.
+
+**Manual Prompts Between Iterations**: Choose whether to add iteration-specific prompts between iterations or not.
+
+**Log Verbosity**: Select the level of detail for the logs you want to see. Three options are available: brief, info, and detail. Brief is recommended.
+- **Brief**: Contains key essential information
+- **Info**: Includes brief information plus detailed information such as file save locations
+- **Detail**: Includes info-level information plus all model training related information
+
+### Model Configuration
+
+You can select the LLM provider, model, and credentials to use. If using Bedrock as the provider, you can use EC2 defaults. You can also upload your own config file, which will override the provider and model name settings. Provided credentials will be validated.
+
+### Chat Input Box
+
+1. **Initial Task Submission**: When starting a task for the first time, drag the input folder into this chat input box, enter any description or requirements about the task, then press Enter or click the submit button on the right. Note: Submitting larger files may sometimes fail - you can try multiple times if needed.
+
+2. **Manual Prompts**: If you selected "Manual prompts between iterations" in settings, you can input prompts here.
+
+3. **Task Cancellation**: After submitting a task, if you want to cancel it, submit "cancel" in this input box.
+
 
 ## Citation
 If you use Autogluon Assistant (MLZero) in your research, please cite our paper:
