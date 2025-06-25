@@ -16,5 +16,6 @@ hidden: true
 ---
 
 Essentials <getting_started>
+FAQ <faq>
 
 ```
