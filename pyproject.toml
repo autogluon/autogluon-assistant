@@ -13,6 +13,7 @@ authors = [
 ]
 dependencies = [
   "langgraph",
+  "accelerate<1.0",
   "autogluon==1.2.0",
   "autogluon.tabular[skex]==1.2.0",
   "chardet>=5.2.0",
