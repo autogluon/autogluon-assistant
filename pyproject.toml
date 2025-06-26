@@ -72,6 +72,7 @@ namespaces = true
   "configs/*.yaml",
   "webui/static/*",
   "webui/style.css",
+  "tool_registry/**/*",
 ]
 
 [tool.pytest.ini_options]
