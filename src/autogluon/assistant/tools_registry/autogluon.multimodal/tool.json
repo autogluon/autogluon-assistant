@@ -16,6 +16,7 @@
     "Check data path carefully when encounter ValueError: No model is available for this dataset.",
     "No need to specify model.names, and do not increase default per gpu batch size to avoid OOM errors.",
     "For semantic segmentation, use single GPU by setting CUDA_VISIBLE_DEVICES=0",
-    "For semantic segmentation, the predicted mask should be saved as greyscale JPG image (squeeze then cv2.imwrite) in \\\"predicted_mask\\\" folder under output folder and save its absolute path in label column."
+    "For semantic segmentation, the predicted mask should be saved as greyscale JPG image (squeeze then cv2.imwrite) in \\\"predicted_mask\\\" folder under output folder and save its absolute path in label column.",
+    "AutoGluon MultiModal requires converting multiple label columns into either a single combined label for mutually exclusive cases or training separate predictors for each label in non-exclusive scenarios."
   ]
 }

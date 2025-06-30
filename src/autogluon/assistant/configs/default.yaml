@@ -57,9 +57,13 @@ retriever:
 
 reranker:
   <<: *default_llm  # Merge llm_config
+  temperature: 0.
+  top_p: 1.
 
 description_file_retriever:
   <<: *default_llm  # Merge llm_config
+  temperature: 0.
+  top_p: 1.
 
 task_descriptor:
   <<: *default_llm  # Merge llm_config
@@ -68,3 +72,5 @@ task_descriptor:
 
 tool_selector:
   <<: *default_llm  # Merge llm_config
+  temperature: 0.
+  top_p: 1.
