@@ -9,7 +9,7 @@ import argparse
 
 
 def run_frontend():
-    """Run the streamlit frontend application."""
+    """Run the Streamlit frontend application."""
     parser = argparse.ArgumentParser(description="Run AutoGluon Assistant Frontend")
     parser.add_argument(
         "--port",
@@ -33,16 +33,16 @@ def run_frontend():
     
     args = parser.parse_args()
     
-    # 获取 Home.py 的路径
+    # Determine the path to Home.py
     current_dir = Path(__file__).parent
     home_py_path = current_dir / "Home.py"
     
-    # 确保文件存在
+    # Verify that Home.py exists
     if not home_py_path.exists():
         print(f"Error: {home_py_path} not found!")
         sys.exit(1)
     
-    # 构建 streamlit 命令
+    # Construct the Streamlit launch command
     cmd = [
         sys.executable,
         "-m",
@@ -53,20 +53,22 @@ def run_frontend():
         f"--server.address={args.host}",
     ]
     
-    # 添加主题配置（如果指定）
+    # Include theme settings if provided
     if args.theme:
         cmd.extend([f"--theme.base={args.theme}"])
     
-    # 设置环境变量（如果需要）
+    # Prepare environment variables
     env = os.environ.copy()
     
     try:
-        # 运行 streamlit
+        # Start the frontend server
         print(f"Starting AutoGluon Assistant Frontend on http://{args.host}:{args.port}")
         subprocess.run(cmd, env=env)
     except KeyboardInterrupt:
+        # Handle keyboard interrupt gracefully
         print("\nShutting down frontend...")
     except Exception as e:
+        # Report any errors and exit
         print(f"Error running frontend: {e}")
         sys.exit(1)
 
