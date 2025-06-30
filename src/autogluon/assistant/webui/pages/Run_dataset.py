@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import boto3
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
 import yaml
 from botocore.exceptions import ClientError, NoCredentialsError
 
@@ -1438,6 +1439,16 @@ class AutoMLAgentApp:
 
 def main():
     """Entry point"""
+
+    reload_warning = """
+    <script>
+        window.onbeforeunload = function () {
+            return "placeholder";
+        };
+    </script>
+    """
+    components.html(reload_warning, height=0)
+
     app = AutoMLAgentApp()
     app.run()
 

@@ -7,9 +7,9 @@ import streamlit.components.v1 as components
 from autogluon.assistant.constants import LOGO_PATH
 from autogluon.assistant.webui.start_page import main as start_page
 
-# 判断是否在 streamlit 运行环境中
+# Check if running in streamlit environment
 def is_running_in_streamlit():
-    """检查是否在 streamlit 环境中运行"""
+    """Check if running in streamlit environment"""
     try:
         from streamlit.runtime.scriptrunner import get_script_run_ctx
         return get_script_run_ctx() is not None
@@ -21,7 +21,7 @@ def is_running_in_streamlit():
             return False
 
 
-# 只有在 streamlit 环境中才执行页面配置和渲染
+# Only execute page configuration and rendering in streamlit environment
 if is_running_in_streamlit():
     st.set_page_config(
         page_title="AutoGluon Assistant",
@@ -55,15 +55,14 @@ if is_running_in_streamlit():
     reload_warning = """
     <script>
       window.onbeforeunload = function () {
-
-        return  "Are you sure you want to LOGOUT this session?";
-    };
+        return "Are you sure you want to leave?";
+      };
     </script>
     """
 
     components.html(reload_warning, height=0)
 
-    # 执行主应用逻辑
+    # Execute main application logic
     start_page()
 
 
@@ -72,10 +71,10 @@ def main():
     import subprocess
     from pathlib import Path
     
-    # 获取当前文件路径
+    # Get current file path
     current_file = Path(__file__).resolve()
     
-    # 运行 streamlit
+    # Run streamlit
     cmd = [
         sys.executable,
         "-m",
@@ -95,6 +94,6 @@ def main():
 
 
 if __name__ == "__main__":
-    # 如果直接运行此文件且不在 streamlit 环境中，启动 streamlit 服务器
+    # If running this file directly and not in streamlit environment, launch streamlit server
     if not is_running_in_streamlit():
         main()
