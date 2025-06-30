@@ -45,7 +45,9 @@ export AWS_SECRET_ACCESS_KEY="<your-secret-key>"
 
 We also support OpenAI. More LLM providers' support (e.g. Anthropic, Azure, etc.) will be added soon.
 
-## Basic Usage for CLI UI
+## Basic Usage
+
+### CLI UI
 
 ![Demo](https://github.com/autogluon/autogluon-assistant/blob/main/docs/assets/cli_demo.gif)
 
@@ -53,14 +55,17 @@ We also support OpenAI. More LLM providers' support (e.g. Anthropic, Azure, etc.
 mlzero -i <input_data_folder> [-u <optional_user_instructions>]
 ```
 
-## Basic Usage for WEB UI
+## WEB UI
 
 ![Demo](https://github.com/autogluon/autogluon-assistant/blob/main/docs/assets/web_demo.gif)
 
+```bash
+mlzero-backend # command to start backend
+mlzero-frontend # command to start frontend on 8509(default)
+```
+
 1. **Configure**: Set your model provider and credentials in settings
-2. **Upload**: Drag your data folder into the chat input box
-3. **Describe**: Type what you want to accomplish and hit Enter
-4. **Monitor**: Watch the logs as the model processes your task
+2. **Upload & Describe**: Drag your data folder into the chat input box, then type what you want to accomplish and press Enter
 
 ## Citation
 If you use Autogluon Assistant (MLZero) in your research, please cite our paper:
