@@ -13,6 +13,7 @@ authors = [
 ]
 dependencies = [
   "langgraph",
+  "accelerate<1.0",
   "autogluon==1.2.0",
   "autogluon.tabular[skex]==1.2.0",
   "chardet>=5.2.0",
@@ -34,6 +35,7 @@ dependencies = [
   "joblib>=1.4.2",
   "python-calamine",
   "tenacity>=8.2.2",
+  "transformers<=4.49.0",
   "pandas>=2.2",
   "streamlit>=1.37",
   "streamlit-aggrid>=1.0.2",
