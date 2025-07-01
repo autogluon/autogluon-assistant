@@ -18,7 +18,7 @@ except ImportError:
 
 import requests
 
-from constants import API_URL, PROVIDER_DEFAULTS, VERBOSITY_MAP
+from constants import API_URL, VERBOSITY_MAP
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +62,8 @@ class TaskManager:
                     "config_path": params.get("config_path", ""),
                     "max_iter": params.get("max_iterations", 5),
                     "init_prompt": params.get("initial_user_input"),
-                    "control": params.get("need_user_input", False),
-                    "verbosity": VERBOSITY_MAP.get("INFO", "2"),  # Always use INFO level
+                    "control": False,
+                    "verbosity": VERBOSITY_MAP.get("INFO", "2"),
                     "out_dir": params["server_output_dir"]
                 }
                 

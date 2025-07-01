@@ -16,7 +16,7 @@ from fastmcp import FastMCP
 
 from file_handler import FileHandler
 from task_manager import TaskManager
-from utils import generate_task_output_dir, parse_credentials
+from utils import generate_task_output_dir
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -98,10 +98,7 @@ async def start_task(
     output_dir: str,
     config_path: Optional[str] = None,
     max_iterations: Optional[int] = 5,
-    need_user_input: bool = False,
     initial_user_input: Optional[str] = None,
-    provider: str = "bedrock",
-    model: Optional[str] = None,
     credentials_text: Optional[str] = None
 ) -> dict:
     """
@@ -112,10 +109,7 @@ async def start_task(
         output_dir: Client path where results will be saved
         config_path: Server path to config file (optional)
         max_iterations: Maximum iterations (default: 5)
-        need_user_input: Whether to prompt for user input between iterations
         initial_user_input: Initial user prompt (optional)
-        provider: LLM provider (bedrock/openai/anthropic)
-        model: Model name (optional, uses default if not provided)
         credentials_text: Environment variable format credentials
         
     Returns:
@@ -125,27 +119,31 @@ async def start_task(
         # Generate server output directory
         server_output_dir = generate_task_output_dir()
         
-        # Parse credentials if provided
+        # 简化凭证处理 - 直接解析为环境变量
         credentials = None
         if credentials_text:
-            credentials = parse_credentials(credentials_text, provider)
-            if not credentials:
-                return {
-                    "success": False,
-                    "error": f"Invalid credentials format for provider: {provider}"
-                }
+            credentials = {}
+            lines = credentials_text.strip().split('\n')
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                if line.startswith('export '):
+                    line = line[7:]
+                if '=' in line:
+                    key, value = line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip().strip('"').strip("'")
+                    credentials[key] = value
         
         # Prepare task parameters
         params = {
             "input_dir": input_dir,
             "server_output_dir": server_output_dir,
-            "client_output_dir": output_dir,  # Store for later use
+            "client_output_dir": output_dir,
             "config_path": config_path,
             "max_iterations": max_iterations,
-            "need_user_input": need_user_input,
             "initial_user_input": initial_user_input,
-            "provider": provider,
-            "model": model,
             "credentials": credentials
         }
         
@@ -187,28 +185,6 @@ async def check_status() -> dict:
         return status
     except Exception as e:
         logger.error(f"Failed to check status: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
-
-
-@mcp.tool()
-async def send_input(user_input: str) -> dict:
-    """
-    Send user input to running task when it's waiting for input.
-    
-    Args:
-        user_input: User's response to the prompt
-        
-    Returns:
-        dict: {"success": bool, "error": str (optional)}
-    """
-    try:
-        result = await task_manager.send_input(user_input)
-        return result
-    except Exception as e:
-        logger.error(f"Failed to send input: {str(e)}")
         return {
             "success": False,
             "error": str(e)
