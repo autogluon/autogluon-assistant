@@ -87,6 +87,16 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
                 "Please format your response with the code in a ```python``` code block to make it easily extractable."
             )
             prompt = f"{prompt}\n\n{format_instruction}"
+        
+        # TODO: Remove hardcoding. And add this safeguard for other prompts.
+        if len(prompt) > 100000:
+            logger.warning(f"Coder's prompt too long: {len(prompt)}. Truncated.")
+            self.manager.save_and_log_states(
+                content=prompt, save_name="python_coder_prompt_before_truncation.txt", per_iteration=True, add_uuid=False
+            )
+            prompt = self._truncate_output_end(
+                output=prompt, max_length=100000,
+            )
 
         self.manager.save_and_log_states(
             content=prompt, save_name="python_coder_prompt.txt", per_iteration=True, add_uuid=False
