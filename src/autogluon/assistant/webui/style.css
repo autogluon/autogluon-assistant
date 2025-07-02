@@ -1,41 +1,46 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+/* 只导入使用的Montserrat字体 */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
 
+/* 全局字体设置 */
 html, body, [class*="css"] {
   font-family: "Montserrat", sans-serif;
   font-optical-sizing: auto;
   font-style: normal;
 }
 
-/* Remove page padding */
+/* 移除页面padding */
 .block-container {
     padding-left: 0;
     padding-right: 0;
     padding-top: 0;
 }
+
+/* 功能特性样式 */
 .feature-container {
     background-color: white;
     padding: 20px;
     border-radius: 5px;
     margin-bottom: 20px;
 }
+
 .feature-title {
-font-size: 18px;
-font-weight: bold;
-margin-bottom: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
 }
+
 .feature-description {
-font-size: 14px;
-color: #666;
-margin-bottom: 15px;
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 15px;
 }
 
+/* Expander内容样式 */
 div[data-testid='stExpanderDetails'] p{
-font-size:0.8rem
+    font-size: 0.8rem
 }
 
-/* Page structure and styles */
-
+/* 主容器样式 */
 .main-container {
     display: flex;
     flex-direction: row;
@@ -53,6 +58,7 @@ font-size:0.8rem
     padding-left: 3vw;
 }
 
+/* Logo和标题样式 */
 .logo {
     width: 20vw;
     height: 13vh;
@@ -93,6 +99,7 @@ font-size:0.8rem
     padding: 1vh;
 }
 
+/* 右侧内容样式 */
 .get-started-title {
     font-size: 3.5vw;
     font-weight: bold;
@@ -114,7 +121,7 @@ font-size:0.8rem
     font-size: 1.3vw;
 }
 
-/* Responsive design */
+/* 响应式设计 - 移动设备 */
 @media (max-width: 800px) {
     .main-container {
         height: 40vh;
