@@ -27,7 +27,7 @@ if is_running_in_streamlit():
         page_title="AutoGluon Assistant",
         page_icon=LOGO_PATH,
         layout="wide",
-        initial_sidebar_state="collapsed",
+        initial_sidebar_state="auto",
     )
 
     # fontawesome

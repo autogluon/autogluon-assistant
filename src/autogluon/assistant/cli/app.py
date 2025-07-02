@@ -35,7 +35,7 @@ def main(
     need_user_input: bool = typer.Option(False, "--need-user-input", help="Whether to prompt user each iteration"),
     initial_user_input: str | None = typer.Option(None, "-u", "--user-input", help="Initial user input"),
     extract_archives_to: str | None = typer.Option(
-        None, "-e", "--extract-to", help="Directory in which to unpack any archives"
+        None, "-e", "--extract-to", help="Copy input data to specified directory and automatically extract all .zip archives. "
     ),
     # === Logging parameters ===
     verbosity: int = typer.Option(1, "-v", "--verbosity", help="Verbosity level (0–4)"),

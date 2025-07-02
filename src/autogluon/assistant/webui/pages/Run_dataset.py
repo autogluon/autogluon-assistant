@@ -117,6 +117,15 @@ class Message:
     @classmethod
     def queue_status(cls, task_id: str, position: int) -> "Message":
         return cls(role="assistant", type="queue_status", content={"task_id": task_id, "position": position})
+    
+    @classmethod
+    def debug_config(cls, config_path: str, config_content: str) -> "Message":
+        """Debug message for showing final config content"""
+        return cls(
+            role="assistant", 
+            type="debug_config", 
+            content={"path": config_path, "content": config_content}
+        )
 
 
 @dataclass
@@ -1020,12 +1029,7 @@ class UI:
     def render_single_message(msg):
         """Render a single message as a fragment to isolate interactions"""
         if msg.type == "text":
-            # Handle special "success" role for success messages
-            if msg.role == "success":
-                st.success(msg.content["text"])
-            else:
-                # Use markdown for text messages to properly render code blocks
-                st.markdown(msg.content["text"])
+            st.markdown(msg.content["text"])
         elif msg.type == "user_summary":
             st.markdown(msg.content["summary"])
         elif msg.type == "command":
@@ -1045,6 +1049,11 @@ class UI:
 
                 manager = ResultManager(content["output_dir"], content["run_id"])
                 manager.render()
+        elif msg.type == "debug_config":
+            # DEBUG block - easy to remove later
+            with st.expander("🐛 DEBUG: Final Config Content", expanded=True):
+                st.caption(f"Config saved to: {msg.content['path']}")
+                st.code(msg.content['content'], language="yaml")
 
     @staticmethod
     def render_messages():
@@ -1521,6 +1530,17 @@ class TaskManager:
 
     def _start_task(self, data_folder: str, config_path: str, user_prompt: str):
         """Start task"""
+        
+        # ===== DEBUG BLOCK START - EASY TO REMOVE =====
+        # Read and display the saved config content
+        try:
+            with open(config_path, 'r') as f:
+                config_content = f.read()
+            SessionState.add_message(Message.debug_config(config_path, config_content))
+        except Exception as e:
+            SessionState.add_message(Message.text(f"❌ DEBUG: Failed to read config: {str(e)}"))
+        # ===== DEBUG BLOCK END =====
+        
         # Submit task to queue
         task_id, position = BackendAPI.start_task(data_folder, config_path, user_prompt, self.config)
 
@@ -1571,11 +1591,11 @@ class TaskManager:
         return None
 
     def _check_task_failed(self, phase_states: Dict) -> bool:
-        """Check if the task failed by looking for failure message in the last iteration"""
+        """Check if the task failed by looking for success message in the last iteration"""
         # Find the highest iteration number
         iteration_phases = [name for name in phase_states.keys() if name.startswith("Iteration")]
         if not iteration_phases:
-            return False
+            return True  # No iterations found, consider it failed
 
         # Sort iterations by number
         iteration_phases.sort(key=lambda x: int(x.split()[1]))
@@ -1584,11 +1604,11 @@ class TaskManager:
         # Check logs in the last iteration
         last_iter_logs = phase_states.get(last_iteration, {}).get("logs", [])
         for log in last_iter_logs:
-            # Check if the log contains the failure marker
-            if "[bold red]Code generation failed in iteration" in log or "Code generation failed in iteration" in log:
-                return True
+            # Check if the log contains the success marker
+            if "[bold green]Code generation successful" in log or "Code generation successful" in log:
+                return False  # Found success message, task succeeded
 
-        return False
+        return True  # No success message found, task failed
 
     def _complete_task(self):
         """Complete task"""
@@ -1620,7 +1640,7 @@ class TaskManager:
             # Add success or failure message
             if not task_failed:
                 # Use a special message type for success to render with st.success()
-                SessionState.add_message(Message.text(SUCCESS_MESSAGE, role="assistant"))
+                SessionState.add_message(Message.text(SUCCESS_MESSAGE))
             else:
                 SessionState.add_message(Message.text("❌ Task failed. Please check the logs for details."))
 
