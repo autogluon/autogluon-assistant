@@ -47,7 +47,6 @@ dependencies = [
 [project.scripts]
 aga          = "autogluon.assistant.cli.app:app"
 mlzero       = "autogluon.assistant.cli.app:app"
-mlzero-webui = "autogluon.assistant.webui.Home:main"
 mlzero-backend = "autogluon.assistant.webui.backend.app:main"
 mlzero-frontend = "autogluon.assistant.webui.runner:run_frontend"
 

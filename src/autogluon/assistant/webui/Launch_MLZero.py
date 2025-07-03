@@ -1,4 +1,4 @@
-# src/autogluon/assistant/webui/pages/Run_dataset.py
+# src/autogluon/assistant/webui/pages/Launch_MLZero.py
 
 import re
 import shutil
@@ -13,6 +13,8 @@ import boto3
 import requests
 import streamlit as st
 import streamlit.components.v1 as components
+import subprocess
+import sys
 import yaml
 from botocore.exceptions import ClientError, NoCredentialsError
 
@@ -1651,6 +1653,18 @@ class TaskManager:
         SessionState.finish_task()
 
 
+def is_running_in_streamlit():
+    """Check if running in streamlit environment"""
+    try:
+        from streamlit.runtime.scriptrunner import get_script_run_ctx
+        return get_script_run_ctx() is not None
+    except ImportError:
+        try:
+            from streamlit.script_run_context import get_script_run_ctx
+            return get_script_run_ctx() is not None
+        except ImportError:
+            return False
+
 # ==================== Main App ====================
 class AutoMLAgentApp:
     """Main application"""
@@ -1735,5 +1749,36 @@ def main():
     app.run()
 
 
+def launch_streamlit():
+    """Entry point for mlzero-webui command - launches streamlit server."""
+    import subprocess
+    import sys
+    from pathlib import Path
+    
+    # Get current file path
+    current_file = Path(__file__).resolve()
+    
+    # Run streamlit
+    cmd = [
+        sys.executable,
+        "-m",
+        "streamlit",
+        "run",
+        str(current_file),
+        "--server.port=8509"
+    ]
+    
+    try:
+        subprocess.run(cmd)
+    except KeyboardInterrupt:
+        print("\nShutting down webui...")
+    except Exception as e:
+        print(f"Error running webui: {e}")
+        sys.exit(1)
+
+
 if __name__ == "__main__":
-    main()
+    if is_running_in_streamlit():
+        main()
+    else:
+        launch_streamlit()

@@ -12,7 +12,8 @@ from autogluon.assistant.constants import DEMO_URL, LOGO_PATH
 
 # Get current directory and static files
 current_dir = os.path.dirname(os.path.abspath(__file__))
-static_dir = os.path.join(current_dir, "static")
+parent_dir = os.path.dirname(current_dir)
+static_dir = os.path.join(parent_dir, "static")
 background_file = os.path.join(static_dir, "background.png")
 
 
@@ -101,8 +102,8 @@ def render_demo_section():
 
         # Center the button
         st.markdown("<div style='display:flex; justify-content:center;'>", unsafe_allow_html=True)
-        if st.button("Get Started", key="get_started"):
-            st.switch_page("pages/Run_dataset.py")
+        if st.button("Get Started", key="launch_mlzero"):
+            st.switch_page("Launch_MLZero.py")
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
     
@@ -225,7 +226,7 @@ if is_running_in_streamlit():
     )
 
     # Load CSS
-    css_file_path = os.path.join(current_dir, "style.css")
+    css_file_path = os.path.join(parent_dir, "style.css")
     with open(css_file_path) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
@@ -242,34 +243,3 @@ if is_running_in_streamlit():
     # Execute main application logic
     render_main_page()
 
-
-def main():
-    """Entry point for mlzero-webui command - launches streamlit server."""
-    import subprocess
-    
-    # Get current file path
-    current_file = Path(__file__).resolve()
-    
-    # Run streamlit
-    cmd = [
-        sys.executable,
-        "-m",
-        "streamlit",
-        "run",
-        str(current_file),
-        "--server.port=8509"
-    ]
-    
-    try:
-        subprocess.run(cmd)
-    except KeyboardInterrupt:
-        print("\nShutting down webui...")
-    except Exception as e:
-        print(f"Error running webui: {e}")
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    # If running this file directly and not in streamlit environment, launch streamlit server
-    if not is_running_in_streamlit():
-        main()
