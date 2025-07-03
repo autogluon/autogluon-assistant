@@ -47,7 +47,7 @@ WIP
 ### CLI
 
 ```bash
-mlzero -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS] [--need-user-input] [-u INITIAL_USER_INPUT] [-e EXTRACT_TO] [-v VERBOSITY_LEVEL]
+mlzero -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS] [--ENABLE-PER-ITERATION-INSTRUCTION] [--INITIAL-INSTRUCTION] [-e EXTRACT_TO] [-v VERBOSITY_LEVEL]
 ```
 
 #### Required Arguments
@@ -66,10 +66,10 @@ mlzero -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS]
 - `-n, --max-iterations`:  
   Maximum number of iterations. Default is `5`.
 
-- `--need-user-input`:  
+- `--enable-per-iteration-instruction`:  
   Whether to prompt user input at each iteration. Defaults to `False`.
 
-- `-u, --user-input`:  
+- `--initial-instruction`:  
   Initial user input to use in the first iteration. Optional.
 
 - `-e, --extract-to`:  

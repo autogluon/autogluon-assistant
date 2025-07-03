@@ -43,9 +43,9 @@ def run():
     if out_dir:
         cmd += ["-o", out_dir]
     if init_prompt:
-        cmd += ["-u", init_prompt]
+        cmd += ["--initial-instruction", init_prompt]
     if control:
-        cmd += ["--need-user-input"]
+        cmd += ["--enable-per-iteration-instruction"]
     if extract_dir:
         cmd += ["-e", extract_dir]
 

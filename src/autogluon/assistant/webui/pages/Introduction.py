@@ -218,12 +218,12 @@ def render_main_page():
 
 # Only execute page configuration and rendering in streamlit environment
 if is_running_in_streamlit():
-    st.set_page_config(
-        page_title="AutoGluon Assistant",
-        page_icon=LOGO_PATH,
-        layout="wide",
-        initial_sidebar_state="auto",
-    )
+    # st.set_page_config(
+    #     page_title="AutoGluon Assistant",
+    #     page_icon=LOGO_PATH,
+    #     layout="wide",
+    #     initial_sidebar_state="auto",
+    # )
 
     # Load CSS
     css_file_path = os.path.join(parent_dir, "style.css")
@@ -242,4 +242,3 @@ if is_running_in_streamlit():
 
     # Execute main application logic
     render_main_page()
-

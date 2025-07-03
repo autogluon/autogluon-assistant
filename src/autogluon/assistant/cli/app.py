@@ -31,14 +31,22 @@ def main(
         "--config",
         help=f"YAML config file (default: {DEFAULT_CONFIG_PATH})",
     ),
-    max_iterations: int = typer.Option(5, "-n", "--max-iterations", help="Max iteration count"),
-    need_user_input: bool = typer.Option(False, "--need-user-input", help="Whether to prompt user each iteration"),
-    initial_user_input: str | None = typer.Option(None, "-u", "--user-input", help="Initial user input"),
+    max_iterations: int = typer.Option(5, "-n", "--max-iterations", help="Max iteration count. If the task hasn’t succeeded after this many iterations, it will terminate."),
+    need_user_input: bool = typer.Option(False, "--enable-per-iteration-instruction", help="If enabled, you can provide a prompt for the next iteration at each iteration"),
+    initial_user_input: str | None = typer.Option(None, "--initial-instruction", help="You can provide the initial instruction here."),
     extract_archives_to: str | None = typer.Option(
         None, "-e", "--extract-to", help="Copy input data to specified directory and automatically extract all .zip archives. "
     ),
     # === Logging parameters ===
-    verbosity: int = typer.Option(1, "-v", "--verbosity", help="Verbosity level (0–4)"),
+    verbosity: int = typer.Option(1, "-v", "--verbosity", 
+                                  help=(
+        "-v 0: Only includes error messages\n"
+        "-v 1: Contains key essential information\n"
+        "-v 2: Includes brief information plus detailed information such as file save locations\n"
+        "-v 3: Includes info-level information plus all model training related information\n"
+        "-v 4: Includes full debug information"
+        ),
+    ),
 ):
     """
     mlzero: a CLI for running the AutoMLAgent pipeline.

@@ -18,7 +18,7 @@ import sys
 import yaml
 from botocore.exceptions import ClientError, NoCredentialsError
 
-from autogluon.assistant.constants import API_URL, PROVIDER_DEFAULTS, SUCCESS_MESSAGE, VERBOSITY_MAP
+from autogluon.assistant.constants import API_URL, PROVIDER_DEFAULTS, SUCCESS_MESSAGE, VERBOSITY_MAP, LOGO_PATH
 from autogluon.assistant.webui.file_uploader import handle_uploaded_files
 from autogluon.assistant.webui.log_processor import messages, process_logs, render_task_logs
 
@@ -38,7 +38,7 @@ from autogluon.assistant.prompts import (
 
 # ==================== Constants ====================
 PACKAGE_ROOT = Path(__file__).parents[2]
-DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "configs" / "default.yaml"
+DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "assistant" / "configs" / "default.yaml"
 
 # Agent list for template setter
 AGENTS_LIST = [
@@ -1560,9 +1560,9 @@ class TaskManager:
         ]
 
         if user_prompt:
-            cmd_parts.extend(["-u", user_prompt])
+            cmd_parts.extend(["--initial-instruction", user_prompt])
         if self.config.control:
-            cmd_parts.append("--need-user-input")
+            cmd_parts.append("--enable-per-iteration-instruction")
 
         # Display command
         command_str = f"[{datetime.now().strftime('%H:%M:%S')}] Submitting AutoMLAgent task: {' '.join(cmd_parts)}"
@@ -1735,7 +1735,13 @@ class AutoMLAgentApp:
 
 def main():
     """Entry point"""
-
+    st.set_page_config(
+        page_title="AutoGluon Assistant",
+        page_icon=LOGO_PATH,
+        layout="wide",
+        initial_sidebar_state="auto",
+    )
+    st.logo(LOGO_PATH)
     reload_warning = """
     <script>
         window.onbeforeunload = function () {
