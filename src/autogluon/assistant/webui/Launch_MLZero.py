@@ -36,9 +36,9 @@ from autogluon.assistant.prompts import (
     ToolSelectorPrompt,
 )
 
-# ==================== Constants ====================
 PACKAGE_ROOT = Path(__file__).parents[2]
 DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "assistant" / "configs" / "default.yaml"
+logo_full_path = PACKAGE_ROOT / "assistant" / "webui" / "static" / "sidebar_icon.png"
 
 # Agent list for template setter
 AGENTS_LIST = [
@@ -1741,7 +1741,7 @@ def main():
         layout="wide",
         initial_sidebar_state="auto",
     )
-    st.logo(LOGO_PATH)
+    st.logo(logo_full_path, size="large", link="https://github.com/autogluon")
     reload_warning = """
     <script>
         window.onbeforeunload = function () {
