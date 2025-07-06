@@ -1,6 +1,17 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import multiprocessing.resource_tracker
+
+def _noop(*args, **kwargs):
+    pass
+
+multiprocessing.resource_tracker.register = _noop
+multiprocessing.resource_tracker.unregister = _noop
+multiprocessing.resource_tracker.ensure_running = _noop
+
+import os
+import logging
 from pathlib import Path
 
 import typer

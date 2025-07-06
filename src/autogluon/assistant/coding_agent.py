@@ -6,7 +6,7 @@ from pathlib import Path
 
 from omegaconf import OmegaConf
 
-from .managers import Manager
+# from .managers import Manager
 from .rich_logging import configure_logging
 from .utils import extract_archives
 
@@ -45,6 +45,7 @@ def run_agent(
     output_dir.mkdir(parents=False, exist_ok=True)
 
     configure_logging(verbosity=verbosity, output_dir=output_dir)
+    from .managers import Manager
 
     if extract_archives_to is not None:
         if extract_archives_to and extract_archives_to != input_data_folder:
