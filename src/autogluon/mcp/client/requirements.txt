@@ -1,0 +1,4 @@
+boto3>=1.28.0
+mcp>=0.1.0
+fastmcp>=0.1.0
+asyncio
