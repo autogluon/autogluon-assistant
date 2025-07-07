@@ -1,0 +1,47 @@
+__pycache__/
+*.log
+
+# ----------- Python 常用 ------------
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C 扩展
+*.so
+
+# 虚拟环境
+venv/
+ENV/
+env/
+.venv/
+
+# 分发打包产物
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# -------- 项目自定义 -------------
+# 缓存和中间目录
+cache/
+
+# 日志文件
+logs/
+*.log
+
+# 运行时输出
+output/
+
+# 进程 PID 文件
+*.pid
+
+# 敏感凭证（绝对不要提交）
+credentials.txt
+
+# --------- 编辑器 & OS ----------
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
