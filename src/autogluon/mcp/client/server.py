@@ -3,7 +3,7 @@
 MCP Server that exposes the complete AutoGluon pipeline as a single tool
 """
 
-from file_handler import analyze_folder, read_files_for_upload
+from autogluon.mcp.file_handler import analyze_folder, read_files_for_upload
 import asyncio
 import base64
 import json
@@ -13,8 +13,8 @@ from typing import Optional, List, Dict
 
 from fastmcp import FastMCP, Client
 
-# Import utility functions
-sys.path.append(str(Path(__file__).parent))
+# # Import utility functions
+# sys.path.append(str(Path(__file__).parent))
 
 # Create MCP server
 mcp = FastMCP("AutoGluon Pipeline Server")

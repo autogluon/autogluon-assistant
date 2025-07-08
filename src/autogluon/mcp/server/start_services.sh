@@ -44,7 +44,7 @@ check_flask_backend() {
 # Start Flask backend
 start_flask_backend() {
     echo "Starting Flask backend..."
-    cd ../src/autogluon/assistant/webui/backend
+    cd ../../../assistant/webui/backend
     
     # Start in background
     nohup python app.py > flask_backend.log 2>&1 &
@@ -83,7 +83,7 @@ start_mcp_server() {
         echo "Starting MCP server in LOCAL mode (listening on 127.0.0.1:8000)..."
     fi
     
-    python ./mcp/server.py &
+    python "$(dirname "$0")/server.py" &
     MCP_PID=$!
     echo "MCP Server PID: $MCP_PID"
     

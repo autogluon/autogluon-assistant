@@ -1,13 +1,13 @@
 # app.py - 优化输出格式版本
 import asyncio
 import json
-from converse_agent import ConverseAgent
-from converse_tools import ConverseToolManager
-from mcp_client import MCPClient  # 使用修改后的 HTTP 版本
+from autogluon.mcp.client.bedrock_example.converse_agent import ConverseAgent
+from autogluon.mcp.client.bedrock_example.converse_tools import ConverseToolManager
+from autogluon.mcp.client.mcp_client import MCPClient
 from datetime import datetime
 
 # 配置
-PIPELINE_SERVER_URL = 'https://7c45-2001-428-6405-3e0-c8d9-fbad-c0dc-2d11.ngrok-free.app/mcp/'
+PIPELINE_SERVER_URL = 'https://593c3754596e.ngrok.app/mcp/'
 
 # 使用字典来避免作用域问题
 config = {

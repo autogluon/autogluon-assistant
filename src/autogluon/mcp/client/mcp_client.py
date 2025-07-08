@@ -8,6 +8,7 @@ class MCPClient:
     def __init__(self, server_url: str):
         self.server_url = server_url
         self.client = None
+        self._tools_cache = None
 
     async def __aenter__(self):
         """Async context manager entry"""

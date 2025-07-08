@@ -18,7 +18,7 @@ except ImportError:
 
 import requests
 
-from constants import API_URL, VERBOSITY_MAP
+from ..constants import API_URL, VERBOSITY_MAP
 
 logger = logging.getLogger(__name__)
 
@@ -326,7 +326,7 @@ class TaskManager:
             
             try:
                 # List files in output directory
-                from file_handler import FileHandler
+                from ..file_handler import FileHandler
                 file_handler = FileHandler(Path.home() / ".autogluon_assistant" / "mcp_uploads")
                 files = file_handler.list_files(output_dir)
                 

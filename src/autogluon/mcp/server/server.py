@@ -14,9 +14,9 @@ from typing import Dict, List, Optional
 
 from fastmcp import FastMCP
 
-from file_handler import FileHandler
-from task_manager import TaskManager
-from utils import generate_task_output_dir
+from autogluon.mcp.file_handler import FileHandler
+from autogluon.mcp.server.task_manager import TaskManager
+from autogluon.mcp.server.utils import generate_task_output_dir
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)

@@ -14,6 +14,18 @@ UPLOAD_DIR_PATTERN = "upload_{timestamp}_{uuid}"
 CONFIG_DIR_PATTERN = "config_{timestamp}_{uuid}"
 OUTPUT_DIR_PATTERN = "mlzero-{datetime}-{uuid}"
 
+# API endpoint
+API_URL = "http://localhost:5000/api"
+
+# Verbosity mapping
+VERBOSITY_MAP = {
+    "DETAIL": "3",
+    "INFO": "2",
+    "BRIEF": "1",
+    "ERROR": "0",
+    "DEBUG": "4"
+}
+
 # ==================== Task Management ====================
 # Task states
 TASK_STATES = {

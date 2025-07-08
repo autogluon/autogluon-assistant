@@ -9,8 +9,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from constants import PROVIDER_DEFAULTS
-
 
 def generate_task_output_dir() -> str:
     """

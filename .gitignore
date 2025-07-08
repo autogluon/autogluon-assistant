@@ -209,3 +209,17 @@ maab/runs/
 
 # OS specific
 *.DS_Store
+
+src/autogluon/mcp/server/.flask.pid
+src/autogluon/mcp/server/.mcp.pid
+src/autogluon/mcp/server/test_output/
+src/autogluon/mcp/server/test_data/
+src/autogluon/mcp/server/nohup.out
+src/autogluon/mcp/**/uploads/
+src/autogluon/mcp/**/mlzero-*/
+
+# Credentials (全局忽略 - 安全相关)
+*.credentials
+*.creds
+credentials.txt
+aws_credentials.txt
