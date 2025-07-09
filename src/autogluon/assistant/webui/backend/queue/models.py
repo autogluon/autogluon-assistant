@@ -3,9 +3,8 @@
 import json
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 
 class TaskDatabase:
@@ -17,7 +16,7 @@ class TaskDatabase:
             db_dir = Path.home() / ".autogluon_assistant"
             db_dir.mkdir(exist_ok=True)
             db_path = str(db_dir / "webui_queue.db")
-        
+
         self.db_path = db_path
         self._init_db()
 
@@ -26,7 +25,8 @@ class TaskDatabase:
         conn = sqlite3.connect(self.db_path)
         try:
             # Create table
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS tasks (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     task_id TEXT UNIQUE NOT NULL,
@@ -37,12 +37,13 @@ class TaskDatabase:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     started_at TIMESTAMP
                 )
-            """)
-            
+            """
+            )
+
             # Create indexes separately
             conn.execute("CREATE INDEX IF NOT EXISTS idx_status ON tasks(status)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_created_at ON tasks(created_at)")
-            
+
             conn.commit()
         finally:
             conn.close()
@@ -67,22 +68,19 @@ class TaskDatabase:
         conn.row_factory = sqlite3.Row
         try:
             # Check if there are any running or queued tasks
-            cursor = conn.execute(
-                "SELECT COUNT(*) as count FROM tasks WHERE status IN ('queued', 'running')"
-            )
-            position = cursor.fetchone()['count']
-            
+            cursor = conn.execute("SELECT COUNT(*) as count FROM tasks WHERE status IN ('queued', 'running')")
+            position = cursor.fetchone()["count"]
+
             # Insert new task
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO tasks (task_id, status, command_json, credentials_json)
                 VALUES (?, 'queued', ?, ?)
-            """, (
-                task_id,
-                json.dumps(command_data),
-                json.dumps(credentials) if credentials else None
-            ))
+            """,
+                (task_id, json.dumps(command_data), json.dumps(credentials) if credentials else None),
+            )
             conn.commit()  # Ensure immediate commit
-            
+
             return position
         finally:
             conn.close()
@@ -97,34 +95,39 @@ class TaskDatabase:
         try:
             # Check if there's already a running task
             cursor = conn.execute("SELECT COUNT(*) as count FROM tasks WHERE status = 'running'")
-            if cursor.fetchone()['count'] > 0:
+            if cursor.fetchone()["count"] > 0:
                 return None
-            
+
             # Get the oldest queued task
-            cursor = conn.execute("""
+            cursor = conn.execute(
+                """
                 SELECT id, task_id, command_json, credentials_json
                 FROM tasks
                 WHERE status = 'queued'
                 ORDER BY id ASC
                 LIMIT 1
-            """)
-            
+            """
+            )
+
             row = cursor.fetchone()
             if not row:
                 return None
-            
+
             # Update status to running
-            conn.execute("""
+            conn.execute(
+                """
                 UPDATE tasks
                 SET status = 'running', started_at = CURRENT_TIMESTAMP
                 WHERE id = ?
-            """, (row['id'],))
+            """,
+                (row["id"],),
+            )
             conn.commit()  # Ensure immediate commit
-            
+
             return (
-                row['task_id'],
-                json.loads(row['command_json']),
-                json.loads(row['credentials_json']) if row['credentials_json'] else None
+                row["task_id"],
+                json.loads(row["command_json"]),
+                json.loads(row["credentials_json"]) if row["credentials_json"] else None,
             )
         finally:
             conn.close()
@@ -133,10 +136,7 @@ class TaskDatabase:
         """Update the run_id after task starts"""
         conn = sqlite3.connect(self.db_path)
         try:
-            conn.execute(
-                "UPDATE tasks SET run_id = ? WHERE task_id = ?",
-                (run_id, task_id)
-            )
+            conn.execute("UPDATE tasks SET run_id = ? WHERE task_id = ?", (run_id, task_id))
             conn.commit()  # Ensure immediate commit
         finally:
             conn.close()
@@ -146,35 +146,41 @@ class TaskDatabase:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         try:
-            cursor = conn.execute("""
+            cursor = conn.execute(
+                """
                 SELECT id, status, run_id, created_at, started_at
                 FROM tasks
                 WHERE task_id = ?
-            """, (task_id,))
-            
+            """,
+                (task_id,),
+            )
+
             row = cursor.fetchone()
             if not row:
                 return None
-            
+
             result = {
-                'task_id': task_id,
-                'status': row['status'],
-                'run_id': row['run_id'],
-                'created_at': row['created_at'],
-                'started_at': row['started_at']
+                "task_id": task_id,
+                "status": row["status"],
+                "run_id": row["run_id"],
+                "created_at": row["created_at"],
+                "started_at": row["started_at"],
             }
-            
+
             # Calculate position if queued or running
-            if row['status'] in ('queued', 'running'):
-                cursor = conn.execute("""
+            if row["status"] in ("queued", "running"):
+                cursor = conn.execute(
+                    """
                     SELECT COUNT(*) as position
                     FROM tasks
                     WHERE status IN ('queued', 'running') AND id < ?
-                """, (row['id'],))
-                result['position'] = cursor.fetchone()['position']
+                """,
+                    (row["id"],),
+                )
+                result["position"] = cursor.fetchone()["position"]
             else:
-                result['position'] = None
-            
+                result["position"] = None
+
             return result
         finally:
             conn.close()
@@ -184,18 +190,20 @@ class TaskDatabase:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         try:
-            cursor = conn.execute("""
+            cursor = conn.execute(
+                """
                 SELECT 
                     SUM(CASE WHEN status = 'queued' THEN 1 ELSE 0 END) as queued,
                     SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END) as running
                 FROM tasks
-            """)
+            """
+            )
             row = cursor.fetchone()
-            
+
             return {
-                'queued': row['queued'] or 0,
-                'running': row['running'] or 0,
-                'total_waiting': (row['queued'] or 0) + (row['running'] or 0)
+                "queued": row["queued"] or 0,
+                "running": row["running"] or 0,
+                "total_waiting": (row["queued"] or 0) + (row["running"] or 0),
             }
         finally:
             conn.close()
@@ -208,15 +216,12 @@ class TaskDatabase:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         try:
-            cursor = conn.execute(
-                "SELECT status FROM tasks WHERE task_id = ?",
-                (task_id,)
-            )
+            cursor = conn.execute("SELECT status FROM tasks WHERE task_id = ?", (task_id,))
             row = cursor.fetchone()
-            
-            if not row or row['status'] != 'queued':
+
+            if not row or row["status"] != "queued":
                 return False
-            
+
             # Delete the task (as per requirement)
             conn.execute("DELETE FROM tasks WHERE task_id = ?", (task_id,))
             conn.commit()  # Ensure immediate commit
@@ -238,12 +243,9 @@ class TaskDatabase:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         try:
-            cursor = conn.execute(
-                "SELECT task_id FROM tasks WHERE run_id = ?",
-                (run_id,)
-            )
+            cursor = conn.execute("SELECT task_id FROM tasks WHERE run_id = ?", (run_id,))
             row = cursor.fetchone()
-            return row['task_id'] if row else None
+            return row["task_id"] if row else None
         finally:
             conn.close()
 
@@ -251,11 +253,14 @@ class TaskDatabase:
         """Clean up tasks that have been running too long (likely crashed)"""
         conn = sqlite3.connect(self.db_path)
         try:
-            conn.execute("""
+            conn.execute(
+                """
                 DELETE FROM tasks
                 WHERE status = 'running'
                 AND datetime(started_at, '+' || ? || ' seconds') < datetime('now')
-            """, (timeout_seconds,))
+            """,
+                (timeout_seconds,),
+            )
             conn.commit()
         finally:
             conn.close()

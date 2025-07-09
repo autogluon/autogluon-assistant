@@ -1,7 +1,8 @@
 # mcp_client.py - Modified for HTTP connection
-from fastmcp import Client
-from typing import Any, List
 import json
+from typing import Any, List
+
+from fastmcp import Client
 
 
 class MCPClient:
@@ -26,9 +27,7 @@ class MCPClient:
             self.client = Client(self.server_url)
             await self.client.__aenter__()
         except Exception as e:
-            raise RuntimeError(
-                f"Failed to connect to MCP server at {self.server_url}: {e}"
-            )
+            raise RuntimeError(f"Failed to connect to MCP server at {self.server_url}: {e}")
 
     async def get_available_tools(self) -> List[Any]:
         """Dynamically retrieve the list of available tools from the server"""
@@ -45,11 +44,9 @@ class MCPClient:
         # Convert to the expected format
         formatted_tools = []
         for tool in tools:
-            formatted_tools.append({
-                'name': tool.name,
-                'description': tool.description,
-                'inputSchema': tool.inputSchema
-            })
+            formatted_tools.append(
+                {"name": tool.name, "description": tool.description, "inputSchema": tool.inputSchema}
+            )
 
         # Optionally cache the formatted result
         self._tools_cache = formatted_tools

@@ -1,14 +1,11 @@
 import base64
 import os
-import sys
-from pathlib import Path
 
 import streamlit as st
 import streamlit.components.v1 as components
 from streamlit_extras.add_vertical_space import add_vertical_space
 
-from autogluon.assistant.constants import DEMO_URL, LOGO_PATH
-
+from autogluon.assistant.constants import DEMO_URL
 
 # Get current directory and static files
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -21,10 +18,12 @@ def is_running_in_streamlit():
     """Check if running in streamlit environment"""
     try:
         from streamlit.runtime.scriptrunner import get_script_run_ctx
+
         return get_script_run_ctx() is not None
     except ImportError:
         try:
             from streamlit.script_run_context import get_script_run_ctx
+
             return get_script_run_ctx() is not None
         except ImportError:
             return False
@@ -71,7 +70,8 @@ def set_background_image():
 def render_demo_section():
     """Render the demo section with video and get started button"""
     # Button styling
-    st.markdown("""
+    st.markdown(
+        """
         <style>
         div.stButton > button {
             background-color: #007bff !important;
@@ -88,15 +88,20 @@ def render_demo_section():
             background-color: #0056b3 !important;
         }
         </style>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     col1, col2, col3, col4 = st.columns([1, 6, 10, 1])
-    
+
     with col2:
-        st.markdown("""
+        st.markdown(
+            """
             <h1 style='font-size:2.5rem; line-height:1.2;'>Quick Demo!</h1>
             <h2 style='font-size:2.5rem; line-height:1.2; margin-top:0;'>Learn about AG-A</h2>
-        """, unsafe_allow_html=True)
+        """,
+            unsafe_allow_html=True,
+        )
 
         st.write("")  # spacer
 
@@ -106,14 +111,15 @@ def render_demo_section():
             st.switch_page("Launch_MLZero.py")
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
-    
+
     with col3:
         st.video(DEMO_URL, muted=True, autoplay=True, end_time=248, start_time=0, loop=True)
 
 
 def render_features():
     """Render the features section"""
-    st.markdown("""
+    st.markdown(
+        """
         <h1 style='
             font-weight: light;
             padding-left: 20px;
@@ -123,13 +129,16 @@ def render_features():
         '>
             Features of AutoGluon Assistant
         </h1>
-    """, unsafe_allow_html=True)
-    
+    """,
+        unsafe_allow_html=True,
+    )
+
     col1, col2, col3, col4 = st.columns([1, 10, 10, 1])
-    
+
     # Feature 1
     with col2:
-        st.markdown("""
+        st.markdown(
+            """
         <div class="feature-container">
             <div class="feature-title">LLM based Task Understanding</div>
             <div class="feature-description">
@@ -137,11 +146,14 @@ def render_features():
                 Autogluon Assistant analyses user's task description and dataset files, translating them into actionable machine learning objectives without manual intervention.
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """,
+            unsafe_allow_html=True,
+        )
 
     # Feature 2
     with col3:
-        st.markdown("""
+        st.markdown(
+            """
         <div class="feature-container">
             <div class="feature-title">Automated Feature Engineering</div>
             <div class="feature-description">
@@ -150,11 +162,14 @@ def render_features():
                 significantly reducing time spent on data preprocessing.
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """,
+            unsafe_allow_html=True,
+        )
 
     # Feature 3
     with col2:
-        st.markdown("""
+        st.markdown(
+            """
         <div class="feature-container">
             <div class="feature-title">Powered by Multi-Model Integration</div>
             <div class="feature-description">
@@ -164,10 +179,13 @@ def render_features():
             expanding support for advanced NLP and multimodal applications—all without requiring deep ML expertise.
             </div>
         </div>
-        """, unsafe_allow_html=True)
-    
+        """,
+            unsafe_allow_html=True,
+        )
+
     with col3:
-        st.markdown("""
+        st.markdown(
+            """
         <div class="feature-container">
             <div class="feature-title">Coming Soon</div>
             <div class="feature-description">
@@ -176,14 +194,17 @@ def render_features():
                 and improve your machine learning workflow.
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """,
+            unsafe_allow_html=True,
+        )
 
 
 def render_main_page():
     """Render the main landing page"""
     set_background_image()
-    
-    st.markdown("""
+
+    st.markdown(
+        """
     <div class="main-container" id="get-started">
         <div class="left-section">
             <div class="titleWithLogo">
@@ -206,8 +227,10 @@ def render_main_page():
             </div>    
         </div> 
     </div>
-    """, unsafe_allow_html=True)
-    
+    """,
+        unsafe_allow_html=True,
+    )
+
     add_vertical_space(5)
     render_demo_section()
     add_vertical_space(5)

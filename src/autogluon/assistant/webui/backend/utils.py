@@ -66,12 +66,12 @@ def start_run(task_id: str, cmd: List[str], credentials: Optional[Dict[str, str]
     Start subprocess with stdin/stdout/stderr pipes.
     Set AUTOGLUON_WEBUI environment variable to indicate WebUI environment.
     Optionally set credentials (AWS, OpenAI, Anthropic) if provided.
-    
+
     Returns: run_id (which is generated here, not task_id)
     """
     # Generate unique run_id
     run_id = uuid.uuid4().hex
-    
+
     _runs[run_id] = {
         "process": None,
         "logs": [],
@@ -177,7 +177,7 @@ def start_run(task_id: str, cmd: List[str], credentials: Optional[Dict[str, str]
 
     thread = threading.Thread(target=_target, daemon=True)
     thread.start()
-    
+
     return run_id
 
 

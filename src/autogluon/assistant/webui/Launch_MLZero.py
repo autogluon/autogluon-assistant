@@ -2,6 +2,8 @@
 
 import re
 import shutil
+import subprocess
+import sys
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -13,19 +15,14 @@ import boto3
 import requests
 import streamlit as st
 import streamlit.components.v1 as components
-from streamlit_theme import st_theme
-import subprocess
-import sys
 import yaml
 from botocore.exceptions import ClientError, NoCredentialsError
+from streamlit_theme import st_theme
 
-from autogluon.assistant.constants import API_URL, PROVIDER_DEFAULTS, SUCCESS_MESSAGE, VERBOSITY_MAP, LOGO_PATH
-from autogluon.assistant.webui.file_uploader import handle_uploaded_files
-from autogluon.assistant.webui.log_processor import messages, process_logs, render_task_logs
+from autogluon.assistant.constants import API_URL, LOGO_PATH, PROVIDER_DEFAULTS, SUCCESS_MESSAGE, VERBOSITY_MAP
 
 # Import prompt classes for default templates
 from autogluon.assistant.prompts import (
-    BashCoderPrompt,
     DescriptionFileRetrieverPrompt,
     ErrorAnalyzerPrompt,
     ExecuterPrompt,
@@ -36,6 +33,8 @@ from autogluon.assistant.prompts import (
     TaskDescriptorPrompt,
     ToolSelectorPrompt,
 )
+from autogluon.assistant.webui.file_uploader import handle_uploaded_files
+from autogluon.assistant.webui.log_processor import messages, process_logs, render_task_logs
 
 PACKAGE_ROOT = Path(__file__).parents[2]
 DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "assistant" / "configs" / "default.yaml"
@@ -121,15 +120,11 @@ class Message:
     @classmethod
     def queue_status(cls, task_id: str, position: int) -> "Message":
         return cls(role="assistant", type="queue_status", content={"task_id": task_id, "position": position})
-    
+
     @classmethod
     def debug_config(cls, config_path: str, config_content: str) -> "Message":
         """Debug message for showing final config content"""
-        return cls(
-            role="assistant", 
-            type="debug_config", 
-            content={"path": config_path, "content": config_content}
-        )
+        return cls(role="assistant", type="debug_config", content={"path": config_path, "content": config_content})
 
 
 @dataclass
@@ -151,21 +146,25 @@ def get_default_template(agent_name: str) -> str:
     prompt_class = AGENT_PROMPT_MAPPING.get(agent_name)
     if not prompt_class:
         return ""
-    
+
     try:
         # Create mock objects for initialization
-        mock_config = type('MockConfig', (), {
-            'template': None,
-            'max_stdout_length': 8192,
-            'max_stderr_length': 2048,
-            'max_description_files_length_to_show': 1024,
-            'max_description_files_length_for_summarization': 16384
-        })()
-        mock_manager = type('MockManager', (), {})()
-        
+        mock_config = type(
+            "MockConfig",
+            (),
+            {
+                "template": None,
+                "max_stdout_length": 8192,
+                "max_stderr_length": 2048,
+                "max_description_files_length_to_show": 1024,
+                "max_description_files_length_for_summarization": 16384,
+            },
+        )()
+        mock_manager = type("MockManager", (), {})()
+
         # All agents use the same initialization pattern based on BasePrompt
         instance = prompt_class(llm_config=mock_config, manager=mock_manager, template=None)
-        
+
         return instance.default_template()
     except Exception as e:
         # Log the error for debugging
@@ -464,7 +463,7 @@ class SessionState:
             "config_overrides": {
                 "provider": None,
                 "model": None,
-                "templates": {agent: {"mode": "use_default", "value": None} for agent in AGENTS_LIST}
+                "templates": {agent: {"mode": "use_default", "value": None} for agent in AGENTS_LIST},
             },
         }
 
@@ -490,12 +489,12 @@ class SessionState:
                         if template_value.endswith(".txt"):
                             st.session_state.config_overrides["templates"][agent] = {
                                 "mode": "path_specify",
-                                "value": template_value
+                                "value": template_value,
                             }
                         else:
                             st.session_state.config_overrides["templates"][agent] = {
                                 "mode": "text_edit",
-                                "value": template_value
+                                "value": template_value,
                             }
 
     @staticmethod
@@ -684,7 +683,7 @@ class BackendAPI:
                 payload["run_id"] = run_id
             if task_id:
                 payload["task_id"] = task_id
-                
+
             response = requests.post(f"{API_URL}/cancel", json=payload)
             return response.json().get("cancelled", False)
         except:
@@ -698,11 +697,12 @@ class UI:
     @staticmethod
     def render_template_dialog():
         """Render template setter dialog"""
+
         @st.dialog("Template Settings", width="large")
         def template_dialog():
             st.markdown("### 🛠️ Customize Agent Templates")
             st.caption("Configure custom templates for each agent. Changes will override config file settings.")
-            
+
             # Create a temporary state for the dialog
             if "temp_template_settings" not in st.session_state:
                 # Initialize with current settings
@@ -711,46 +711,48 @@ class UI:
                     current = st.session_state.config_overrides["templates"][agent]
                     mode = current["mode"]
                     value = current["value"]
-                    
+
                     # Only load default template for text_edit mode when value is None
                     if mode == "text_edit" and not value:
                         value = get_default_template(agent)
                     # For path_specify mode, keep None if no value
                     elif mode == "path_specify" and not value:
                         value = None
-                    
-                    st.session_state.temp_template_settings[agent] = {
-                        "mode": mode,
-                        "value": value
-                    }
-            
+
+                    st.session_state.temp_template_settings[agent] = {"mode": mode, "value": value}
+
             # Group agents by category
             categories = {
                 "Code Generation": ["coder"],
                 "Execution & Analysis": ["executer", "error_analyzer"],
                 "Data Processing": ["reader"],
                 "Information Retrieval": ["retriever", "reranker", "description_file_retriever"],
-                "Task Management": ["task_descriptor", "tool_selector"]
+                "Task Management": ["task_descriptor", "tool_selector"],
             }
-            
+
             for category, agents in categories.items():
                 with st.expander(f"**{category}**", expanded=False):
                     for agent in agents:
                         st.markdown(f"#### {agent.replace('_', ' ').title()}")
-                        
+
                         # Get current settings from temp state
                         current_mode = st.session_state.temp_template_settings[agent]["mode"]
-                        
+
                         # Radio selection with callback
                         def on_mode_change(agent_name):
                             mode = st.session_state[f"{agent_name}_mode_radio"]
                             old_mode = st.session_state.temp_template_settings[agent_name]["mode"]
                             st.session_state.temp_template_settings[agent_name]["mode"] = mode
-                            
+
                             # Handle mode transitions
-                            if mode == "text_edit" and not st.session_state.temp_template_settings[agent_name]["value"]:
+                            if (
+                                mode == "text_edit"
+                                and not st.session_state.temp_template_settings[agent_name]["value"]
+                            ):
                                 # If switching to text_edit and no value exists, load default template
-                                st.session_state.temp_template_settings[agent_name]["value"] = get_default_template(agent_name)
+                                st.session_state.temp_template_settings[agent_name]["value"] = get_default_template(
+                                    agent_name
+                                )
                             elif mode == "use_default":
                                 # If switching to use_default, clear the value
                                 st.session_state.temp_template_settings[agent_name]["value"] = None
@@ -761,32 +763,34 @@ class UI:
                                     default_template = get_default_template(agent_name)
                                     if current_value == default_template:
                                         st.session_state.temp_template_settings[agent_name]["value"] = None
-                        
+
                         mode = st.radio(
                             f"Template source for {agent}",
                             ["use_default", "text_edit", "path_specify"],
                             format_func=lambda x: {
                                 "use_default": "Use Default",
                                 "text_edit": "Custom Text",
-                                "path_specify": "File Path"
+                                "path_specify": "File Path",
                             }[x],
                             index=["use_default", "text_edit", "path_specify"].index(current_mode),
                             key=f"{agent}_mode_radio",
                             horizontal=True,
                             label_visibility="collapsed",
                             on_change=on_mode_change,
-                            args=(agent,)
+                            args=(agent,),
                         )
-                        
+
                         # Show appropriate input based on mode
                         if mode == "text_edit":
                             # Get value from temp settings
                             temp_value = st.session_state.temp_template_settings[agent]["value"]
                             display_text = temp_value if temp_value else get_default_template(agent)
-                            
+
                             def on_text_change(agent_name):
-                                st.session_state.temp_template_settings[agent_name]["value"] = st.session_state[f"{agent_name}_text"]
-                            
+                                st.session_state.temp_template_settings[agent_name]["value"] = st.session_state[
+                                    f"{agent_name}_text"
+                                ]
+
                             value = st.text_area(
                                 f"Template for {agent}",
                                 value=display_text,
@@ -794,20 +798,27 @@ class UI:
                                 key=f"{agent}_text",
                                 label_visibility="collapsed",
                                 on_change=on_text_change,
-                                args=(agent,)
+                                args=(agent,),
                             )
-                        
+
                         elif mode == "path_specify":
+
                             def on_path_change(agent_name):
                                 path_value = st.session_state[f"{agent_name}_path"]
-                                st.session_state.temp_template_settings[agent_name]["value"] = path_value if path_value else None
-                            
+                                st.session_state.temp_template_settings[agent_name]["value"] = (
+                                    path_value if path_value else None
+                                )
+
                             # For path mode, only show the actual path value from temp settings
                             temp_value = st.session_state.temp_template_settings[agent]["value"]
                             path_value = ""
-                            if temp_value and isinstance(temp_value, str) and (temp_value.endswith('.txt') or '/' in temp_value or '\\' in temp_value):
+                            if (
+                                temp_value
+                                and isinstance(temp_value, str)
+                                and (temp_value.endswith(".txt") or "/" in temp_value or "\\" in temp_value)
+                            ):
                                 path_value = temp_value
-                            
+
                             value = st.text_input(
                                 f"Template file path for {agent}",
                                 value=path_value,
@@ -815,15 +826,15 @@ class UI:
                                 key=f"{agent}_path",
                                 label_visibility="collapsed",
                                 on_change=on_path_change,
-                                args=(agent,)
+                                args=(agent,),
                             )
-                        
+
                         else:  # use_default
                             # Already handled in on_mode_change
                             st.info("Using default template")
-                        
+
                         st.markdown("---")
-            
+
             # Save and Close buttons
             col1, col2 = st.columns(2)
             with col1:
@@ -832,19 +843,19 @@ class UI:
                     if "temp_template_settings" in st.session_state:
                         del st.session_state.temp_template_settings
                     st.rerun()
-            
+
             with col2:
                 if st.button("Save", type="primary", use_container_width=True):
                     # Apply temp settings to actual settings
                     for agent in AGENTS_LIST:
                         st.session_state.config_overrides["templates"][agent] = {
                             "mode": st.session_state.temp_template_settings[agent]["mode"],
-                            "value": st.session_state.temp_template_settings[agent]["value"]
+                            "value": st.session_state.temp_template_settings[agent]["value"],
                         }
                     # Clear temp settings
                     del st.session_state.temp_template_settings
                     st.rerun()
-        
+
         # Show the dialog
         template_dialog()
 
@@ -888,7 +899,7 @@ class UI:
                             # Update centralized overrides
                             SessionState.update_provider_model_from_config(config_provider, config_model)
                             disable_provider_model = True
-                            
+
                             # Also update templates from config (only for use_default items)
                             SessionState.update_templates_from_config(config_content)
                     except Exception as e:
@@ -1057,7 +1068,7 @@ class UI:
             # DEBUG block - easy to remove later
             with st.expander("🐛 DEBUG: Final Config Content", expanded=True):
                 st.caption(f"Config saved to: {msg.content['path']}")
-                st.code(msg.content['content'], language="yaml")
+                st.code(msg.content["content"], language="yaml")
 
     @staticmethod
     def render_messages():
@@ -1233,7 +1244,7 @@ class TaskManager:
         """Handle cancel request"""
         # Display user's cancel command
         SessionState.add_message(Message.text("cancel", role="user"))
-        
+
         # Check if task is queued or running
         if st.session_state.queue_position is not None and st.session_state.queue_position > 0:
             # Task is queued, cancel from queue
@@ -1258,7 +1269,9 @@ class TaskManager:
                     st.session_state.prev_iter_placeholder = None
                 # Save current logs
                 if st.session_state.current_task_logs:
-                    processed = process_logs(st.session_state.current_task_logs, st.session_state.running_config.max_iter)
+                    processed = process_logs(
+                        st.session_state.current_task_logs, st.session_state.running_config.max_iter
+                    )
 
                     # Extract output directory if available
                     output_dir = self._extract_output_dir(processed["phase_states"])
@@ -1349,21 +1362,21 @@ class TaskManager:
         # If we don't have a run_id yet, check task status
         if not run_id:
             queue_status = BackendAPI.check_queue_status(task_id)
-            
+
             if not queue_status:
                 with st.chat_message("assistant"):
                     st.error("Failed to get task status")
                 return
-            
+
             position = queue_status.get("position", 0)
             st.session_state.queue_position = position
-            
+
             # Update run_id if available
             if queue_status.get("run_id"):
                 st.session_state.run_id = queue_status["run_id"]
                 st.rerun()  # Rerun to process with run_id
                 return
-            
+
             # Display appropriate status based on position
             with st.chat_message("assistant"):
                 if position > 0:
@@ -1506,14 +1519,14 @@ class TaskManager:
     def _save_config(self, data_folder: str) -> str:
         """Save config file with all overrides applied"""
         overrides = st.session_state.config_overrides
-        
+
         if self.config.uploaded_config:
             # Load uploaded config
             config_content = yaml.safe_load(self.config.uploaded_config.getvalue())
-            
+
             # Check if uploaded config has provider/model that should be preserved
             config_provider, config_model = ConfigFileHandler.extract_provider_model(config_content)
-            
+
             # If UI controls are disabled (config file has provider/model), use file as base
             # but still apply template overrides
             if config_provider and config_model and not overrides["provider"]:
@@ -1522,29 +1535,29 @@ class TaskManager:
             else:
                 # Apply all overrides to uploaded config
                 base_config = config_content
-                
+
             config_path = Path(data_folder) / self.config.uploaded_config.name
         else:
             # No uploaded config, use default
             base_config = ConfigFileHandler.load_default_config()
             config_path = Path(data_folder) / "autogluon_config.yaml"
-        
+
         # Save with all overrides applied
         return ConfigFileHandler.save_modified_config(base_config, overrides, config_path)
 
     def _start_task(self, data_folder: str, config_path: str, user_prompt: str):
         """Start task"""
-        
+
         # ===== DEBUG BLOCK START - EASY TO REMOVE =====
         # Read and display the saved config content
         try:
-            with open(config_path, 'r') as f:
+            with open(config_path, "r") as f:
                 config_content = f.read()
             SessionState.add_message(Message.debug_config(config_path, config_content))
         except Exception as e:
             SessionState.add_message(Message.text(f"❌ DEBUG: Failed to read config: {str(e)}"))
         # ===== DEBUG BLOCK END =====
-        
+
         # Submit task to queue
         task_id, position = BackendAPI.start_task(data_folder, config_path, user_prompt, self.config)
 
@@ -1569,7 +1582,7 @@ class TaskManager:
         # Display command
         command_str = f"[{datetime.now().strftime('%H:%M:%S')}] Submitting AutoMLAgent task: {' '.join(cmd_parts)}"
         SessionState.add_message(Message.command(command_str))
-        
+
         # Add queue status message
         SessionState.add_message(Message.queue_status(task_id, position))
 
@@ -1659,13 +1672,16 @@ def is_running_in_streamlit():
     """Check if running in streamlit environment"""
     try:
         from streamlit.runtime.scriptrunner import get_script_run_ctx
+
         return get_script_run_ctx() is not None
     except ImportError:
         try:
             from streamlit.script_run_context import get_script_run_ctx
+
             return get_script_run_ctx() is not None
         except ImportError:
             return False
+
 
 # ==================== Main App ====================
 class AutoMLAgentApp:
@@ -1764,23 +1780,14 @@ def main():
 
 def launch_streamlit():
     """Entry point for mlzero-webui command - launches streamlit server."""
-    import subprocess
-    import sys
     from pathlib import Path
-    
+
     # Get current file path
     current_file = Path(__file__).resolve()
-    
+
     # Run streamlit
-    cmd = [
-        sys.executable,
-        "-m",
-        "streamlit",
-        "run",
-        str(current_file),
-        "--server.port=8509"
-    ]
-    
+    cmd = [sys.executable, "-m", "streamlit", "run", str(current_file), "--server.port=8509"]
+
     try:
         subprocess.run(cmd)
     except KeyboardInterrupt:

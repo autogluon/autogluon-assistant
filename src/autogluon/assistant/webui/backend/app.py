@@ -10,12 +10,12 @@ def create_app() -> Flask:
     app = Flask(__name__)
     app.config.from_object(Config)
     app.register_blueprint(bp, url_prefix="/api")
-    
+
     # Initialize and start queue manager
     with app.app_context():
         queue_manager = get_queue_manager()
         queue_manager.start()
-    
+
     return app
 
 

@@ -2,8 +2,6 @@
 Constants for MCP (Model Control Protocol) module
 """
 
-from pathlib import Path
-
 # File size limits
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
 MAX_UPLOAD_SIZE = 500 * 1024 * 1024  # 500MB total
@@ -17,13 +15,7 @@ OUTPUT_DIR_PATTERN = "mlzero-{datetime}-{uuid}"
 API_URL = "http://localhost:5000/api"
 
 # Verbosity mapping
-VERBOSITY_MAP = {
-    "DETAIL": "3",
-    "INFO": "2",
-    "BRIEF": "1",
-    "ERROR": "0",
-    "DEBUG": "4"
-}
+VERBOSITY_MAP = {"DETAIL": "3", "INFO": "2", "BRIEF": "1", "ERROR": "0", "DEBUG": "4"}
 
 TASK_STATES = {
     "IDLE": "idle",
@@ -32,7 +24,7 @@ TASK_STATES = {
     "WAITING_INPUT": "waiting_for_input",
     "COMPLETED": "completed",
     "FAILED": "failed",
-    "CANCELLED": "cancelled"
+    "CANCELLED": "cancelled",
 }
 
 # Log levels (MCP specific)

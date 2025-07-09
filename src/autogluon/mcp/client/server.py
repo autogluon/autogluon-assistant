@@ -3,15 +3,14 @@
 MCP Server that exposes the complete AutoGluon pipeline as a single tool
 """
 
-from autogluon.mcp.file_handler import analyze_folder, read_files_for_upload
 import asyncio
 import base64
 import json
-import sys
 from pathlib import Path
-from typing import Optional, List, Dict
+from typing import Optional
 
-from fastmcp import FastMCP, Client
+from autogluon.mcp.file_handler import analyze_folder, read_files_for_upload
+from fastmcp import Client, FastMCP
 
 # # Import utility functions
 # sys.path.append(str(Path(__file__).parent))
@@ -54,11 +53,11 @@ async def run_autogluon_pipeline(
     max_iterations: int = 5,
     init_prompt: Optional[str] = None,
     creds_path: Optional[str] = None,
-    cleanup_server: bool = True
+    cleanup_server: bool = True,
 ) -> dict:
     """
     Run complete AutoGluon pipeline from data upload to results download.
-    
+
     Args:
         input_folder: Local path to input data
         output_folder: Local path where results will be saved
@@ -69,7 +68,7 @@ async def run_autogluon_pipeline(
         init_prompt: Initial user prompt (optional)
         creds_path: Path to credentials file (optional)
         cleanup_server: Whether to clean up server files after download
-        
+
     Returns:
         dict: Execution results with brief logs and output file paths
     """
@@ -101,8 +100,8 @@ async def run_autogluon_pipeline(
             log(f"Warning: Could not load credentials from {creds_path}", "ERROR")
 
     # Create client
-    if not server_url.endswith('/mcp'):
-        server_url = server_url.rstrip('/') + '/mcp'
+    if not server_url.endswith("/mcp"):
+        server_url = server_url.rstrip("/") + "/mcp"
     client = Client(server_url)
 
     try:
@@ -118,25 +117,19 @@ async def run_autogluon_pipeline(
 
             # Read file contents
             file_contents = read_files_for_upload(input_folder)
-            total_size = sum(len(c)
-                             for c in file_contents.values()) / 1024 / 1024
+            total_size = sum(len(c) for c in file_contents.values()) / 1024 / 1024
             log(f"Total size: {total_size:.1f} MB", "INFO")
 
             # Upload folder
-            result = await client.call_tool("upload_input_folder", {
-                "folder_structure": folder_structure,
-                "file_contents": file_contents
-            })
+            result = await client.call_tool(
+                "upload_input_folder", {"folder_structure": folder_structure, "file_contents": file_contents}
+            )
             result = parse_mcp_response(result)
 
             if not result.get("success", False):
-                error_msg = result.get('error', 'Upload failed')
+                error_msg = result.get("error", "Upload failed")
                 log(f"ERROR: {error_msg}", "ERROR")
-                return {
-                    "success": False,
-                    "error": error_msg,
-                    "logs": brief_logs
-                }
+                return {"success": False, "error": error_msg, "logs": brief_logs}
 
             server_input_dir = result["path"]
             log(f"Uploaded to: {server_input_dir}", "INFO")
@@ -149,30 +142,19 @@ async def run_autogluon_pipeline(
                 config_path = Path(config_file)
                 if not config_path.exists():
                     log("ERROR: Config file not found", "ERROR")
-                    return {
-                        "success": False,
-                        "error": "Config file not found",
-                        "logs": brief_logs
-                    }
+                    return {"success": False, "error": "Config file not found", "logs": brief_logs}
 
                 # Read and encode config
                 config_content = config_path.read_bytes()
-                config_b64 = base64.b64encode(config_content).decode('utf-8')
+                config_b64 = base64.b64encode(config_content).decode("utf-8")
 
-                result = await client.call_tool("upload_config", {
-                    "filename": config_path.name,
-                    "content": config_b64
-                })
+                result = await client.call_tool("upload_config", {"filename": config_path.name, "content": config_b64})
                 result = parse_mcp_response(result)
 
                 if not result["success"]:
-                    error_msg = result.get('error', 'Upload failed')
+                    error_msg = result.get("error", "Upload failed")
                     log(f"ERROR: {error_msg}", "ERROR")
-                    return {
-                        "success": False,
-                        "error": error_msg,
-                        "logs": brief_logs
-                    }
+                    return {"success": False, "error": error_msg, "logs": brief_logs}
 
                 server_config_path = result["path"]
                 log(f"Config uploaded to: {server_config_path}", "INFO")
@@ -183,24 +165,23 @@ async def run_autogluon_pipeline(
             if init_prompt:
                 log(f"Initial prompt: {init_prompt}", "INFO")
 
-            result = await client.call_tool("start_task", {
-                "input_dir": server_input_dir,
-                "output_dir": output_folder,
-                "config_path": server_config_path,
-                "max_iterations": max_iterations,
-                "initial_user_input": init_prompt,
-                "credentials_text": credentials_text
-            })
+            result = await client.call_tool(
+                "start_task",
+                {
+                    "input_dir": server_input_dir,
+                    "output_dir": output_folder,
+                    "config_path": server_config_path,
+                    "max_iterations": max_iterations,
+                    "initial_user_input": init_prompt,
+                    "credentials_text": credentials_text,
+                },
+            )
             result = parse_mcp_response(result)
 
             if not result["success"]:
-                error_msg = result.get('error', 'Failed to start task')
+                error_msg = result.get("error", "Failed to start task")
                 log(f"ERROR: {error_msg}", "ERROR")
-                return {
-                    "success": False,
-                    "error": error_msg,
-                    "logs": brief_logs
-                }
+                return {"success": False, "error": error_msg, "logs": brief_logs}
 
             task_id = result["task_id"]
             position = result.get("position", 0)
@@ -219,7 +200,7 @@ async def run_autogluon_pipeline(
                 status = parse_mcp_response(status)
 
                 if not status["success"]:
-                    error_msg = status.get('error', 'Status check failed')
+                    error_msg = status.get("error", "Status check failed")
                     log(f"ERROR: {error_msg}", "ERROR")
                     break
 
@@ -267,13 +248,9 @@ async def run_autogluon_pipeline(
             result = parse_mcp_response(result)
 
             if not result["success"]:
-                error_msg = result.get('error', 'Failed to list outputs')
+                error_msg = result.get("error", "Failed to list outputs")
                 log(f"ERROR: {error_msg}", "ERROR")
-                return {
-                    "success": False,
-                    "error": error_msg,
-                    "logs": brief_logs
-                }
+                return {"success": False, "error": error_msg, "logs": brief_logs}
 
             files = result["files"]
             output_dir = result.get("output_dir")
@@ -296,9 +273,7 @@ async def run_autogluon_pipeline(
             for file_path in files:
                 log(f"Downloading: {file_path}", "DETAIL")
 
-                result = await client.call_tool("download_file", {
-                    "file_path": file_path
-                })
+                result = await client.call_tool("download_file", {"file_path": file_path})
                 result = parse_mcp_response(result)
 
                 if not result["success"]:
@@ -326,9 +301,7 @@ async def run_autogluon_pipeline(
             # Optionally clean up server files
             if cleanup_server and output_dir:
                 log("Cleaning up server files...", "INFO")
-                result = await client.call_tool("cleanup_output", {
-                    "output_dir": output_dir
-                })
+                result = await client.call_tool("cleanup_output", {"output_dir": output_dir})
                 result = parse_mcp_response(result)
 
                 if result.get("success"):
@@ -342,17 +315,13 @@ async def run_autogluon_pipeline(
                 "logs": brief_logs,
                 "output_directory": str(local_output_base),
                 "output_files": downloaded_files,
-                "task_id": task_id
+                "task_id": task_id,
             }
 
     except Exception as e:
         error_msg = str(e)
         log(f"ERROR: {error_msg}", "ERROR")
-        return {
-            "success": False,
-            "error": error_msg,
-            "logs": brief_logs
-        }
+        return {"success": False, "error": error_msg, "logs": brief_logs}
 
 
 if __name__ == "__main__":

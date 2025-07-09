@@ -51,23 +51,23 @@ def run():
 
     # Generate task_id
     task_id = uuid.uuid4().hex
-    
+
     # Prepare command data
     command_data = {
-        'cmd': cmd,
-        'data_src': data_src,
-        'config_path': config_path,
-        'max_iter': max_iter,
-        'control': control
+        "cmd": cmd,
+        "data_src": data_src,
+        "config_path": config_path,
+        "max_iter": max_iter,
+        "control": control,
     }
-    
+
     # Get credentials from request
     credentials = data.get("aws_credentials")  # Keep field name for backward compatibility
-    
+
     # Submit to queue
     queue_manager = get_queue_manager()
     position = queue_manager.submit_task(task_id, command_data, credentials)
-    
+
     return jsonify({"task_id": task_id, "position": position})
 
 
@@ -92,12 +92,12 @@ def status():
     """
     run_id = request.args.get("run_id", "")
     status_info = get_status(run_id)
-    
+
     # If task finished, notify queue manager
     if status_info.get("finished", False):
         queue_manager = get_queue_manager()
         queue_manager.complete_task_by_run_id(run_id)
-    
+
     return jsonify(status_info)
 
 
@@ -110,7 +110,7 @@ def cancel():
     data = request.get_json()
     run_id = data.get("run_id", "")
     task_id = data.get("task_id", "")
-    
+
     if task_id:
         # Try to cancel queued task
         queue_manager = get_queue_manager()
@@ -146,10 +146,10 @@ def queue_status(task_id):
     """Get status of a specific task in the queue"""
     queue_manager = get_queue_manager()
     status = queue_manager.get_task_status(task_id)
-    
+
     if status is None:
         return jsonify({"error": "Task not found"}), 404
-    
+
     return jsonify(status)
 
 

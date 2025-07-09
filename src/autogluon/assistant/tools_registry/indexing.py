@@ -1,12 +1,12 @@
+import contextlib
+import io
 import logging
+import os
 import pickle
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-import contextlib
-import io
-import warnings
-import os
-os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = 'true'
+
+os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "true"
 
 import faiss
 import numpy as np

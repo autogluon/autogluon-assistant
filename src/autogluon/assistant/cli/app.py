@@ -3,22 +3,22 @@ from __future__ import annotations
 
 import multiprocessing.resource_tracker
 
+
 def _noop(*args, **kwargs):
     pass
+
 
 multiprocessing.resource_tracker.register = _noop
 multiprocessing.resource_tracker.unregister = _noop
 multiprocessing.resource_tracker.ensure_running = _noop
 
-import os
-import logging
-from pathlib import Path
+from pathlib import Path  # noqa: E402
 
-import typer
+import typer  # noqa: E402
 
-from autogluon.assistant.coding_agent import run_agent
+from autogluon.assistant.coding_agent import run_agent  # noqa: E402
 
-from .. import __file__ as assistant_file
+from .. import __file__ as assistant_file  # noqa: E402
 
 PACKAGE_ROOT = Path(assistant_file).parent
 DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "configs" / "default.yaml"
@@ -42,20 +42,37 @@ def main(
         "--config",
         help=f"YAML config file (default: {DEFAULT_CONFIG_PATH})",
     ),
-    max_iterations: int = typer.Option(5, "-n", "--max-iterations", help="Max iteration count. If the task hasn’t succeeded after this many iterations, it will terminate."),
-    need_user_input: bool = typer.Option(False, "--enable-per-iteration-instruction", help="If enabled, you can provide a prompt for the next iteration at each iteration"),
-    initial_user_input: str | None = typer.Option(None, "--initial-instruction", help="You can provide the initial instruction here."),
+    max_iterations: int = typer.Option(
+        5,
+        "-n",
+        "--max-iterations",
+        help="Max iteration count. If the task hasn’t succeeded after this many iterations, it will terminate.",
+    ),
+    need_user_input: bool = typer.Option(
+        False,
+        "--enable-per-iteration-instruction",
+        help="If enabled, you can provide a prompt for the next iteration at each iteration",
+    ),
+    initial_user_input: str | None = typer.Option(
+        None, "--initial-instruction", help="You can provide the initial instruction here."
+    ),
     extract_archives_to: str | None = typer.Option(
-        None, "-e", "--extract-to", help="Copy input data to specified directory and automatically extract all .zip archives. "
+        None,
+        "-e",
+        "--extract-to",
+        help="Copy input data to specified directory and automatically extract all .zip archives. ",
     ),
     # === Logging parameters ===
-    verbosity: int = typer.Option(1, "-v", "--verbosity", 
-                                  help=(
-        "-v 0: Only includes error messages\n"
-        "-v 1: Contains key essential information\n"
-        "-v 2: Includes brief information plus detailed information such as file save locations\n"
-        "-v 3: Includes info-level information plus all model training related information\n"
-        "-v 4: Includes full debug information"
+    verbosity: int = typer.Option(
+        1,
+        "-v",
+        "--verbosity",
+        help=(
+            "-v 0: Only includes error messages\n"
+            "-v 1: Contains key essential information\n"
+            "-v 2: Includes brief information plus detailed information such as file save locations\n"
+            "-v 3: Includes info-level information plus all model training related information\n"
+            "-v 4: Includes full debug information"
         ),
     ),
 ):
