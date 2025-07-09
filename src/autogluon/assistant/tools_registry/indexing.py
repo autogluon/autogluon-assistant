@@ -6,8 +6,6 @@ import pickle
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "true"
-
 import faiss
 import numpy as np
 from FlagEmbedding import FlagAutoModel
@@ -15,6 +13,8 @@ from FlagEmbedding import FlagAutoModel
 from .registry import ToolsRegistry
 
 logger = logging.getLogger(__name__)
+
+os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "true"
 
 
 class TutorialIndexer:
