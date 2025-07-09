@@ -1,11 +1,8 @@
 {
   "name": "autogluon.multimodal",
   "version": "1.2.0",
-  "description": "AutoGluon Multimodal is an open-source AutoML framework that simplifies the training of models across multiple data types including text, images, and tabular data, automating tasks from preprocessing to model ensembling with minimal code required.",
+  "description": "AutoGluon Multimodal excels at multimodal classification, regression, document classification, and semantic segmentation tasks. The framework is not optimized for pure tabular data processing and doesn't support generative tasks (like image-to-image or sequence-to-sequence) or audio-related tasks. It also doesn't handle object detection.",
   "features": [
-    "Support multimodal classification or regression, document classification, semantic segmentation",
-    "Does not work the best with pure tabular data (categorical and numerical).",
-    "Does not support any generation tasks like image-to-image or sequence-to-sequence."
   ],
   "requirements": [],
   "prompt_template": [
