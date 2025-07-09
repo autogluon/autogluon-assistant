@@ -7,6 +7,7 @@ allowing remote clients to submit ML tasks and retrieve results.
 """
 
 import logging
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -14,6 +15,7 @@ from autogluon.mcp.file_handler import FileHandler
 from autogluon.mcp.server.task_manager import TaskManager
 from autogluon.mcp.server.utils import generate_task_output_dir
 from fastmcp import FastMCP
+from fastmcp.server.auth import BearerAuthMiddleware
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -394,7 +396,12 @@ async def get_current_task() -> dict:
 
 
 # ==================== Main ====================
-
 if __name__ == "__main__":
-    # Run with streamable HTTP transport by default
-    mcp.run(transport="streamable-http", host="0.0.0.0", port=8000)
+    bearer_token = os.environ.get("MCP_BEARER_TOKEN")
+
+    if bearer_token:
+        auth_middleware = BearerAuthMiddleware(token=bearer_token)
+        mcp.run(transport="streamable-http", host="0.0.0.0", port=8000, auth=auth_middleware)
+    else:
+        print("WARNING: Running without authentication!")
+        mcp.run(transport="streamable-http", host="0.0.0.0", port=8000)

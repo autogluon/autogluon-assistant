@@ -8,12 +8,10 @@ import base64
 import json
 from pathlib import Path
 from typing import Optional
+import os
 
 from autogluon.mcp.file_handler import analyze_folder, read_files_for_upload
 from fastmcp import Client, FastMCP
-
-# # Import utility functions
-# sys.path.append(str(Path(__file__).parent))
 
 # Create MCP server
 mcp = FastMCP("AutoGluon Pipeline Server")
@@ -54,6 +52,7 @@ async def run_autogluon_pipeline(
     init_prompt: Optional[str] = None,
     creds_path: Optional[str] = None,
     cleanup_server: bool = True,
+    bearer_token: Optional[str] = None,
 ) -> dict:
     """
     Run complete AutoGluon pipeline from data upload to results download.
@@ -99,10 +98,8 @@ async def run_autogluon_pipeline(
         if not credentials_text:
             log(f"Warning: Could not load credentials from {creds_path}", "ERROR")
 
-    # Create client
-    if not server_url.endswith("/mcp"):
-        server_url = server_url.rstrip("/") + "/mcp"
-    client = Client(server_url)
+    bearer_token = os.environ.get("MCP_BEARER_TOKEN")
+    client = Client(server_url, auth=bearer_token) if bearer_token else Client(server_url)
 
     try:
         async with client:
@@ -325,5 +322,8 @@ async def run_autogluon_pipeline(
 
 
 if __name__ == "__main__":
-    # Run the server
-    mcp.run(transport="streamable-http", host="0.0.0.0", port=8005, path="/mcp")
+    bearer_token = os.environ.get("MCP_BEARER_TOKEN")
+    if bearer_token:
+        mcp.run(transport="streamable-http", host="0.0.0.0", port=8005, path="/mcp", auth=bearer_token)
+    else:
+        mcp.run(transport="streamable-http", host="0.0.0.0", port=8005, path="/mcp")

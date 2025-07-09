@@ -70,7 +70,7 @@ You can select the LLM provider, model, and credentials to use. If using Bedrock
 ### CLI
 
 ```bash
-mlzero -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS] [--ENABLE-PER-ITERATION-INSTRUCTION] [--INITIAL-INSTRUCTION] [-e EXTRACT_TO] [-v VERBOSITY_LEVEL]
+mlzero -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS] [--ENABLE-PER-ITERATION-INSTRUCTION] [-t --INITIAL-INSTRUCTION] [-e EXTRACT_TO] [-v VERBOSITY_LEVEL]
 ```
 
 #### Required Arguments

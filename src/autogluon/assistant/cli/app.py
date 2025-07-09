@@ -2,7 +2,11 @@
 from __future__ import annotations
 
 import multiprocessing.resource_tracker
+from pathlib import Path
 
+import typer
+
+from autogluon.assistant.coding_agent import run_agent
 
 def _noop(*args, **kwargs):
     pass
@@ -12,15 +16,7 @@ multiprocessing.resource_tracker.register = _noop
 multiprocessing.resource_tracker.unregister = _noop
 multiprocessing.resource_tracker.ensure_running = _noop
 
-from pathlib import Path  # noqa: E402
-
-import typer  # noqa: E402
-
-from autogluon.assistant.coding_agent import run_agent  # noqa: E402
-
-from .. import __file__ as assistant_file  # noqa: E402
-
-PACKAGE_ROOT = Path(assistant_file).parent
+PACKAGE_ROOT = Path(__file__).parent.parent
 DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "configs" / "default.yaml"
 
 app = typer.Typer(add_completion=False)
@@ -51,7 +47,7 @@ def main(
     need_user_input: bool = typer.Option(
         False,
         "--enable-per-iteration-instruction",
-        help="If enabled, you can provide a prompt for the next iteration at each iteration",
+        help="If enabled, provide an instruction at the start of each iteration (except the first, which uses the initial instruction). The process suspends until you provide it.",
     ),
     initial_user_input: str | None = typer.Option(
         None, "--initial-instruction", help="You can provide the initial instruction here."
