@@ -214,7 +214,7 @@ src/autogluon/mcp/server/nohup.out
 src/autogluon/mcp/**/uploads/
 src/autogluon/mcp/**/mlzero-*/
 
-# Credentials (全局忽略 - 安全相关)
+# Credentials
 *.credentials
 *.creds
 credentials.txt

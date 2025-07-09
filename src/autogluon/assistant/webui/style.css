@@ -1,14 +1,14 @@
-/* 只导入使用的Montserrat字体 */
+/* Import only the Montserrat font being used */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
 
-/* 移除页面padding */
+/* Remove all page padding */
 .block-container {
     padding-left: 0;
     padding-right: 0;
     padding-top: 0;
 }
 
-/* 功能特性样式 */
+/* Feature container styles */
 .feature-container {
     background-color: white;
     padding: 20px;
@@ -28,12 +28,12 @@
     margin-bottom: 15px;
 }
 
-/* Expander内容样式 */
-div[data-testid='stExpanderDetails'] p{
-    font-size: 0.8rem
+/* Expander content styles */
+div[data-testid='stExpanderDetails'] p {
+    font-size: 0.8rem;
 }
 
-/* 主容器样式 */
+/* Main container styles */
 .main-container {
     display: flex;
     flex-direction: row;
@@ -51,7 +51,7 @@ div[data-testid='stExpanderDetails'] p{
     padding-left: 3vw;
 }
 
-/* Logo和标题样式 */
+/* Logo and title styles */
 .logo {
     width: 20vw;
     height: 13vh;
@@ -92,12 +92,12 @@ div[data-testid='stExpanderDetails'] p{
     padding: 1vh;
 }
 
-/* 右侧内容样式 */
+/* Right section content styles */
 .get-started-title {
     font-size: 3.5vw;
     font-weight: bold;
-    margin-bottom: 20px;
     margin-top: 2vh;
+    margin-bottom: 20px;
 }
 
 .description {
@@ -114,7 +114,7 @@ div[data-testid='stExpanderDetails'] p{
     font-size: 1.3vw;
 }
 
-/* 响应式设计 - 移动设备 */
+/* Responsive design for mobile devices */
 @media (max-width: 800px) {
     .main-container {
         height: 40vh;
