@@ -2,6 +2,7 @@
 maab/datasets/
 runs/
 maab/runs/
+/maab/
 
 # OS specific
 *.DS_Store
@@ -201,11 +202,6 @@ aga-output-*.csv
 
 # ignore the MLAgent output folder
 output/
-
-# MLZero Specific
-maab/datasets/
-runs/
-maab/runs/
 
 # OS specific
 *.DS_Store

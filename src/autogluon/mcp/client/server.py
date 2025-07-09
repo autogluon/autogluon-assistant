@@ -52,7 +52,7 @@ async def run_autogluon_pipeline(
     verbosity: str = "info",
     config_file: Optional[str] = None,
     max_iterations: int = 5,
-    init_prompt: Optional[str] = None,  # 添加初始提示
+    init_prompt: Optional[str] = None,
     creds_path: Optional[str] = None,
     cleanup_server: bool = True
 ) -> dict:
@@ -188,7 +188,7 @@ async def run_autogluon_pipeline(
                 "output_dir": output_folder,
                 "config_path": server_config_path,
                 "max_iterations": max_iterations,
-                "initial_user_input": init_prompt,  # 传递初始提示
+                "initial_user_input": init_prompt,
                 "credentials_text": credentials_text
             })
             result = parse_mcp_response(result)

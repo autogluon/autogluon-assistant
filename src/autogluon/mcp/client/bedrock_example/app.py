@@ -1,4 +1,4 @@
-# app.py - 优化输出格式版本
+# app.py - Optimized output format version
 import asyncio
 import json
 from autogluon.mcp.client.bedrock_example.converse_agent import ConverseAgent
@@ -6,38 +6,40 @@ from autogluon.mcp.client.bedrock_example.converse_tools import ConverseToolMana
 from autogluon.mcp.client.mcp_client import MCPClient
 from datetime import datetime
 
-# 配置
-PIPELINE_SERVER_URL = 'https://593c3754596e.ngrok.app/mcp/'
+from autogluon.mcp.constants import MCP_BEDROCK_MODEL_ID
 
-# 使用字典来避免作用域问题
+# Configuration
+PIPELINE_SERVER_URL = 'https://your_server_url/mcp/'
+
+# Use a dictionary to avoid scope issues
 config = {
     'debug_mode': True
 }
 
 
 def format_response(response_data):
-    """格式化响应数据，提取关键信息"""
+    """Format response data and extract key information"""
     try:
-        # 提取基本信息
+        # Extract basic information
         output = response_data.get('output', {})
         message = output.get('message', {})
         content = message.get('content', [])
 
-        # 提取使用统计
+        # Extract usage statistics
         usage = response_data.get('usage', {})
         input_tokens = usage.get('inputTokens', 0)
         output_tokens = usage.get('outputTokens', 0)
         total_tokens = usage.get('totalTokens', 0)
 
-        # 提取性能指标
+        # Extract performance metrics
         latency = response_data.get('metrics', {}).get('latencyMs', 0)
 
-        # 构建格式化输出
+        # Build formatted output
         print("\n" + "="*60)
         print("🤖 Assistant Response")
         print("="*60)
 
-        # 打印消息内容
+        # Print message content
         for item in content:
             if 'text' in item:
                 print(f"\n{item['text']}")
@@ -46,12 +48,14 @@ def format_response(response_data):
                 print(f"\n🔧 Tool Call: {tool_info.get('name', 'Unknown')}")
                 if config['debug_mode']:
                     print(
-                        f"   Input: {json.dumps(tool_info.get('input', {}), indent=2)}")
+                        f"   Input: {json.dumps(tool_info.get('input', {}), indent=2)}"
+                    )
 
-        # 打印统计信息
+        # Print statistics information
         print("\n" + "-"*60)
         print(
-            f"📊 Usage: {input_tokens} in → {output_tokens} out = {total_tokens} total tokens")
+            f"📊 Usage: {input_tokens} in → {output_tokens} out = {total_tokens} total tokens"
+        )
         print(f"⏱️  Latency: {latency}ms")
         print("-"*60)
 
@@ -66,11 +70,9 @@ async def main():
     Main function that sets up and runs an interactive AI agent with tool integration.
     The agent can process user prompts and utilize registered tools to perform tasks.
     """
-    # Initialize model configuration
-    model_id = "anthropic.claude-3-5-sonnet-20241022-v2:0"
 
     # Set up the agent and tool manager
-    agent = ConverseAgent(model_id)
+    agent = ConverseAgent(MCP_BEDROCK_MODEL_ID)
     agent.tools = ConverseToolManager()
 
     # Define the agent's behavior through system prompt
@@ -79,20 +81,20 @@ When users provide a prompt, first determine whether they want you to use run_au
 If you run into any errors, please explain in detail at which step the error occurred, what actions you took, what code you executed, and share the exact error message verbatim.
 """
 
-    # 修改 ConverseAgent 来支持格式化输出
+    # Modify ConverseAgent to support formatted output
     original_handle_response = agent._handle_response
 
     async def formatted_handle_response(response):
-        # 格式化显示响应
+        # Display formatted response
         format_response(response)
 
-        # 调用原始处理方法
+        # Call the original handler
         return await original_handle_response(response)
 
-    # 替换方法
+    # Replace the method
     agent._handle_response = formatted_handle_response
 
-    # 修改 invoke 方法来控制调试输出
+    # Modify the invoke method to control debug output
     original_invoke = agent.invoke
 
     async def controlled_invoke(content):
@@ -103,11 +105,12 @@ If you run into any errors, please explain in detail at which step the error occ
                     print(item['text'])
                 elif isinstance(item, dict) and 'toolResult' in item:
                     print(
-                        f"[Tool Result from {item['toolResult'].get('toolUseId', 'unknown')}]")
+                        f"[Tool Result from {item['toolResult'].get('toolUseId', 'unknown')}]"
+                    )
         else:
             print(content)
 
-        # 不再打印原始 JSON
+        # Do not print raw JSON anymore
         agent.messages.append({
             "role": "user",
             "content": content
@@ -115,14 +118,15 @@ If you run into any errors, please explain in detail at which step the error occ
 
         response = agent._get_converse_response()
 
-        # 只在调试模式下打印原始响应
+        # Print raw response only in debug mode
         if config['debug_mode']:
             print(
-                f"\n🔍 Debug - Raw Response: {json.dumps(response, indent=2)}")
+                f"\n🔍 Debug - Raw Response: {json.dumps(response, indent=2)}"
+            )
 
         return await agent._handle_response(response)
 
-    # 替换方法
+    # Replace the method
     agent.invoke = controlled_invoke
 
     # Initialize MCP client with HTTP connection to pipeline server
@@ -135,19 +139,20 @@ If you run into any errors, please explain in detail at which step the error occ
             for tool in tools:
                 agent.tools.register_tool(
                     name=tool['name'],
-                    func=mcp_client.call_tool,  # 直接使用，不包装
+                    func=mcp_client.call_tool,
                     description=tool['description'],
                     input_schema={'json': tool['inputSchema']}
                 )
 
-            # 清晰的启动信息
+            # Clear startup information
             print("\n" + "🚀 " + "="*56 + " 🚀")
             print("  AutoGluon MCP Assistant with Bedrock")
             print("  " + "-"*56)
             print(f"  📡 Connected to: {PIPELINE_SERVER_URL}")
             print(
-                f"  🛠️  Available tools: {', '.join([t['name'] for t in tools])}")
-            print(f"  🧠 Model: {model_id.split('.')[-1]}")
+                f"  🛠️  Available tools: {', '.join([t['name'] for t in tools])}"
+            )
+            print(f"  🧠 Model: {MCP_BEDROCK_MODEL_ID.split('.')[-1]}")
             print("  " + "-"*56)
             print("  Type 'quit' to exit | Toggle debug with 'debug on/off'")
             print("🚀 " + "="*56 + " 🚀\n")
@@ -158,9 +163,10 @@ If you run into any errors, please explain in detail at which step the error occ
                     # Get user input with timestamp
                     current_time = datetime.now().strftime("%H:%M:%S")
                     user_prompt = input(
-                        f"\n[{current_time}] Enter your prompt: ").strip()
+                        f"\n[{current_time}] Enter your prompt: "
+                    ).strip()
 
-                    # Check for commands
+                    # Handle commands
                     if user_prompt.lower() in ['quit', 'exit', 'q']:
                         print("\n👋 Goodbye!")
                         break
@@ -173,13 +179,11 @@ If you run into any errors, please explain in detail at which step the error occ
                         print("🔕 Debug mode disabled")
                         continue
                     elif user_prompt.lower() == 'clear':
-                        print("\033[2J\033[H")  # Clear screen
+                        print("\033[2J\033[H")
                         continue
 
                     # Process the prompt
-                    response = await agent.invoke_with_prompt(user_prompt)
-
-                    # Response is already formatted by our custom handler
+                    await agent.invoke_with_prompt(user_prompt)
 
                 except KeyboardInterrupt:
                     print("\n\n⚠️  Interrupted! Type 'quit' to exit properly.")
@@ -192,7 +196,9 @@ If you run into any errors, please explain in detail at which step the error occ
     except Exception as e:
         print(f"\n❌ Failed to connect to MCP server: {e}")
         print(
-            f"📝 Please ensure the pipeline server is running and accessible at {PIPELINE_SERVER_URL}")
+            f"📝 Please ensure the pipeline server is running and accessible at {PIPELINE_SERVER_URL}"
+        )
+
 
 if __name__ == "__main__":
     # Run the async main function

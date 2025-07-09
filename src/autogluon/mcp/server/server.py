@@ -18,6 +18,7 @@ from autogluon.mcp.file_handler import FileHandler
 from autogluon.mcp.server.task_manager import TaskManager
 from autogluon.mcp.server.utils import generate_task_output_dir
 
+
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

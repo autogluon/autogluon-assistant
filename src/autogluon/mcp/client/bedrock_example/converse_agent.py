@@ -2,9 +2,10 @@ import boto3
 import json
 import re
 
+from autogluon.mcp.constants import DEFAULT_AWS_REGION
 
 class ConverseAgent:
-    def __init__(self, model_id, region='us-west-2', system_prompt='You are a helpful assistant.'):
+    def __init__(self, model_id, region=DEFAULT_AWS_REGION, system_prompt='You are a helpful assistant.'):
         self.model_id = model_id
         self.region = region
         self.client = boto3.client('bedrock-runtime', region_name=self.region)

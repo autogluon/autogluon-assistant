@@ -33,13 +33,13 @@ def run():
         "mlzero",
         "-i",
         data_src,
-        "-n",
-        str(max_iter),
-        "-v",
-        str(verbosity),
-        "-c",
-        config_path,
     ]
+    if max_iter:
+        cmd += ["--max-iterations", str(max_iter)]
+    if verbosity:
+        cmd += ["-v", str(verbosity)]
+    if config_path:
+        cmd += ["-c", config_path]
     if out_dir:
         cmd += ["-o", out_dir]
     if init_prompt:

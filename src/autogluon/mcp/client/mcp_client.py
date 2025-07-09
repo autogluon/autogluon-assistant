@@ -1,4 +1,4 @@
-# mcp_client.py - 修改为 HTTP 连接
+# mcp_client.py - Modified for HTTP connection
 from fastmcp import Client
 from typing import Any, List
 import json
@@ -11,7 +11,7 @@ class MCPClient:
         self._tools_cache = None
 
     async def __aenter__(self):
-        """Async context manager entry"""
+        """Async context manager entry point"""
         await self.connect()
         return self
 
@@ -21,54 +21,28 @@ class MCPClient:
             await self.client.__aexit__(exc_type, exc_val, exc_tb)
 
     async def connect(self):
-        """Establishes connection to MCP server"""
+        """Establish connection to the MCP server"""
         try:
             self.client = Client(self.server_url)
             await self.client.__aenter__()
         except Exception as e:
             raise RuntimeError(
-                f"Failed to connect to MCP server at {self.server_url}: {e}")
-
-
-    # async def get_available_tools(self) -> List[Any]:
-    #     """List available tools - for pipeline server, this is just run_autogluon_pipeline"""
-    #     if not self.client:
-    #         raise RuntimeError("Not connected to MCP server")
-
-    #     return [{
-    #         'name': 'run_autogluon_pipeline',
-    #         'description': 'Run complete AutoGluon pipeline from data upload to results download',
-    #         'inputSchema': {
-    #             "type": "object",
-    #             "properties": {
-    #                 "input_folder": {"type": "string"},
-    #                 "output_folder": {"type": "string"},
-    #                 "server_url": {"type": "string"},
-    #                 "config_file": {"type": "string"},
-    #                 "max_iterations": {"type": "integer"},
-    #                 "init_prompt": {"type": "string"},
-    #                 "creds_path": {"type": "string"},
-    #                 "verbosity": {"type": "string"},
-    #                 "cleanup_server": {"type": "boolean"}
-    #             },
-    #             "required": ["input_folder", "output_folder", "server_url"]
-    #         }
-    #     }]
-
+                f"Failed to connect to MCP server at {self.server_url}: {e}"
+            )
 
     async def get_available_tools(self) -> List[Any]:
-        """动态从服务器获取可用工具列表"""
+        """Dynamically retrieve the list of available tools from the server"""
         if not self.client:
             raise RuntimeError("Not connected to MCP server")
 
-        # 如果有缓存且想要使用缓存
+        # Return cached tools if already fetched
         if self._tools_cache is not None:
             return self._tools_cache
 
-        # 从服务器获取工具列表
+        # Request the list of tools from the server
         tools = await self.client.list_tools()
 
-        # 转换为期望的格式
+        # Convert to the expected format
         formatted_tools = []
         for tool in tools:
             formatted_tools.append({
@@ -77,19 +51,19 @@ class MCPClient:
                 'inputSchema': tool.inputSchema
             })
 
-        # 可选：缓存结果
+        # Optionally cache the formatted result
         self._tools_cache = formatted_tools
 
         return formatted_tools
 
     async def call_tool(self, tool_name: str, arguments: dict) -> Any:
-        """Call a tool with given arguments"""
+        """Call a tool with the specified arguments"""
         if not self.client:
             raise RuntimeError("Not connected to MCP server")
 
         result = await self.client.call_tool(tool_name, arguments)
 
-        # Parse the response based on fastmcp format
+        # Parse the response according to fastmcp format
         if isinstance(result, list) and len(result) > 0:
             return json.loads(result[0].text)
         return result

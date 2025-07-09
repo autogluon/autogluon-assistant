@@ -70,7 +70,7 @@ Homepage = "https://github.com/autogluon/autogluon-assistant"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["autogluon.assistant*"]
+include = ["autogluon.assistant*", "autogluon.mcp*"]
 namespaces = true
 
 [tool.setuptools.package-data]
