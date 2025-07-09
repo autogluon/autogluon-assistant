@@ -32,8 +32,9 @@ uv pip install git+https://github.com/autogluon/autogluon-assistant.git
 
 ## Quick Start
 
-For detailed usage instructions, OpenAI/Azure setup, and advanced configuration options, see our [Getting Started Tutorial](docs/tutorials/getting_started.md).
+For detailed usage instructions, Anthropic/Azure/OpenAI setup, and advanced configuration options, see our [Getting Started Tutorial](docs/tutorials/getting_started.md).
 
+## API Setup
 ## API Setup
 MLZero uses AWS Bedrock by default. Configure your AWS credentials:
 
@@ -43,7 +44,9 @@ export AWS_ACCESS_KEY_ID="<your-access-key>"
 export AWS_SECRET_ACCESS_KEY="<your-secret-key>"
 ```
 
-We also support OpenAI. More LLM providers' support (e.g. Anthropic, Azure, etc.) will be added soon.
+We also support Anthropic, Azure, and OpenAI. Support for more LLM providers (e.g. DeepSeek, etc.) will be added soon.
+
+## Basic Usage
 
 ## Basic Usage for CLI UI
 
