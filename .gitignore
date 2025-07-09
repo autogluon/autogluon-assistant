@@ -2,7 +2,6 @@
 maab/datasets/
 runs/
 maab/runs/
-/maab/
 
 # OS specific
 *.DS_Store
