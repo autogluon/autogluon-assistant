@@ -2,7 +2,6 @@
 import asyncio
 import json
 from datetime import datetime
-import os
 
 from autogluon.mcp.client.bedrock_example.converse_agent import ConverseAgent
 from autogluon.mcp.client.bedrock_example.converse_tools import ConverseToolManager
@@ -116,8 +115,7 @@ If you run into any errors, please explain in detail at which step the error occ
 
     # Initialize MCP client with HTTP connection to pipeline server
     try:
-        bearer_token = os.environ.get("MCP_BEARER_TOKEN")
-        async with MCPClient(PIPELINE_SERVER_URL, bearer_token=bearer_token) as mcp_client:
+        async with MCPClient(PIPELINE_SERVER_URL) as mcp_client:
             # Fetch available tools from the MCP client
             tools = await mcp_client.get_available_tools()
 

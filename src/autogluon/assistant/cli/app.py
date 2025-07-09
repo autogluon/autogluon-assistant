@@ -8,6 +8,7 @@ import typer
 
 from autogluon.assistant.coding_agent import run_agent
 
+
 def _noop(*args, **kwargs):
     pass
 
@@ -50,7 +51,7 @@ def main(
         help="If enabled, provide an instruction at the start of each iteration (except the first, which uses the initial instruction). The process suspends until you provide it.",
     ),
     initial_user_input: str | None = typer.Option(
-        None, "--initial-instruction", help="You can provide the initial instruction here."
+        None, "-t", "--initial-instruction", help="You can provide the initial instruction here."
     ),
     extract_archives_to: str | None = typer.Option(
         None,

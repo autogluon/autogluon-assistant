@@ -1,14 +1,13 @@
 # mcp_client.py - Modified for HTTP connection
 import json
-from typing import Any, List, Optional
+from typing import Any, List
 
 from fastmcp import Client
 
 
 class MCPClient:
-    def __init__(self, server_url: str, bearer_token: Optional[str] = None):
+    def __init__(self, server_url: str):
         self.server_url = server_url
-        self.bearer_token = bearer_token
         self.client = None
         self._tools_cache = None
 
@@ -25,10 +24,7 @@ class MCPClient:
     async def connect(self):
         """Establish connection to the MCP server"""
         try:
-            if self.bearer_token:
-                self.client = Client(self.server_url, auth=self.bearer_token)
-            else:
-                self.client = Client(self.server_url)
+            self.client = Client(self.server_url)
             await self.client.__aenter__()
         except Exception as e:
             raise RuntimeError(f"Failed to connect to MCP server at {self.server_url}: {e}")

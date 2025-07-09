@@ -90,9 +90,9 @@ mlzero -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS]
   Maximum number of iterations. Default is `5`.
 
 - `--enable-per-iteration-instruction`:  
-  Whether to prompt user input at each iteration. Defaults to `False`.
+  If enabled, provide an instruction at the start of each iteration (except the first, which uses the initial instruction). The process suspends until you provide it.
 
-- `--initial-instruction`:  
+- `-t, --initial-instruction`:  
   Initial user input to use in the first iteration. Optional.
 
 - `-e, --extract-to`:  

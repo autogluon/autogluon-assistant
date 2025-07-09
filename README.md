@@ -53,7 +53,7 @@ We also support Anthropic, Azure, and OpenAI. Support for more LLM providers (e.
 ![Demo](https://github.com/autogluon/autogluon-assistant/blob/main/docs/assets/cli_demo.gif)
 
 ```bash
-mlzero -i <input_data_folder> [-u <optional_user_instructions>]
+mlzero -i <input_data_folder> [-t <optional_user_instructions>]
 ```
 
 ## Basic Usage for WEB UI
