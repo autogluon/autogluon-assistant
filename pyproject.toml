@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autogluon.assistant"
-version = "0.1.1"
+version = "1.0.0"
 description = "Multi Agent System for Multimodal ML Automation"
 readme = "README.md"
 requires-python = ">=3.8,<3.12"
