@@ -34,7 +34,7 @@ uv pip install git+https://github.com/autogluon/autogluon-assistant.git
 
 For detailed usage instructions, Anthropic/Azure/OpenAI setup, and advanced configuration options, see our [Getting Started Tutorial](docs/tutorials/getting_started.md).
 
-## API Setup
+### 1. API Setup
 MLZero uses AWS Bedrock by default. Configure your AWS credentials:
 
 ```bash
@@ -45,9 +45,7 @@ export AWS_SECRET_ACCESS_KEY="<your-secret-key>"
 
 We also support Anthropic, Azure, and OpenAI. Support for more LLM providers (e.g. DeepSeek, etc.) will be added soon.
 
-## Basic Usage
-
-### CLI UI
+### 2.1 CLI
 
 ![Demo](https://github.com/autogluon/autogluon-assistant/blob/main/docs/assets/cli_demo.gif)
 
@@ -55,7 +53,7 @@ We also support Anthropic, Azure, and OpenAI. Support for more LLM providers (e.
 mlzero -i <input_data_folder> [-t <optional_user_instructions>]
 ```
 
-## WEB UI
+### 2.2 Web UI
 
 ![Demo](https://github.com/autogluon/autogluon-assistant/blob/main/docs/assets/web_demo.gif)
 
@@ -67,7 +65,7 @@ mlzero-frontend # command to start frontend on 8509(default)
 1. **Configure**: Set your model provider and credentials in settings
 2. **Upload & Describe**: Drag your data folder into the chat input box, then type what you want to accomplish and press Enter
 
-## MCP
+### 2.3 MCP (Model Context Protocol)
 
 Note: The system can run on a single machine or distributed across multiple machines (e.g., server on EC2, client on local).
 1. **Start the server**
@@ -82,6 +80,16 @@ cd autogluon-assistant
 python ./src/autogluon/mcp/client/server.py
 ```
 Note: You may need to set up port tunneling to expose your local MCP Client Server (port 8005) if you want to use it with remote LLM services (e.g., Claude API, OpenAI API).
+
+### 2.4 Python API
+
+```python
+from autogluon.assistant.coding_agent import run_agent
+run_agent(
+      input_data_folder=<your-input-folder>,
+      output_folder=<your-output-folder>
+)
+```
 
 ## Citation
 If you use Autogluon Assistant (MLZero) in your research, please cite our paper:

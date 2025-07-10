@@ -44,7 +44,7 @@ def load_credentials_from_file(file_path: str) -> str:
 async def run_autogluon_pipeline(
     input_folder: str,
     output_folder: str,
-    server_url: str,
+    server_url: str = "http://127.0.0.1:8000/mcp/",
     verbosity: str = "info",
     config_file: Optional[str] = None,
     max_iterations: int = 5,
@@ -54,6 +54,14 @@ async def run_autogluon_pipeline(
 ) -> dict:
     """
     Run complete AutoGluon pipeline from data upload to results download.
+
+    Use this tool when:
+    - User wants to train a machine learning model using AutoGluon
+    - User has data files (CSV, Parquet, etc.) and wants automated ML
+    - User mentions AutoML, AutoGluon, or automatic model training
+    - User asks to analyze/predict/classify data using ML
+
+    This tool will upload data, run AutoGluon training, and download results automatically.
 
     Args:
         input_folder: Local path to input data
