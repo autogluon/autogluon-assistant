@@ -4,7 +4,6 @@ Constants for MCP (Model Control Protocol) module
 
 # File size limits
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
-MAX_UPLOAD_SIZE = 500 * 1024 * 1024  # 500MB total
 
 # Directory patterns
 UPLOAD_DIR_PATTERN = "upload_{timestamp}_{uuid}"

@@ -178,37 +178,6 @@ class TaskManager:
                 logger.error(f"Failed to check status: {str(e)}")
                 return {"success": False, "error": str(e)}
 
-    async def send_input(self, user_input: str) -> dict:
-        """
-        Send user input to running task.
-
-        Args:
-            user_input: User's response to prompt
-
-        Returns:
-            dict: Result of sending input
-        """
-        with self.task_lock:
-            if not self.current_task or not self.current_task.get("run_id"):
-                return {"success": False, "error": "No running task found"}
-
-            try:
-                run_id = self.current_task["run_id"]
-
-                async with aiohttp.ClientSession() as session:
-                    payload = {"run_id": run_id, "input": user_input}
-
-                    async with session.post(f"{self.api_url}/input", json=payload) as response:
-                        if response.status == 200:
-                            result = await response.json()
-                            return {"success": result.get("success", False)}
-                        else:
-                            return {"success": False, "error": f"API error: {response.status}"}
-
-            except Exception as e:
-                logger.error(f"Failed to send input: {str(e)}")
-                return {"success": False, "error": str(e)}
-
     async def cancel_task(self) -> dict:
         """
         Cancel the currently running task.
