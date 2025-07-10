@@ -20,10 +20,15 @@
       "version": "1.3.4",
       "description": "Retrieval and Retrieval-augmented LLMs"
     },
-    "machine learning or deep learning": {
+    "machine learning": {
       "path": "machine learning",
       "version": "0.1.0",
       "description": "You should select this as a general reference of machine learning or deep learning algorithms in case other tools are not helpful."
+    },
+    "fairseq": {
+      "path": "fairseq",
+      "version": "0.12.2",
+      "description": "Fairseq is a comprehensive sequence modeling toolkit for training custom models in translation, summarization, language modeling, text generation, and speech processing tasks like speech recognition and speech-to-speech translation."
     }
   }
 }

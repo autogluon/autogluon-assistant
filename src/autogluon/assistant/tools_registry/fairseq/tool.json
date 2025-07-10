@@ -1,0 +1,8 @@
+{
+  "name": "fairseq",
+  "version": "0.12.2",
+  "description": "Fairseq is a comprehensive sequence modeling toolkit for training custom models in translation, summarization, language modeling, text generation, and speech processing tasks like speech recognition and speech-to-speech translation.",
+  "features": [],
+  "requirements": [],
+  "prompt_template": []
+}

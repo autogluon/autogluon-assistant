@@ -154,6 +154,10 @@ class Manager:
 
         self.selected_tool = self.ts_agent()
 
+        # TODO: remove the hard code for "create_venv" (add in tool registry if need installation)
+        if self.selected_tool.lower() in ["machine learning", "huggingface", "fairseq"]:
+            self.manager.config.create_venv = True
+
         # Get tool-specific template and requirements if they exist
         tool_info = registry.get_tool(self.selected_tool)
         if not tool_info:
