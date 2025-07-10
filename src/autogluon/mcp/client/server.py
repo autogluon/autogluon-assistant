@@ -329,6 +329,10 @@ async def run_autogluon_pipeline(
         return {"success": False, "error": error_msg, "logs": brief_logs}
 
 
-if __name__ == "__main__":
-    # Run the server
+def main():
+    """Entry point for mlzero-mcp-client command"""
     mcp.run(transport="streamable-http", host="0.0.0.0", port=8005, path="/mcp")
+
+
+if __name__ == "__main__":
+    main()

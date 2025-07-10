@@ -54,6 +54,8 @@ aga          = "autogluon.assistant.cli.app:app"
 mlzero       = "autogluon.assistant.cli.app:app"
 mlzero-backend = "autogluon.assistant.webui.backend.app:main"
 mlzero-frontend = "autogluon.assistant.webui.runner:run_frontend"
+mlzero-mcp-server = "autogluon.mcp.server.runner:main"
+mlzero-mcp-client = "autogluon.mcp.client.server:main"
 
 [project.optional-dependencies]
 dev = [

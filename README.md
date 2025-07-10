@@ -72,12 +72,12 @@ Note: The system can run on a single machine or distributed across multiple mach
 ```bash
 cd autogluon-assistant
 mlzero-backend # command to start backend
-bash ./src/autogluon/mcp/server/start_services.sh # This will start the service—run it in a new terminal.
+mlzero-mcp-server # This will start the service—run it in a new terminal.
 ```
 2. **Start the client**
 ```bash
 cd autogluon-assistant
-python ./src/autogluon/mcp/client/server.py
+mlzero-mcp-client
 ```
 Note: You may need to set up port tunneling to expose your local MCP Client Server (port 8005) if you want to use it with remote LLM services (e.g., Claude API, OpenAI API).
 
