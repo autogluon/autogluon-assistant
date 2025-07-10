@@ -87,7 +87,8 @@ Note: You may need to set up port tunneling to expose your local MCP Client Serv
 from autogluon.assistant.coding_agent import run_agent
 run_agent(
       input_data_folder=<your-input-folder>,
-      output_folder=<your-output-folder>
+      output_folder=<your-output-folder>,
+      # more args ...
 )
 ```
 

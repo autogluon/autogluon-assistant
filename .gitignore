@@ -219,3 +219,5 @@ src/autogluon/mcp/**/mlzero-*/
 *.creds
 credentials.txt
 aws_credentials.txt
+
+.claude
