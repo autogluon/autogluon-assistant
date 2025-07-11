@@ -70,7 +70,7 @@ You can select the LLM provider, model, and credentials to use. If using Bedrock
 ### CLI
 
 ```bash
-mlzero -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS] [--need-user-input] [-u INITIAL_USER_INPUT] [-e EXTRACT_TO] [-v VERBOSITY_LEVEL]
+mlzero -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS] [--ENABLE-PER-ITERATION-INSTRUCTION] [-t --INITIAL-INSTRUCTION] [-e EXTRACT_TO] [-v VERBOSITY_LEVEL]
 ```
 
 #### Required Arguments
@@ -89,10 +89,10 @@ mlzero -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS]
 - `-n, --max-iterations`:  
   Maximum number of iterations. Default is `5`.
 
-- `--need-user-input`:  
-  Whether to prompt user input at each iteration. Defaults to `False`.
+- `--enable-per-iteration-instruction`:  
+  If enabled, provide an instruction at the start of each iteration (except the first, which uses the initial instruction). The process suspends until you provide it.
 
-- `-u, --user-input`:  
+- `-t, --initial-instruction`:  
   Initial user input to use in the first iteration. Optional.
 
 - `-e, --extract-to`:  

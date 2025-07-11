@@ -21,11 +21,9 @@ def run_frontend():
 
     args = parser.parse_args()
 
-    # Determine the path to Home.py
     current_dir = Path(__file__).parent
-    home_py_path = current_dir / "Home.py"
+    home_py_path = current_dir / "Launch_MLZero.py"
 
-    # Verify that Home.py exists
     if not home_py_path.exists():
         print(f"Error: {home_py_path} not found!")
         sys.exit(1)
