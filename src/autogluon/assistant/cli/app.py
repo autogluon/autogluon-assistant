@@ -1,15 +1,23 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import multiprocessing.resource_tracker
 from pathlib import Path
 
 import typer
 
 from autogluon.assistant.coding_agent import run_agent
 
-from .. import __file__ as assistant_file
 
-PACKAGE_ROOT = Path(assistant_file).parent
+def _noop(*args, **kwargs):
+    pass
+
+
+multiprocessing.resource_tracker.register = _noop
+multiprocessing.resource_tracker.unregister = _noop
+multiprocessing.resource_tracker.ensure_running = _noop
+
+PACKAGE_ROOT = Path(__file__).parent.parent
 DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "configs" / "default.yaml"
 
 app = typer.Typer(add_completion=False)
@@ -31,14 +39,39 @@ def main(
         "--config",
         help=f"YAML config file (default: {DEFAULT_CONFIG_PATH})",
     ),
-    max_iterations: int = typer.Option(5, "-n", "--max-iterations", help="Max iteration count"),
-    need_user_input: bool = typer.Option(False, "--need-user-input", help="Whether to prompt user each iteration"),
-    initial_user_input: str | None = typer.Option(None, "-u", "--user-input", help="Initial user input"),
+    max_iterations: int = typer.Option(
+        5,
+        "-n",
+        "--max-iterations",
+        help="Max iteration count. If the task hasn’t succeeded after this many iterations, it will terminate.",
+    ),
+    need_user_input: bool = typer.Option(
+        False,
+        "--enable-per-iteration-instruction",
+        help="If enabled, provide an instruction at the start of each iteration (except the first, which uses the initial instruction). The process suspends until you provide it.",
+    ),
+    initial_user_input: str | None = typer.Option(
+        None, "-t", "--initial-instruction", help="You can provide the initial instruction here."
+    ),
     extract_archives_to: str | None = typer.Option(
-        None, "-e", "--extract-to", help="Directory in which to unpack any archives"
+        None,
+        "-e",
+        "--extract-to",
+        help="Copy input data to specified directory and automatically extract all .zip archives. ",
     ),
     # === Logging parameters ===
-    verbosity: int = typer.Option(1, "-v", "--verbosity", help="Verbosity level (0–4)"),
+    verbosity: int = typer.Option(
+        1,
+        "-v",
+        "--verbosity",
+        help=(
+            "-v 0: Only includes error messages\n"
+            "-v 1: Contains key essential information\n"
+            "-v 2: Includes brief information plus detailed information such as file save locations\n"
+            "-v 3: Includes info-level information plus all model training related information\n"
+            "-v 4: Includes full debug information"
+        ),
+    ),
 ):
     """
     mlzero: a CLI for running the AutoMLAgent pipeline.

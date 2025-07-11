@@ -5,6 +5,7 @@ import os
 import signal
 import subprocess
 import threading
+import uuid
 from typing import Dict, List, Optional
 
 from autogluon.assistant.constants import WEBUI_INPUT_MARKER, WEBUI_INPUT_REQUEST, WEBUI_OUTPUT_DIR
@@ -60,12 +61,17 @@ def parse_log_line(line: str) -> dict:
         return {"level": "other", "text": stripped}
 
 
-def start_run(run_id: str, cmd: List[str], credentials: Optional[Dict[str, str]] = None):
+def start_run(task_id: str, cmd: List[str], credentials: Optional[Dict[str, str]] = None) -> str:
     """
     Start subprocess with stdin/stdout/stderr pipes.
     Set AUTOGLUON_WEBUI environment variable to indicate WebUI environment.
     Optionally set credentials (AWS, OpenAI, Anthropic) if provided.
+
+    Returns: run_id (which is generated here, not task_id)
     """
+    # Generate unique run_id
+    run_id = uuid.uuid4().hex
+
     _runs[run_id] = {
         "process": None,
         "logs": [],
@@ -75,6 +81,7 @@ def start_run(run_id: str, cmd: List[str], credentials: Optional[Dict[str, str]]
         "input_prompt": None,
         "output_dir": None,
         "lock": threading.Lock(),
+        "task_id": task_id,  # Store task_id for reference
     }
 
     def _target():
@@ -85,7 +92,7 @@ def start_run(run_id: str, cmd: List[str], credentials: Optional[Dict[str, str]]
 
             # Set credentials if provided
             if credentials:
-                logger.info(f"Setting credentials for task {run_id[:8]}...")
+                logger.info(f"Setting credentials for task {task_id[:8]}...")
 
                 # Apply all provided environment variables
                 for key, value in credentials.items():
@@ -93,22 +100,22 @@ def start_run(run_id: str, cmd: List[str], credentials: Optional[Dict[str, str]]
                     # Log environment variables (mask sensitive values)
                     if "KEY" in key or "TOKEN" in key:
                         masked_value = value[:4] + "..." if len(value) > 4 else "***"
-                        logger.info(f"Task {run_id[:8]}: Setting {key}={masked_value}")
+                        logger.info(f"Task {task_id[:8]}: Setting {key}={masked_value}")
                     else:
-                        logger.info(f"Task {run_id[:8]}: Setting {key}={value}")
+                        logger.info(f"Task {task_id[:8]}: Setting {key}={value}")
 
                 # Log which type of credentials were set based on what's actually present
                 if "AWS_ACCESS_KEY_ID" in credentials:
-                    logger.info(f"Task {run_id[:8]}: AWS credentials configured")
+                    logger.info(f"Task {task_id[:8]}: AWS credentials configured")
                 if "OPENAI_API_KEY" in credentials:
-                    logger.info(f"Task {run_id[:8]}: OpenAI API key configured")
+                    logger.info(f"Task {task_id[:8]}: OpenAI API key configured")
                 if "ANTHROPIC_API_KEY" in credentials:
-                    logger.info(f"Task {run_id[:8]}: Anthropic API key configured")
+                    logger.info(f"Task {task_id[:8]}: Anthropic API key configured")
             else:
-                logger.info(f"Task {run_id[:8]}: No credentials provided, using system defaults")
+                logger.info(f"Task {task_id[:8]}: No credentials provided, using system defaults")
 
             # Log the command being executed for debugging
-            logger.info(f"Task {run_id[:8]}: Executing command: {' '.join(cmd)}")
+            logger.info(f"Task {task_id[:8]}: Executing command: {' '.join(cmd)}")
 
             # Create process with stdin pipe
             p = subprocess.Popen(
@@ -125,7 +132,7 @@ def start_run(run_id: str, cmd: List[str], credentials: Optional[Dict[str, str]]
             )
             _runs[run_id]["process"] = p
 
-            logger.info(f"Started task {run_id[:8]}...")
+            logger.info(f"Started task {task_id[:8]} with run_id {run_id[:8]}...")
 
             # Read stdout line by line
             for line in p.stdout:
@@ -142,7 +149,7 @@ def start_run(run_id: str, cmd: List[str], credentials: Optional[Dict[str, str]]
                     # Check if this is output directory notification
                     if parsed.get("special") == "output_dir":
                         _runs[run_id]["output_dir"] = parsed["text"]
-                        logger.info(f"Task {run_id[:8]} output directory: {parsed['text']}")
+                        logger.info(f"Task {task_id[:8]} output directory: {parsed['text']}")
                         # Don't add this to logs
                         continue
 
@@ -150,17 +157,17 @@ def start_run(run_id: str, cmd: List[str], credentials: Optional[Dict[str, str]]
                     if parsed.get("special") == "input_request":
                         _runs[run_id]["waiting_for_input"] = True
                         _runs[run_id]["input_prompt"] = parsed["text"]
-                        logger.info(f"Task {run_id[:8]} requesting user input")
+                        logger.info(f"Task {task_id[:8]} requesting user input")
 
                     # Always append to logs (original line, not parsed)
                     _runs[run_id]["logs"].append(line)
 
             p.wait()
             exit_code = p.returncode
-            logger.info(f"Task {run_id[:8]} completed with exit code {exit_code}")
+            logger.info(f"Task {task_id[:8]} completed with exit code {exit_code}")
 
         except Exception as e:
-            logger.error(f"Error in task {run_id[:8]}: {str(e)}", exc_info=True)
+            logger.error(f"Error in task {task_id[:8]}: {str(e)}", exc_info=True)
             with _runs[run_id]["lock"]:
                 _runs[run_id]["logs"].append(f"Process error: {str(e)}")
         finally:
@@ -170,6 +177,8 @@ def start_run(run_id: str, cmd: List[str], credentials: Optional[Dict[str, str]]
 
     thread = threading.Thread(target=_target, daemon=True)
     thread.start()
+
+    return run_id
 
 
 def send_user_input(run_id: str, user_input: str) -> bool:
