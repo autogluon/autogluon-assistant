@@ -42,6 +42,7 @@ dependencies = [
   "streamlit-extras>=0.4",
   "psutil>=5.9.8",
   "peft>=0.15.2",
+  "opencv-python",
 ]
 
 [project.scripts]
@@ -73,6 +74,7 @@ namespaces = true
   "configs/*.yaml",
   "webui/static/*",
   "webui/style.css",
+  "tools_registry/**/*",
 ]
 
 [tool.pytest.ini_options]
