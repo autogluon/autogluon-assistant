@@ -24,11 +24,6 @@
       "path": "machine learning",
       "version": "0.1.0",
       "description": "You should select this as a general reference of machine learning or deep learning algorithms in case other tools are not helpful."
-    },
-    "fairseq": {
-      "path": "fairseq",
-      "version": "0.12.2",
-      "description": "Fairseq is a comprehensive neural network toolkit for training custom models across text and audio domains, featuring implementations of state-of-the-art architectures including BART, RoBERTa, mBART, XLM-R, Transformer variants, wav2vec models, HuBERT, and many others. The toolkit supports a wide range of tasks including machine translation, language modeling, text generation, speech recognition, speech synthesis, audio classification, cross-lingual understanding, and multimodal applications."
     }
   }
 }

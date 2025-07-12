@@ -1,8 +1,0 @@
-{
-  "name": "fairseq",
-  "version": "0.12.2",
-  "description": "Fairseq is a comprehensive neural network toolkit for training custom models across text and audio domains, featuring implementations of state-of-the-art architectures including BART, RoBERTa, mBART, XLM-R, Transformer variants, wav2vec models, HuBERT, and many others. The toolkit supports a wide range of tasks including machine translation, language modeling, text generation, speech recognition, speech synthesis, audio classification, cross-lingual understanding, and multimodal applications.",
-  "features": [],
-  "requirements": [],
-  "prompt_template": []
-}
