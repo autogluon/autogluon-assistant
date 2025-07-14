@@ -221,3 +221,5 @@ credentials.txt
 aws_credentials.txt
 
 .claude
+
+src/autogluon/assistant/tools_registry/indices

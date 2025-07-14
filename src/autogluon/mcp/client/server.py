@@ -8,6 +8,10 @@ import base64
 import json
 from pathlib import Path
 from typing import Optional
+import subprocess
+from autogluon.mcp.constants import RSYNC_SERVER
+from datetime import datetime
+import uuid
 
 from autogluon.mcp.file_handler import analyze_folder, read_files_for_upload
 from fastmcp import Client, FastMCP
@@ -113,33 +117,60 @@ async def run_autogluon_pipeline(
         async with client:
             log("Connected to AutoGluon MCP Server", "BRIEF")
 
-            # 1. Upload input folder
-            log(f"Uploading input folder: {input_folder}", "BRIEF")
+            # # 1. Upload input folder
+            # log(f"Uploading input folder: {input_folder}", "BRIEF")
 
-            # Analyze folder structure
-            folder_structure = analyze_folder(input_folder)
-            log(f"Found {count_files(folder_structure)} files", "INFO")
+            # # Analyze folder structure
+            # folder_structure = analyze_folder(input_folder)
+            # log(f"Found {count_files(folder_structure)} files", "INFO")
 
-            # Read file contents
-            file_contents = read_files_for_upload(input_folder)
-            total_size = sum(len(c) for c in file_contents.values()) / 1024 / 1024
-            log(f"Total size: {total_size:.1f} MB", "INFO")
+            # # Read file contents
+            # file_contents = read_files_for_upload(input_folder)
+            # total_size = sum(len(c) for c in file_contents.values()) / 1024 / 1024
+            # log(f"Total size: {total_size:.1f} MB", "INFO")
 
-            # Upload folder
-            result = await client.call_tool(
-                "upload_input_folder", {"folder_structure": folder_structure, "file_contents": file_contents}
-            )
-            result = parse_mcp_response(result)
+            # # Upload folder
+            # result = await client.call_tool(
+            #     "upload_input_folder", {"folder_structure": folder_structure, "file_contents": file_contents}
+            # )
+            # result = parse_mcp_response(result)
 
-            if not result.get("success", False):
-                error_msg = result.get("error", "Upload failed")
-                log(f"ERROR: {error_msg}", "ERROR")
-                return {"success": False, "error": error_msg, "logs": brief_logs}
+            # if not result.get("success", False):
+            #     error_msg = result.get("error", "Upload failed")
+            #     log(f"ERROR: {error_msg}", "ERROR")
+            #     return {"success": False, "error": error_msg, "logs": brief_logs}
 
-            server_input_dir = result["path"]
-            log(f"Uploaded to: {server_input_dir}", "INFO")
+            # server_input_dir = result["path"]
+            # log(f"Uploaded to: {server_input_dir}", "INFO")
 
             # 2. Upload config file if provided
+            
+            # 1. Upload input folder using rsync
+            log(f"Uploading input folder: {input_folder}", "BRIEF")
+
+            # Generate remote directory path (keep same format as before)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            unique_id = uuid.uuid4().hex[:8]
+            remote_base = f"~/.autogluon_assistant/mcp_uploads/upload_{timestamp}_{unique_id}"
+            server_input_dir = f"/home/{RSYNC_SERVER.split('@')[0]}/.autogluon_assistant/mcp_uploads/upload_{timestamp}_{unique_id}"
+
+            # Rsync upload
+            import subprocess
+            rsync_cmd = [
+                "rsync", "-avz", "--progress",
+                f"{input_folder.rstrip('/')}/",  # Ensure trailing slash for content only
+                f"{RSYNC_SERVER}:{remote_base}/"
+            ]
+
+            log(f"Running: {' '.join(rsync_cmd)}", "INFO")
+            result = subprocess.run(rsync_cmd, capture_output=True, text=True)
+
+            if result.returncode != 0:
+                log(f"ERROR: rsync failed: {result.stderr}", "ERROR")
+                return {"success": False, "error": f"rsync failed: {result.stderr}", "logs": brief_logs}
+
+            log(f"Uploaded to: {server_input_dir}", "INFO")
+
             server_config_path = None
             if config_file:
                 log(f"Uploading config file: {config_file}", "INFO")
