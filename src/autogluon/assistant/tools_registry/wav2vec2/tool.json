@@ -1,0 +1,8 @@
+{
+  "name": "wav2vec2",
+  "version": "0.0.0",
+  "description": "This model was pre-trained on 4.5M hours of unlabeled audio data covering more than 143 languages. It requires finetuning to be used for downstream tasks such as Automatic Speech Recognition (ASR), or Audio Classification.",
+  "features": [],
+  "requirements": [],
+  "prompt_template": []
+}

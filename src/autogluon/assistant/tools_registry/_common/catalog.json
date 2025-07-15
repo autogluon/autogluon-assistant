@@ -24,6 +24,11 @@
       "path": "machine learning",
       "version": "0.1.0",
       "description": "You should select this as a general reference of machine learning or deep learning algorithms in case other tools are not helpful."
+    },
+    "wav2vec2": {
+      "path": "wav2vec2",
+      "version": "0.0.0",
+      "description": "This model was pre-trained on 4.5M hours of unlabeled audio data covering more than 143 languages. It requires finetuning to be used for downstream tasks such as Automatic Speech Recognition (ASR), or Audio Classification."
     }
   }
 }
