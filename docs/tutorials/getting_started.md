@@ -4,10 +4,20 @@ This guide covers everything you need to know to start using AutoGluon Assistant
 
 ## API Keys
 
-### Configuring LLMs
-MLZero supports using both AWS Bedrock and OpenAI as LLM model providers. You will need to set up API keys for the respective provider you choose. By default, MLZero uses AWS Bedrock for its language models.
+### Configuring LLM Providers
+MLZero supports AWS Bedrock, Anthropic, OpenAI, and Azure as LLM model providers. You must configure API keys for your chosen provider. MLZero uses AWS Bedrock as the default provider for language models.
 
-### AWS Bedrock Setup
+You can modify the provider and LLM model in [our default config](https://github.com/FANGAreNotGnu/autogluon-assistant/blob/main/src/autogluon/assistant/configs/default.yaml), or provide a custom config to override the defaults. Different LLM models can be assigned to individual agents by overriding the `default_llm` configuration.
+
+```yaml
+llm: &default_llm
+  provider: bedrock  # bedrock/anthropic/openai/azure
+  model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+```
+
+Alternatively, Web UI users can configure providers via the settings panel on the left sidebar.
+
+#### AWS Bedrock Setup
 MLZero integrates with AWS Bedrock by default. To use AWS Bedrock, you will need to configure your AWS credentials and region settings:
 
 ```bash
@@ -18,7 +28,15 @@ export AWS_SECRET_ACCESS_KEY="<your-secret-key>"
 
 Ensure you have an active AWS account and appropriate permissions set up for using Bedrock models. You can manage your AWS credentials through the AWS Management Console. See [Bedrock supported AWS regions](https://docs.aws.amazon.com/bedrock/latest/userguide/models-regions.html)
 
-### OpenAI Setup
+#### Anthropic Setup
+To use Anthropic, you will need to set your Anthropic API key as an environment variable:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+You can create an Anthropic account [here](https://console.anthropic.com/) and manage your API keys in the [Console](https://console.anthropic.com/keys).
+
+#### OpenAI Setup
 To use OpenAI, you will need to set your OpenAI API key as an environment variable:
 
 ```bash
@@ -27,9 +45,9 @@ export OPENAI_API_KEY="sk-..."
 
 You can sign up for an OpenAI account [here](https://platform.openai.com/) and manage your API keys [here](https://platform.openai.com/account/api-keys).
 
-Important: Free-tier OpenAI accounts may be subject to rate limits, which could affect AG-A's performance. We recommend using a paid OpenAI API key for seamless functionality.
+Important: Free-tier OpenAI accounts may be subject to rate limits, which could affect the performance. We recommend using a paid OpenAI API key for seamless functionality.
 
-### Azure OpenAI Setup (WIP)
+### Azure OpenAI Setup
 To use Azure OpenAI, you'll need to set the following Azure OpenAI values, as environment variables:
 ```bash
 export AZURE_OPENAI_API_KEY=<...>
@@ -39,33 +57,7 @@ export AZURE_OPENAI_ENDPOINT=<...>
 
 ## Usage
 
-We support two ways of using AutoGluon Assistant: WebUI or CLI.
-
-### Web UI
-
-#### Model Execution Settings
-
-The settings above the divider line control how the model runs, while the settings below the divider line relate to the model being used (including provider, credentials, and model parameters).
-
-- **Max Iterations**: The number of rounds the model will run. The program automatically stops when this limit is reached. Default is 5, adjustable as needed.
-
-- **Manual Prompts Between Iterations**: Choose whether to add iteration-specific prompts between iterations or not.
-
-- **Log Verbosity**: Select the level of detail for the logs you want to see. Three options are available: brief, info, and detail. Brief is recommended.
-  - **Brief**: Contains key essential information
-  - **Info**: Includes brief information plus detailed information such as file save locations
-  - **Detail**: Includes info-level information plus all model training related information
-
-
-You can select the LLM provider, model, and credentials to use. If using Bedrock as the provider, you can use EC2 defaults(If you applied the correct IAM role). You can also upload your own config file, which will override the provider and model name settings. Provided credentials will be validated.
-
-#### Chat Input Box
-
-1. **Initial Task Submission**: When starting a task for the first time, drag the input folder into this chat input box, enter any description or requirements about the task, then press Enter or click the submit button on the right. Note: Submitting larger files may sometimes fail - you can try multiple times if needed.
-
-2. **Manual Prompts**: If you selected "Manual prompts between iterations" in settings, you can input instructions here between iterations.
-
-3. **Task Cancellation**: After submitting a task, if you want to cancel it, submit "cancel" in this input box.
+We support two ways of using AutoGluon Assistant: CLI or WebUI.
 
 ### CLI
 
@@ -93,10 +85,10 @@ mlzero -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS]
   If enabled, provide an instruction at the start of each iteration (except the first, which uses the initial instruction). The process suspends until you provide it.
 
 - `-t, --initial-instruction`:  
-  Initial user input to use in the first iteration. Optional.
+  Initial user input to use in the first iteration.
 
 - `-e, --extract-to`:  
-  If the input folder contains archive files, unpack them into this directory. If not specified, archives are not unpacked.
+  Extract archive files from the input folder to the specified directory and copy all non-archive files to the same directory. If not specified, all data remains in the input folder and is used as-is (archives remain packed).
 
 - `-v, --verbosity`:  
   Increase logging verbosity level. Use `-v <level>` where level is an integer:
@@ -111,15 +103,32 @@ mlzero -i INPUT_DATA_FOLDER [-o OUTPUT_DIR] [-c CONFIG_PATH] [-n MAX_ITERATIONS]
 #### Examples
 
 ```bash
-# Basic usage
-mlzero -i ./data
+# Minimum usage
+mlzero -i <input_data>
 
 # Custom output directory and verbosity
-mlzero -i ./data -o ./results -v 5
+mlzero -i <input_data> -o <output_dir> -v 3
 
-# Use archive extraction and limit iterations
-mlzero -i ./data -n 3 -e ./tmp_extract -v 6
+# Copy data and extract archives from input_data to tmp_extract and set max iteration to 3
+mlzero -i ./data -e ./tmp_extract -n 3
 
-# Custom output directory and set limit to 3 iterations
-mlzero -i ./data -n 3
 ```
+
+### Web UI
+
+#### LLM Configuration
+*Note: This configuration is not needed if you exported the required environment variables before starting the Web UI.*
+
+You can select the LLM provider, model, and credentials to use. If using Bedrock as the provider and an EC2 instance as the server, you can also apply the correct IAM role to the EC2 instance.
+
+If you upload your own config file in advanced settings, it will override the provider and model name settings. Provided credentials will be validated.
+
+#### Chat
+1. **Upload Data**: When starting a task for the first time, drag the input folder into the chat input box, (optionally) enter any description or requirements about the task, then press Enter or click the submit button on the right. Note: Submitting very large files may sometimes fail due to connection issues - you can try multiple times.
+2. **Per Iteration Instruction**: If you selected "Manual prompts between iterations" in the advanced settings, you can input instructions here between iterations.
+3. **Cancel The Task**: After submitting a task, if you want to cancel it, submit "cancel" in this chat box.
+
+#### Advanced Settings
+- **Max Iterations**: MLZero stops when the task is successful or this limit is reached. Default is 5, adjustable as needed.
+- **Manual Prompts Between Iterations**: Choose whether to add iteration-specific prompts between iterations.
+- **Log Verbosity**: Select the level of detail for the logs you want to see. Three options are available: brief, info, and detail.
