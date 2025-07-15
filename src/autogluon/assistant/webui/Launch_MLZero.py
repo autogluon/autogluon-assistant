@@ -121,11 +121,6 @@ class Message:
     def queue_status(cls, task_id: str, position: int) -> "Message":
         return cls(role="assistant", type="queue_status", content={"task_id": task_id, "position": position})
 
-    @classmethod
-    def debug_config(cls, config_path: str, config_content: str) -> "Message":
-        """Debug message for showing final config content"""
-        return cls(role="assistant", type="debug_config", content={"path": config_path, "content": config_content})
-
 
 @dataclass
 class TaskConfig:
@@ -1064,11 +1059,6 @@ class UI:
 
                 manager = ResultManager(content["output_dir"], content["run_id"])
                 manager.render()
-        elif msg.type == "debug_config":
-            # DEBUG block - easy to remove later
-            with st.expander("🐛 DEBUG: Final Config Content", expanded=True):
-                st.caption(f"Config saved to: {msg.content['path']}")
-                st.code(msg.content["content"], language="yaml")
 
     @staticmethod
     def render_messages():
@@ -1547,16 +1537,6 @@ class TaskManager:
 
     def _start_task(self, data_folder: str, config_path: str, user_prompt: str):
         """Start task"""
-
-        # ===== DEBUG BLOCK START - EASY TO REMOVE =====
-        # Read and display the saved config content
-        try:
-            with open(config_path, "r") as f:
-                config_content = f.read()
-            SessionState.add_message(Message.debug_config(config_path, config_content))
-        except Exception as e:
-            SessionState.add_message(Message.text(f"❌ DEBUG: Failed to read config: {str(e)}"))
-        # ===== DEBUG BLOCK END =====
 
         # Submit task to queue
         task_id, position = BackendAPI.start_task(data_folder, config_path, user_prompt, self.config)

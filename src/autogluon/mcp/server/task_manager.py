@@ -215,43 +215,22 @@ class TaskManager:
                 logger.error(f"Failed to cancel task: {str(e)}")
                 return {"success": False, "error": str(e)}
 
+
     async def list_outputs(self) -> dict:
-        """
-        List output files from completed task.
+        if not self.current_task:
+            return {"success": False, "error": "No task found"}
 
-        Returns:
-            dict: List of output files with full paths and output directory
-        """
-        with self.task_lock:
-            if not self.current_task:
-                return {"success": False, "error": "No task found"}
+        if self.current_task.get("state") != "completed":
+            return {"success": False, "error": "Task is not completed yet"}
 
-            if self.current_task.get("state") != "completed":
-                return {"success": False, "error": "Task is not completed yet"}
+        output_dir = self.current_task.get("output_dir")
+        if not output_dir:
+            output_dir = self.current_task["params"].get("server_output_dir")
 
-            output_dir = self.current_task.get("output_dir")
-            if not output_dir:
-                # Try to get from server output dir
-                output_dir = self.current_task["params"].get("server_output_dir")
+        if not output_dir:
+            return {"success": False, "error": "Output directory not found"}
 
-            if not output_dir:
-                return {"success": False, "error": "Output directory not found"}
-
-            try:
-                # List files in output directory
-                from ..file_handler import FileHandler
-
-                file_handler = FileHandler(Path.home() / ".autogluon_assistant" / "mcp_uploads")
-                files = file_handler.list_files(output_dir)
-
-                # Return full paths
-                full_paths = [str(Path(output_dir) / f) for f in files]
-
-                return {"success": True, "files": full_paths, "output_dir": output_dir}  # Include the output directory
-
-            except Exception as e:
-                logger.error(f"Failed to list outputs: {str(e)}")
-                return {"success": False, "error": str(e)}
+        return {"success": True, "output_dir": output_dir}
 
     async def get_current_task_info(self) -> Optional[dict]:
         """Get information about current task"""

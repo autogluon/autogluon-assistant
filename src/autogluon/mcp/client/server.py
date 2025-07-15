@@ -4,7 +4,6 @@ MCP Server that exposes the complete AutoGluon pipeline as a single tool
 """
 
 import asyncio
-import base64
 import json
 from pathlib import Path
 from typing import Optional
@@ -13,7 +12,6 @@ from autogluon.mcp.constants import RSYNC_SERVER
 from datetime import datetime
 import uuid
 
-from autogluon.mcp.file_handler import analyze_folder, read_files_for_upload
 from fastmcp import Client, FastMCP
 
 # Create MCP server
@@ -117,34 +115,6 @@ async def run_autogluon_pipeline(
         async with client:
             log("Connected to AutoGluon MCP Server", "BRIEF")
 
-            # # 1. Upload input folder
-            # log(f"Uploading input folder: {input_folder}", "BRIEF")
-
-            # # Analyze folder structure
-            # folder_structure = analyze_folder(input_folder)
-            # log(f"Found {count_files(folder_structure)} files", "INFO")
-
-            # # Read file contents
-            # file_contents = read_files_for_upload(input_folder)
-            # total_size = sum(len(c) for c in file_contents.values()) / 1024 / 1024
-            # log(f"Total size: {total_size:.1f} MB", "INFO")
-
-            # # Upload folder
-            # result = await client.call_tool(
-            #     "upload_input_folder", {"folder_structure": folder_structure, "file_contents": file_contents}
-            # )
-            # result = parse_mcp_response(result)
-
-            # if not result.get("success", False):
-            #     error_msg = result.get("error", "Upload failed")
-            #     log(f"ERROR: {error_msg}", "ERROR")
-            #     return {"success": False, "error": error_msg, "logs": brief_logs}
-
-            # server_input_dir = result["path"]
-            # log(f"Uploaded to: {server_input_dir}", "INFO")
-
-            # 2. Upload config file if provided
-            
             # 1. Upload input folder using rsync
             log(f"Uploading input folder: {input_folder}", "BRIEF")
 
@@ -171,6 +141,7 @@ async def run_autogluon_pipeline(
 
             log(f"Uploaded to: {server_input_dir}", "INFO")
 
+            # 2. Upload config file if provided using rsync
             server_config_path = None
             if config_file:
                 log(f"Uploading config file: {config_file}", "INFO")
@@ -180,19 +151,26 @@ async def run_autogluon_pipeline(
                     log("ERROR: Config file not found", "ERROR")
                     return {"success": False, "error": "Config file not found", "logs": brief_logs}
 
-                # Read and encode config
-                config_content = config_path.read_bytes()
-                config_b64 = base64.b64encode(config_content).decode("utf-8")
+                # Generate remote config directory path (keep same format as before)
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                unique_id = uuid.uuid4().hex[:8]
+                remote_config_dir = f"~/.autogluon_assistant/mcp_uploads/config_{timestamp}_{unique_id}"
+                server_config_path = f"/home/{RSYNC_SERVER.split('@')[0]}/.autogluon_assistant/mcp_uploads/config_{timestamp}_{unique_id}/{config_path.name}"
 
-                result = await client.call_tool("upload_config", {"filename": config_path.name, "content": config_b64})
-                result = parse_mcp_response(result)
+                # Rsync upload config file
+                rsync_cmd = [
+                    "rsync", "-avz", "--progress",
+                    str(config_file),
+                    f"{RSYNC_SERVER}:{remote_config_dir}/"
+                ]
 
-                if not result["success"]:
-                    error_msg = result.get("error", "Upload failed")
-                    log(f"ERROR: {error_msg}", "ERROR")
-                    return {"success": False, "error": error_msg, "logs": brief_logs}
+                log(f"Running: {' '.join(rsync_cmd)}", "INFO")
+                result = subprocess.run(rsync_cmd, capture_output=True, text=True)
 
-                server_config_path = result["path"]
+                if result.returncode != 0:
+                    log(f"ERROR: rsync config failed: {result.stderr}", "ERROR")
+                    return {"success": False, "error": f"rsync config failed: {result.stderr}", "logs": brief_logs}
+
                 log(f"Config uploaded to: {server_config_path}", "INFO")
 
             # 3. Start task
@@ -279,7 +257,7 @@ async def run_autogluon_pipeline(
             # 5. Download results
             log(f"Downloading results to: {output_folder}", "BRIEF")
 
-            # List output files
+            # Get server output directory
             result = await client.call_tool("list_outputs", {})
             result = parse_mcp_response(result)
 
@@ -288,49 +266,39 @@ async def run_autogluon_pipeline(
                 log(f"ERROR: {error_msg}", "ERROR")
                 return {"success": False, "error": error_msg, "logs": brief_logs}
 
-            files = result["files"]
             output_dir = result.get("output_dir")
-            log(f"Found {len(files)} output files", "INFO")
+            if not output_dir:
+                log("ERROR: No output directory found", "ERROR")
+                return {"success": False, "error": "No output directory", "logs": brief_logs}
 
-            # Create output directory
+            log(f"Server output directory: {output_dir}", "INFO")
+
+            # Create local output directory
             output_path = Path(output_folder)
             output_path.mkdir(parents=True, exist_ok=True)
 
-            # Extract folder name from server path
-            if output_dir:
-                server_folder_name = Path(output_dir).name
-                local_output_base = output_path / server_folder_name
-                local_output_base.mkdir(exist_ok=True)
-            else:
-                local_output_base = output_path
+            # Rsync download from server to client
+            rsync_cmd = [
+                "rsync", "-avz", "--progress",
+                f"{RSYNC_SERVER}:{output_dir}",
+                f"{output_folder}/"
+            ]
 
-            # Download each file
+            log(f"Running: {' '.join(rsync_cmd)}", "INFO")
+            result = subprocess.run(rsync_cmd, capture_output=True, text=True)
+
+            if result.returncode != 0:
+                log(f"ERROR: rsync failed: {result.stderr}", "ERROR")
+                return {"success": False, "error": f"rsync download failed: {result.stderr}", "logs": brief_logs}
+
+            # List downloaded files
+            server_folder_name = Path(output_dir).name
+            local_output_base = output_path / server_folder_name
             downloaded_files = []
-            for file_path in files:
-                log(f"Downloading: {file_path}", "DETAIL")
-
-                result = await client.call_tool("download_file", {"file_path": file_path})
-                result = parse_mcp_response(result)
-
-                if not result["success"]:
-                    log(f"ERROR: Failed to download {file_path}", "ERROR")
-                    continue
-
-                # Decode and save file
-                content = base64.b64decode(result["content"])
-
-                # Preserve directory structure
-                if output_dir and file_path.startswith(output_dir):
-                    rel_path = Path(file_path).relative_to(output_dir)
-                else:
-                    rel_path = Path(file_path).name
-
-                local_path = local_output_base / rel_path
-                local_path.parent.mkdir(parents=True, exist_ok=True)
-                local_path.write_bytes(content)
-
-                downloaded_files.append(str(local_path))
-                log(f"Saved to: {local_path}", "INFO")
+            if local_output_base.exists():
+                for file_path in local_output_base.rglob("*"):
+                    if file_path.is_file():
+                        downloaded_files.append(str(file_path))
 
             log(f"All files downloaded to: {local_output_base}", "BRIEF")
 

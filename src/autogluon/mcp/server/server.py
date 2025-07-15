@@ -10,7 +10,6 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from autogluon.mcp.file_handler import FileHandler
 from autogluon.mcp.server.task_manager import TaskManager
 from autogluon.mcp.server.utils import generate_task_output_dir
 from fastmcp import FastMCP
@@ -23,54 +22,10 @@ logger = logging.getLogger(__name__)
 mcp = FastMCP("AutoGluon Assistant Server 🚀")
 
 # Initialize handlers
-file_handler = FileHandler(base_dir=Path.home() / ".autogluon_assistant" / "mcp_uploads")
 task_manager = TaskManager()
 
 
 # ==================== Tools ====================
-
-
-@mcp.tool()
-async def upload_input_folder(folder_structure: dict, file_contents: dict) -> dict:
-    """
-    Upload input folder from client to server.
-
-    Args:
-        folder_structure: Directory structure in JSON format
-        file_contents: File contents with paths as keys and base64 content as values
-
-    Returns:
-        dict: {"success": bool, "path": str, "error": str (optional)}
-    """
-    try:
-        server_path = file_handler.upload_folder(folder_structure, file_contents)
-        logger.info(f"Input folder uploaded to: {server_path}")
-        return {"success": True, "path": server_path}
-    except Exception as e:
-        logger.error(f"Failed to upload input folder: {str(e)}")
-        return {"success": False, "error": str(e)}
-
-
-@mcp.tool()
-async def upload_config(filename: str, content: str) -> dict:
-    """
-    Upload config file to server.
-
-    Args:
-        filename: Name of the config file
-        content: Base64 encoded content of the config file
-
-    Returns:
-        dict: {"success": bool, "path": str, "error": str (optional)}
-    """
-    try:
-        server_path = file_handler.upload_single_file(filename, content)
-        logger.info(f"Config file uploaded to: {server_path}")
-        return {"success": True, "path": server_path}
-    except Exception as e:
-        logger.error(f"Failed to upload config file: {str(e)}")
-        return {"success": False, "error": str(e)}
-
 
 @mcp.tool()
 async def start_task(
@@ -194,25 +149,6 @@ async def list_outputs() -> dict:
 
 
 @mcp.tool()
-async def download_file(file_path: str) -> dict:
-    """
-    Download a single file from server.
-
-    Args:
-        file_path: Server path to the file
-
-    Returns:
-        dict: {"success": bool, "content": str (base64), "error": str (optional)}
-    """
-    try:
-        content = file_handler.download_file(file_path)
-        return {"success": True, "content": content}
-    except Exception as e:
-        logger.error(f"Failed to download file: {str(e)}")
-        return {"success": False, "error": str(e)}
-
-
-@mcp.tool()
 async def get_progress() -> dict:
     """
     Get current task progress.
@@ -243,11 +179,6 @@ async def cleanup_output(output_dir: str) -> dict:
         import shutil
 
         path = Path(output_dir)
-
-        # Security check
-        if not file_handler._is_safe_path(path):
-            return {"success": False, "error": f"Access denied: {output_dir}"}
-
         if not path.exists():
             return {"success": False, "error": f"Directory not found: {output_dir}"}
 
@@ -259,137 +190,6 @@ async def cleanup_output(output_dir: str) -> dict:
     except Exception as e:
         logger.error(f"Failed to cleanup output: {str(e)}")
         return {"success": False, "error": str(e)}
-
-
-# ==================== Prompts ====================
-
-
-@mcp.prompt()
-def autogluon_workflow() -> str:
-    """Complete AutoGluon workflow guide"""
-    return """
-    AutoGluon Assistant Workflow:
-    
-    1. Upload Phase:
-       - First upload your input folder using upload_input_folder
-       - The folder_structure should be a JSON representation of your directory tree
-       - The file_contents should be a dict with relative paths as keys and base64 content as values
-       - Optionally upload a config file using upload_config
-       
-    2. Start Task:
-       - Call start_task with the server paths returned from upload
-       - Specify your desired output directory on the client side
-       - Choose provider (bedrock/openai/anthropic) and optionally specify model
-       - Provide credentials in environment variable format if needed
-       - Set max_iterations and whether you want interactive input
-       
-    3. Monitor Progress:
-       - Use check_status to monitor task progress
-       - The response includes current state, logs, and progress
-       - If waiting_for_input is true, use send_input to provide response
-       
-    4. Download Results:
-       - Once task is completed, use list_outputs to see available files
-       - Use download_file to retrieve each file you need
-       - Files are returned as base64 encoded content
-       
-    Notes:
-    - Only one task can run at a time
-    - Tasks run with INFO log level by default
-    - Archive extraction happens automatically if needed
-    """
-
-
-@mcp.prompt()
-def credentials_format() -> str:
-    """Credentials format guide"""
-    return """
-    Credentials Format (environment variable style):
-    
-    For AWS/Bedrock:
-    ```
-    export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
-    export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-    export AWS_SESSION_TOKEN="..."  # if using temporary credentials
-    export AWS_DEFAULT_REGION="us-west-2"
-    ```
-    
-    For OpenAI:
-    ```
-    export OPENAI_API_KEY="sk-..."
-    ```
-    
-    For Anthropic:
-    ```
-    export ANTHROPIC_API_KEY="sk-ant-..."
-    ```
-    
-    Pass the entire text block (including 'export' statements) as credentials_text parameter.
-    """
-
-
-@mcp.prompt()
-def folder_structure_format() -> str:
-    """Folder structure format guide"""
-    return """
-    Folder Structure Format:
-    
-    The folder_structure parameter should be a JSON object like:
-    ```json
-    {
-        "type": "directory",
-        "name": "root",
-        "children": [
-            {
-                "type": "file",
-                "name": "train.csv",
-                "size": 1024,
-                "path": "train.csv"
-            },
-            {
-                "type": "directory",
-                "name": "data",
-                "children": [
-                    {
-                        "type": "file",
-                        "name": "test.csv",
-                        "size": 2048,
-                        "path": "data/test.csv"
-                    }
-                ]
-            }
-        ]
-    }
-    ```
-    
-    The file_contents should be:
-    ```json
-    {
-        "train.csv": "base64_encoded_content_here",
-        "data/test.csv": "base64_encoded_content_here"
-    }
-    ```
-    """
-
-
-# ==================== Resources ====================
-
-
-@mcp.resource("task://current")
-async def get_current_task() -> dict:
-    """Get current running task information"""
-    current = await task_manager.get_current_task_info()
-    if current:
-        return {
-            "task_id": current.get("task_id"),
-            "run_id": current.get("run_id"),
-            "state": current.get("state"),
-            "started_at": current.get("started_at"),
-            "input_dir": current.get("input_dir"),
-            "output_dir": current.get("server_output_dir"),
-        }
-    else:
-        return {"message": "No task currently running"}
 
 
 # ==================== Main ====================
