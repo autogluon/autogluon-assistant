@@ -5,10 +5,10 @@ This guide covers everything you need to know to start using AutoGluon Assistant
 ## API Keys
 
 ### Configuring LLMs
-MLZero supports using both AWS Bedrock and OpenAI as LLM model providers. You will need to set up API keys for the respective provider you choose. By default, MLZero uses AWS Bedrock for its language models.
+MLZero supports using both Amazon Bedrock and OpenAI as LLM model providers. You will need to set up API keys for the respective provider you choose. By default, MLZero uses Amazon Bedrock for its language models.
 
-### AWS Bedrock Setup
-MLZero integrates with AWS Bedrock by default. To use AWS Bedrock, you will need to configure your AWS credentials and region settings:
+### Amazon Bedrock Setup
+MLZero integrates with Amazon Bedrock by default. To use Amazon Bedrock, you will need to configure your AWS credentials and region settings:
 
 ```bash
 export AWS_DEFAULT_REGION="<your-region>"
