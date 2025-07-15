@@ -116,6 +116,12 @@ mlzero -i ./data -e ./tmp_extract -n 3
 
 ### Web UI
 
+#### Launch Web UI
+```bash
+mlzero-backend # command to start backend
+mlzero-frontend # command to start frontend on 8509(default)
+```
+
 #### LLM Configuration
 *Note: This configuration is not needed if you exported the required environment variables before starting the Web UI.*
 
