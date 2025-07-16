@@ -35,6 +35,8 @@ dependencies = [
   "joblib>=1.4.2",
   "python-calamine",
   "tenacity>=8.2.2",
+  "torchaudio",
+  "torchvision",
   "transformers<=4.49.0",
   "pandas>=2.2",
   "streamlit>=1.37",
