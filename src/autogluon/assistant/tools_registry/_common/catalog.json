@@ -29,6 +29,11 @@
       "path": "wav2vec2",
       "version": "0.0.0",
       "description": "This model was pre-trained on 4.5M hours of unlabeled audio data covering more than 143 languages. It requires finetuning to be used for downstream tasks such as Automatic Speech Recognition (ASR), or Audio Classification."
+    },
+    "qwen3": {
+      "path": "qwen3",
+      "version": "0.0.0",
+      "description": "Qwen3-0.6B is a compact 0.6 billion parameter text generation model that uniquely switches between thinking and non-thinking modes for both efficient dialogue and complex reasoning tasks."
     }
   }
 }
