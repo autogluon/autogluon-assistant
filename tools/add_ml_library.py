@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-import argparse
 import json
 import sys
 from pathlib import Path
 
-from autogluon.assistant.tools_registry import ToolsRegistry
 from omegaconf import OmegaConf
+
+from autogluon.assistant.tools_registry import ToolsRegistry
 
 
 def get_user_input(prompt: str, required: bool = True, default: str = None) -> str:
@@ -97,9 +97,7 @@ def register_tool_interactive():
     prompt_template = get_list_input("Enter prompt templates")
 
     # Get tutorials path and LLM options
-    tutorials_path = get_user_input(
-        "Path to tutorials directory (optional)", required=False
-    )
+    tutorials_path = get_user_input("Path to tutorials directory (optional)", required=False)
     tutorials_path = Path(tutorials_path) if tutorials_path else None
 
     # Initialize tutorial processing options
@@ -113,15 +111,11 @@ def register_tool_interactive():
         llm_config = get_llm_config()
 
         # Ask about condensing
-        condense = input(
-            "\nDo you want to create condensed versions of tutorials? (y/N): "
-        ).lower()
+        condense = input("\nDo you want to create condensed versions of tutorials? (y/N): ").lower()
         condense_tutorials = condense == "y"
 
         if condense_tutorials:
-            max_length = int(
-                get_user_input("Maximum length for condensed tutorials", default="9999")
-            )
+            max_length = int(get_user_input("Maximum length for condensed tutorials", default="9999"))
 
     # Confirm registration
     print("\nTool Registration Summary:")
@@ -165,9 +159,6 @@ def register_tool_interactive():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Interactive ML Tool Registration")
-    args = parser.parse_args()
-
     try:
         register_tool_interactive()
     except KeyboardInterrupt:
