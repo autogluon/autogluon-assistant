@@ -1,5 +1,6 @@
+from pathlib import Path
+
 VALID_CODING_LANGUAGES = ["python", "bash"]
-LOGO_PATH = "static/page_icon.png"
 DEMO_URL = "https://youtu.be/kejJ3QJPW7E"
 DETAIL_LEVEL = 19
 BRIEF_LEVEL = 25
@@ -16,6 +17,13 @@ WEBUI_OUTPUT_DIR = "###WEBUI_OUTPUT_DIR###"
 SUCCESS_MESSAGE = """🎉🎉 Task completed successfully! If you found this useful, please consider:
 ⭐ [Starring our repository](https://github.com/autogluon/autogluon-assistant)
 ⭐ [Citing our paper](https://arxiv.org/abs/2505.13941)"""
+
+PACKAGE_ROOT = Path(__file__).parent  # /src/autogluon/assistant
+DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "configs" / "default.yaml"
+LOGO_DAY_PATH = PACKAGE_ROOT / "webui" / "static" / "sidebar_logo_blue.png"
+LOGO_NIGHT_PATH = PACKAGE_ROOT / "webui" / "static" / "sidebar_icon.png"
+LOGO_PATH = PACKAGE_ROOT / "webui" / "static" / "page_icon.png"
+DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "configs" / "default.yaml"
 
 # TODO
 IGNORED_MESSAGES = [

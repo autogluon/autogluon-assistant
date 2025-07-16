@@ -7,6 +7,7 @@ from pathlib import Path
 import typer
 
 from autogluon.assistant.coding_agent import run_agent
+from autogluon.assistant.constants import DEFAULT_CONFIG_PATH
 
 
 def _noop(*args, **kwargs):
@@ -17,8 +18,6 @@ multiprocessing.resource_tracker.register = _noop
 multiprocessing.resource_tracker.unregister = _noop
 multiprocessing.resource_tracker.ensure_running = _noop
 
-PACKAGE_ROOT = Path(__file__).parent.parent
-DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "configs" / "default.yaml"
 
 app = typer.Typer(add_completion=False)
 

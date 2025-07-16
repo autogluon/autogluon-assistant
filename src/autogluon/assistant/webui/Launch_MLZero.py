@@ -19,7 +19,7 @@ import yaml
 from botocore.exceptions import ClientError, NoCredentialsError
 from streamlit_theme import st_theme
 
-from autogluon.assistant.constants import API_URL, LOGO_PATH, PROVIDER_DEFAULTS, SUCCESS_MESSAGE, VERBOSITY_MAP
+from autogluon.assistant.constants import API_URL, LOGO_PATH, PROVIDER_DEFAULTS, SUCCESS_MESSAGE, VERBOSITY_MAP, LOGO_DAY_PATH, LOGO_NIGHT_PATH
 
 # Import prompt classes for default templates
 from autogluon.assistant.prompts import (
@@ -36,10 +36,6 @@ from autogluon.assistant.prompts import (
 from autogluon.assistant.webui.file_uploader import handle_uploaded_files
 from autogluon.assistant.webui.log_processor import messages, process_logs, render_task_logs
 
-PACKAGE_ROOT = Path(__file__).parents[2]
-DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "assistant" / "configs" / "default.yaml"
-logo_day_path = PACKAGE_ROOT / "assistant" / "webui" / "static" / "sidebar_logo_blue.png"
-logo_night_path = PACKAGE_ROOT / "assistant" / "webui" / "static" / "sidebar_icon.png"
 
 # Agent list for template setter
 AGENTS_LIST = [
@@ -854,81 +850,56 @@ class UI:
         # Show the dialog
         template_dialog()
 
+
     @staticmethod
     def render_sidebar() -> TaskConfig:
         """Render sidebar"""
         with st.sidebar:
-            with st.expander("⚙️ Settings", expanded=False):
-                # Upper section: iterations, control, verbosity
-                max_iter = st.number_input("Max iterations", min_value=1, max_value=20, value=5, key="max_iterations")
-                control = st.checkbox("Manual prompts between iterations", key="control_prompts")
-                log_verbosity = st.select_slider(
-                    "Log verbosity",
-                    options=["BRIEF", "INFO", "DETAIL"],
-                    value="BRIEF",
-                    key="log_verbosity",
-                )
+            # We need to handle config file state across reruns
+            # Initialize session state for config if not exists
+            if "_config_uploaded_content" not in st.session_state:
+                st.session_state._config_uploaded_content = None
+                st.session_state._config_has_provider_model = False
 
-                # Single divider
-                st.markdown("---")
-
-                # Lower section: config, provider, model, credentials (compact)
-                # Config file uploader
-                uploaded_config = st.file_uploader(
-                    "Config file (optional)",
-                    type=["yaml", "yml"],
-                    key="config_uploader",
-                    help="Upload a custom YAML config file. If not provided, default config will be used.",
-                )
-
-                # Parse config if uploaded
-                config_provider = None
-                config_model = None
-                disable_provider_model = False
-
-                if uploaded_config:
-                    try:
-                        config_content = yaml.safe_load(uploaded_config.getvalue())
-                        config_provider, config_model = ConfigFileHandler.extract_provider_model(config_content)
-                        if config_provider and config_model:
-                            # Update centralized overrides
-                            SessionState.update_provider_model_from_config(config_provider, config_model)
-                            disable_provider_model = True
-
-                            # Also update templates from config (only for use_default items)
-                            SessionState.update_templates_from_config(config_content)
-                    except Exception as e:
-                        st.error(f"Failed to parse config file: {str(e)}")
+            # Container for LLM settings (outside of expander, with border)
+            with st.container(border=True):
+                st.markdown("**LLM Configuration**")
 
                 # Get current overrides
                 overrides = st.session_state.config_overrides
+
+                # Callback for provider change
+                def on_provider_change():
+                    if not st.session_state._config_has_provider_model:
+                        st.session_state.config_overrides["provider"] = st.session_state.llm_provider
 
                 # Provider selection
                 provider = st.selectbox(
                     "LLM Provider",
                     options=["bedrock", "openai", "anthropic"],
-                    index=["bedrock", "openai", "anthropic"].index(overrides["provider"] or "bedrock"),
+                    index=["bedrock", "openai", "anthropic"].index(
+                        overrides["provider"] or "bedrock"),
                     key="llm_provider",
-                    disabled=disable_provider_model,
+                    on_change=on_provider_change,
+                    disabled=st.session_state._config_has_provider_model,
                 )
 
-                # Update override if not disabled
-                if not disable_provider_model:
-                    st.session_state.config_overrides["provider"] = provider
+                # Callback for model change
+                def on_model_change():
+                    if not st.session_state._config_has_provider_model:
+                        st.session_state.config_overrides["model"] = st.session_state.model_name
 
                 # Model input (with default based on provider)
-                model_default = overrides["model"] if overrides["model"] else PROVIDER_DEFAULTS.get(provider, "")
+                model_default = overrides["model"] if overrides["model"] else PROVIDER_DEFAULTS.get(
+                    provider, "")
                 model = st.text_input(
                     "Model Name",
                     value=model_default,
                     key="model_name",
-                    disabled=disable_provider_model,
+                    on_change=on_model_change,
+                    disabled=st.session_state._config_has_provider_model,
                     help="Enter the model identifier",
                 )
-
-                # Update override if not disabled
-                if not disable_provider_model:
-                    st.session_state.config_overrides["model"] = model
 
                 # Credentials section (dynamic based on provider)
                 credentials = None
@@ -949,16 +920,19 @@ class UI:
                         )
 
                         if credentials_text:
-                            parsed_creds = BedrockCredentialsValidator.parse_credentials(credentials_text)
+                            parsed_creds = BedrockCredentialsValidator.parse_credentials(
+                                credentials_text)
                             if parsed_creds:
-                                is_valid, message = BedrockCredentialsValidator.validate_credentials(parsed_creds)
+                                is_valid, message = BedrockCredentialsValidator.validate_credentials(
+                                    parsed_creds)
                                 if is_valid:
                                     st.success(f"✅ {message}")
                                     credentials = parsed_creds
                                 else:
                                     st.error(f"❌ {message}")
                             else:
-                                st.error("❌ Invalid format. Please include all required fields.")
+                                st.error(
+                                    "❌ Invalid format. Please include all required fields.")
 
                 elif provider == "openai":
                     credentials_text = st.text_area(
@@ -970,16 +944,19 @@ class UI:
                     )
 
                     if credentials_text:
-                        parsed_creds = OpenAICredentialsValidator.parse_credentials(credentials_text)
+                        parsed_creds = OpenAICredentialsValidator.parse_credentials(
+                            credentials_text)
                         if parsed_creds:
-                            is_valid, message = OpenAICredentialsValidator.validate_credentials(parsed_creds)
+                            is_valid, message = OpenAICredentialsValidator.validate_credentials(
+                                parsed_creds)
                             if is_valid:
                                 st.success(f"✅ {message}")
                                 credentials = parsed_creds
                             else:
                                 st.error(f"❌ {message}")
                         else:
-                            st.error('❌ Invalid format. Please use: export OPENAI_API_KEY="sk-..."')
+                            st.error(
+                                '❌ Invalid format. Please use: export OPENAI_API_KEY="sk-..."')
 
                 elif provider == "anthropic":
                     credentials_text = st.text_area(
@@ -991,38 +968,101 @@ class UI:
                     )
 
                     if credentials_text:
-                        parsed_creds = AnthropicCredentialsValidator.parse_credentials(credentials_text)
+                        parsed_creds = AnthropicCredentialsValidator.parse_credentials(
+                            credentials_text)
                         if parsed_creds:
-                            is_valid, message = AnthropicCredentialsValidator.validate_credentials(parsed_creds)
+                            is_valid, message = AnthropicCredentialsValidator.validate_credentials(
+                                parsed_creds)
                             if is_valid:
                                 st.success(f"✅ {message}")
                                 credentials = parsed_creds
                             else:
                                 st.error(f"❌ {message}")
                         else:
-                            st.error('❌ Invalid format. Please use: export ANTHROPIC_API_KEY="..."')
+                            st.error(
+                                '❌ Invalid format. Please use: export ANTHROPIC_API_KEY="..."')
+
+            # Settings expander
+            with st.expander("⚙️ Settings", expanded=False):
+                # Upper section: iterations, control, verbosity
+                max_iter = st.number_input(
+                    "Max iterations", min_value=1, max_value=20, value=5, key="max_iterations")
+                control = st.checkbox(
+                    "Manual prompts between iterations", key="control_prompts")
+                log_verbosity = st.select_slider(
+                    "Log verbosity",
+                    options=["BRIEF", "INFO", "DETAIL"],
+                    value="BRIEF",
+                    key="log_verbosity",
+                )
+
+                # Single divider
+                st.markdown("---")
+
+                # Config file uploader with callback
+                def on_config_change():
+                    """Handle config file upload"""
+                    uploaded_file = st.session_state.config_uploader
+                    if uploaded_file is not None:
+                        try:
+                            # Read and store content
+                            content = yaml.safe_load(uploaded_file.getvalue())
+                            st.session_state._config_uploaded_content = content
+
+                            # Check if it has provider/model
+                            config_provider, config_model = ConfigFileHandler.extract_provider_model(
+                                content)
+                            if config_provider and config_model:
+                                # Update overrides
+                                SessionState.update_provider_model_from_config(
+                                    config_provider, config_model)
+                                st.session_state._config_has_provider_model = True
+                                # Update templates
+                                SessionState.update_templates_from_config(content)
+                            else:
+                                st.session_state._config_has_provider_model = False
+                        except Exception as e:
+                            st.session_state._config_uploaded_content = None
+                            st.session_state._config_has_provider_model = False
+                    else:
+                        # No file uploaded
+                        st.session_state._config_uploaded_content = None
+                        st.session_state._config_has_provider_model = False
+
+                uploaded_config = st.file_uploader(
+                    "Config file (optional)",
+                    type=["yaml", "yml"],
+                    key="config_uploader",
+                    help="Upload a custom YAML config file. If not provided, default config will be used.",
+                    on_change=on_config_change
+                )
+
+                # Show error if parsing failed
+                if uploaded_config and st.session_state._config_uploaded_content is None:
+                    st.error("Failed to parse config file")
 
                 # Template setter button
                 st.markdown("---")
-                if st.button("🔧 Launch template setter", use_container_width=True):
+                if st.button("🔧 Template Settings", use_container_width=True):
                     # Clear any existing temp settings before opening dialog
                     if "temp_template_settings" in st.session_state:
                         del st.session_state.temp_template_settings
                     UI.render_template_dialog()
 
-                # Create config object
-                config = TaskConfig(
-                    uploaded_config=uploaded_config,
-                    max_iter=max_iter,
-                    control=control,
-                    log_verbosity=log_verbosity,
-                    provider=provider,
-                    model=model,
-                    credentials=credentials,
-                )
+            # Create config object
+            config = TaskConfig(
+                uploaded_config=uploaded_config,
+                max_iter=max_iter,
+                control=control,
+                log_verbosity=log_verbosity,
+                provider=provider,
+                model=model,
+                credentials=credentials,
+            )
 
             # History management
-            task_count = sum(1 for msg in st.session_state.messages if msg.type == "task_log")
+            task_count = sum(
+                1 for msg in st.session_state.messages if msg.type == "task_log")
             if task_count > 0:
                 st.markdown(f"### 📋 Task History ({task_count} tasks)")
                 if st.button("🗑️ Clear All History"):
@@ -1735,15 +1775,15 @@ def main():
     """Entry point"""
     st.set_page_config(
         page_title="AutoGluon Assistant",
-        page_icon=LOGO_PATH,
+        page_icon=str(LOGO_PATH),
         layout="wide",
         initial_sidebar_state="auto",
     )
     theme = st_theme()
     if theme and theme.get("base") == "dark":
-        st.logo(logo_night_path, size="large", link="https://github.com/autogluon")
+        st.logo(str(LOGO_NIGHT_PATH), size="large", link="https://github.com/autogluon")
     else:
-        st.logo(logo_day_path, size="large", link="https://github.com/autogluon")
+        st.logo(str(LOGO_DAY_PATH), size="large", link="https://github.com/autogluon")
 
     reload_warning = """
     <script>
