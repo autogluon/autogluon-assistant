@@ -110,7 +110,8 @@ class RerankerAgent(BaseAgent):
         # Format selected tutorials
         formatted_tutorials = []
         for tutorial in selected_tutorials:
-            formatted = self._format_tutorial_content(tutorial, max_tutorial_length)
+            per_tutorial_max_length = max_tutorial_length // len(selected_tutorials)
+            formatted = self._format_tutorial_content(tutorial, per_tutorial_max_length)
             if formatted:
                 formatted_tutorials.append(formatted)
 
