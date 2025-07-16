@@ -73,7 +73,7 @@ def main(
     ),
 ):
     """
-    mlzero: a CLI for running the AutoMLAgent pipeline.
+    mlzero: a CLI for running the AutoGluon Assistant.
     """
 
     # 3) Invoke the core run_agent function

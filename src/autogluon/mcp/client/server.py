@@ -8,14 +8,15 @@ import json
 from pathlib import Path
 from typing import Optional
 import subprocess
-from autogluon.mcp.constants import RSYNC_SERVER
 from datetime import datetime
 import uuid
+import os
+import argparse
 
 from fastmcp import Client, FastMCP
 
 # Create MCP server
-mcp = FastMCP("AutoGluon Pipeline Server")
+mcp = FastMCP("AutoGluon Assistant MCP Server")
 
 
 def parse_mcp_response(response):
@@ -35,7 +36,7 @@ def load_credentials_from_file(file_path: str) -> str:
 
 
 @mcp.tool()
-async def run_autogluon_pipeline(
+async def run_autogluon_assistant(
     input_folder: str,
     output_folder: str,
     server_url: str = "http://127.0.0.1:8000/mcp/",
@@ -72,6 +73,8 @@ async def run_autogluon_pipeline(
         dict: Execution results with brief logs and output file paths
     """
     # Initialize log collectors
+    RSYNC_SERVER = os.environ.get('AUTOGLUON_RSYNC_SERVER', '')
+
     all_logs = []
     brief_logs = []
 
@@ -105,7 +108,7 @@ async def run_autogluon_pipeline(
 
     try:
         async with client:
-            log("Connected to AutoGluon MCP Server", "BRIEF")
+            log("Connected to AutoGluon Assistant MCP Server", "BRIEF")
 
             # 1. Upload input folder using rsync
             log(f"Uploading input folder: {input_folder}", "BRIEF")
@@ -350,8 +353,16 @@ async def run_autogluon_pipeline(
 
 
 def main():
-    """Entry point for mlzero-mcp-client command"""
-    mcp.run(transport="streamable-http", host="0.0.0.0", port=8005, path="/mcp")
+    parser = argparse.ArgumentParser(description='AutoGluon MCP Client')
+    parser.add_argument('--server', '-s', type=str, default='',
+                        help='Rsync server (e.g., ubuntu@ec2-ip). Leave empty for local mode.')
+    parser.add_argument('--port', '-p', type=int, default=8005,
+                        help='MCP server port (default: 8005)')
+    args = parser.parse_args()
+    
+    os.environ['AUTOGLUON_RSYNC_SERVER'] = args.server
+
+    mcp.run(transport="streamable-http", host="0.0.0.0", port=args.port, path="/mcp")
 
 
 if __name__ == "__main__":

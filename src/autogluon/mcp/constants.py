@@ -39,8 +39,4 @@ DEFAULT_PROVIDER = "bedrock"
 
 DEFAULT_AWS_REGION = "us-west-2"
 
-DEFAULT_PIPELINE_PORT = 8005
-
 MCP_BEDROCK_MODEL_ID = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
-
-RSYNC_SERVER = ""
