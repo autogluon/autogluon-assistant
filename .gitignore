@@ -22,6 +22,18 @@ cdk.out/
 output_*.csv
 runs/
 
+# MCP specific
+.flask.pid
+.mcp.pid
+mcp_output/
+mcp/__pycache__/
+mcp/examples/credentials_template.txt
+mcp/examples/example_config.yaml
+mcp/*.pyc
+
+# IDE specific
+.vscode/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -191,10 +203,21 @@ aga-output-*.csv
 # ignore the MLAgent output folder
 output/
 
-# MLZero Specific
-maab/datasets/
-runs/
-maab/runs/
-
 # OS specific
 *.DS_Store
+
+src/autogluon/mcp/server/.flask.pid
+src/autogluon/mcp/server/.mcp.pid
+src/autogluon/mcp/server/test_output/
+src/autogluon/mcp/server/test_data/
+src/autogluon/mcp/server/nohup.out
+src/autogluon/mcp/**/uploads/
+src/autogluon/mcp/**/mlzero-*/
+
+# Credentials
+*.credentials
+*.creds
+credentials.txt
+aws_credentials.txt
+
+.claude

@@ -1,4 +1,7 @@
+import contextlib
+import io
 import logging
+import os
 import pickle
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -10,6 +13,8 @@ from FlagEmbedding import FlagAutoModel
 from .registry import ToolsRegistry
 
 logger = logging.getLogger(__name__)
+
+os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "true"
 
 
 class TutorialIndexer:
@@ -32,6 +37,10 @@ class TutorialIndexer:
         """Cleanup method to properly close the embedding model."""
         self.cleanup()
 
+    def __silent_encode(self, input):
+        with contextlib.redirect_stderr(io.StringIO()):
+            return self.model.encode(input)
+
     def cleanup(self):
         """Cleanup the embedding model to avoid multiprocessing issues."""
         if self.model is not None:
@@ -41,6 +50,8 @@ class TutorialIndexer:
                     self.model.close()
                 elif hasattr(self.model, "stop_multi_process_pool"):
                     self.model.stop_multi_process_pool()
+                else:
+                    del self.model
             except Exception as e:
                 logger.debug(f"Error during model cleanup: {e}")
             finally:
@@ -141,7 +152,7 @@ class TutorialIndexer:
 
             for i in range(0, len(summaries), batch_size):
                 batch_summaries = summaries[i : i + batch_size]
-                batch_embeddings = self.model.encode(batch_summaries)
+                batch_embeddings = self.__silent_encode(batch_summaries)
 
                 # Ensure proper format
                 if not isinstance(batch_embeddings, np.ndarray):
@@ -316,7 +327,7 @@ class TutorialIndexer:
             return []
 
         # Generate query embedding
-        query_embedding = self.model.encode([query])
+        query_embedding = self.__silent_encode([query])
 
         # Ensure proper data type and memory layout
         if not isinstance(query_embedding, np.ndarray):

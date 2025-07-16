@@ -47,6 +47,7 @@ def _configure_logging(console_level: int, output_dir: Path = None) -> None:
         console = Console(file=sys.stderr)
         console_handler = RichHandler(console=console, markup=True, rich_tracebacks=True)
         console_handler.setLevel(console_level)
+        console_handler.name = CONSOLE_HANDLER
         handlers = [console_handler]
     else:
         stdout_handler = logging.StreamHandler(sys.stdout)

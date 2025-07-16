@@ -81,7 +81,6 @@ DO NOT include any other text, explanation, or formatting in your response.
 
         # Get tutorial information
         selected_tool = self.manager.selected_tool
-        condense_tutorials = self.manager.config.condense_tutorials
         use_tutorial_summary = self.manager.config.use_tutorial_summary
 
         # Get retrieved tutorials from manager

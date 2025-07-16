@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autogluon.assistant"
-version = "0.1.1"
+version = "1.0.0"
 description = "Multi Agent System for Multimodal ML Automation"
 readme = "README.md"
 requires-python = ">=3.8,<3.12"
@@ -45,19 +45,27 @@ dependencies = [
   "psutil>=5.9.8",
   "peft>=0.15.2",
   "opencv-python",
+  "fastmcp>=2.0.0",
+  "aiohttp>=3.8.0",
+  "requests>=2.28.0",
+  "boto3>=1.28.0",
+  "mcp>=0.1.0",
 ]
 
 [project.scripts]
 aga          = "autogluon.assistant.cli.app:app"
 mlzero       = "autogluon.assistant.cli.app:app"
-mlzero-webui = "autogluon.assistant.webui.Home:main"
 mlzero-backend = "autogluon.assistant.webui.backend.app:main"
+mlzero-frontend = "autogluon.assistant.webui.runner:run_frontend"
+mlzero-mcp-server = "autogluon.mcp.server.runner:main"
+mlzero-mcp-client = "autogluon.mcp.client.server:main"
 
 [project.optional-dependencies]
 dev = [
   "black>=24",
   "GitRepo>=1",
   "pytest>=7",
+  "pytest-asyncio>=0.21.0",
   "isort",
   "ruff==0.4",
 ]
@@ -67,7 +75,7 @@ Homepage = "https://github.com/autogluon/autogluon-assistant"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["autogluon.assistant*"]
+include = ["autogluon.assistant*", "autogluon.mcp*"]
 namespaces = true
 
 [tool.setuptools.package-data]
