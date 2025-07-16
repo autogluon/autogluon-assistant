@@ -4,7 +4,7 @@ This guide covers everything you need to know to start using AutoGluon Assistant
 
 ## API Keys
 
-### Configuring LLM Providers
+### Configure LLM Providers
 MLZero supports AWS Bedrock, Anthropic, OpenAI, and Azure as LLM model providers. You must configure API keys for your chosen provider. MLZero uses AWS Bedrock as the default provider for language models.
 
 You can modify the provider and LLM model in [our default config](https://github.com/FANGAreNotGnu/autogluon-assistant/blob/main/src/autogluon/assistant/configs/default.yaml), or provide a custom config to override the defaults. Different LLM models can be assigned to individual agents by overriding the `default_llm` configuration.
@@ -47,7 +47,7 @@ You can sign up for an OpenAI account [here](https://platform.openai.com/) and m
 
 Important: Free-tier OpenAI accounts may be subject to rate limits, which could affect the performance. We recommend using a paid OpenAI API key for seamless functionality.
 
-### Azure OpenAI Setup
+#### Azure OpenAI Setup
 To use Azure OpenAI, you'll need to set the following Azure OpenAI values, as environment variables:
 ```bash
 export AZURE_OPENAI_API_KEY=<...>
@@ -134,7 +134,7 @@ If you upload your own config file in advanced settings, it will override the pr
 2. **Per Iteration Instruction**: If you selected "Manual prompts between iterations" in the advanced settings, you can input instructions here between iterations.
 3. **Cancel The Task**: After submitting a task, if you want to cancel it, submit "cancel" in this chat box.
 
-#### Advanced Settings
+#### Advanced Settings (Optional)
 - **Max Iterations**: MLZero stops when the task is successful or this limit is reached. Default is 5, adjustable as needed.
 - **Manual Prompts Between Iterations**: Choose whether to add iteration-specific prompts between iterations.
 - **Log Verbosity**: Select the level of detail for the logs you want to see. Three options are available: brief, info, and detail.
