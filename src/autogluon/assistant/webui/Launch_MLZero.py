@@ -901,16 +901,17 @@ class UI:
                     help="Enter the model identifier",
                 )
 
-                # Credentials section (dynamic based on provider)
-                credentials = None
-                if provider == "bedrock":
-                    use_custom_creds = st.checkbox(
-                        "Use custom AWS credentials",
-                        key="bedrock_custom_creds",
-                        help="If unchecked, will use EC2 IAM role",
-                    )
+                # Credentials section (unified for all providers)
+                already_setup = st.checkbox(
+                    "Already set up credentials",
+                    key=f"{provider}_already_setup",
+                    help="Check if credentials are already configured in your environment",
+                )
 
-                    if use_custom_creds:
+                credentials = None
+                if not already_setup:
+                    # Show input fields based on provider
+                    if provider == "bedrock":
                         credentials_text = st.text_area(
                             "AWS Credentials",
                             height=120,
@@ -934,53 +935,53 @@ class UI:
                                 st.error(
                                     "❌ Invalid format. Please include all required fields.")
 
-                elif provider == "openai":
-                    credentials_text = st.text_area(
-                        "OpenAI API Key",
-                        height=68,
-                        key="openai_credentials",
-                        placeholder='export OPENAI_API_KEY="sk-..."',
-                        help="Paste your OpenAI API key",
-                    )
+                    elif provider == "openai":
+                        credentials_text = st.text_area(
+                            "OpenAI API Key",
+                            height=68,
+                            key="openai_credentials",
+                            placeholder='export OPENAI_API_KEY="sk-..."',
+                            help="Paste your OpenAI API key",
+                        )
 
-                    if credentials_text:
-                        parsed_creds = OpenAICredentialsValidator.parse_credentials(
-                            credentials_text)
-                        if parsed_creds:
-                            is_valid, message = OpenAICredentialsValidator.validate_credentials(
-                                parsed_creds)
-                            if is_valid:
-                                st.success(f"✅ {message}")
-                                credentials = parsed_creds
+                        if credentials_text:
+                            parsed_creds = OpenAICredentialsValidator.parse_credentials(
+                                credentials_text)
+                            if parsed_creds:
+                                is_valid, message = OpenAICredentialsValidator.validate_credentials(
+                                    parsed_creds)
+                                if is_valid:
+                                    st.success(f"✅ {message}")
+                                    credentials = parsed_creds
+                                else:
+                                    st.error(f"❌ {message}")
                             else:
-                                st.error(f"❌ {message}")
-                        else:
-                            st.error(
-                                '❌ Invalid format. Please use: export OPENAI_API_KEY="sk-..."')
+                                st.error(
+                                    '❌ Invalid format. Please use: export OPENAI_API_KEY="sk-..."')
 
-                elif provider == "anthropic":
-                    credentials_text = st.text_area(
-                        "Anthropic API Key",
-                        height=68,
-                        key="anthropic_credentials",
-                        placeholder='export ANTHROPIC_API_KEY="your-anthropic-api-key"',
-                        help="Paste your Anthropic API key",
-                    )
+                    elif provider == "anthropic":
+                        credentials_text = st.text_area(
+                            "Anthropic API Key",
+                            height=68,
+                            key="anthropic_credentials",
+                            placeholder='export ANTHROPIC_API_KEY="your-anthropic-api-key"',
+                            help="Paste your Anthropic API key",
+                        )
 
-                    if credentials_text:
-                        parsed_creds = AnthropicCredentialsValidator.parse_credentials(
-                            credentials_text)
-                        if parsed_creds:
-                            is_valid, message = AnthropicCredentialsValidator.validate_credentials(
-                                parsed_creds)
-                            if is_valid:
-                                st.success(f"✅ {message}")
-                                credentials = parsed_creds
+                        if credentials_text:
+                            parsed_creds = AnthropicCredentialsValidator.parse_credentials(
+                                credentials_text)
+                            if parsed_creds:
+                                is_valid, message = AnthropicCredentialsValidator.validate_credentials(
+                                    parsed_creds)
+                                if is_valid:
+                                    st.success(f"✅ {message}")
+                                    credentials = parsed_creds
+                                else:
+                                    st.error(f"❌ {message}")
                             else:
-                                st.error(f"❌ {message}")
-                        else:
-                            st.error(
-                                '❌ Invalid format. Please use: export ANTHROPIC_API_KEY="..."')
+                                st.error(
+                                    '❌ Invalid format. Please use: export ANTHROPIC_API_KEY="..."')
 
             # Settings expander
             with st.expander("⚙️ Settings", expanded=False):
@@ -1043,7 +1044,7 @@ class UI:
 
                 # Template setter button
                 st.markdown("---")
-                if st.button("🔧 Template Settings", use_container_width=True):
+                if st.button("🔧 Launch template setter", use_container_width=True):
                     # Clear any existing temp settings before opening dialog
                     if "temp_template_settings" in st.session_state:
                         del st.session_state.temp_template_settings
@@ -1107,6 +1108,7 @@ class UI:
             with st.chat_message(msg.role):
                 UI.render_single_message(msg)
 
+
     @staticmethod
     def format_user_summary(files: List[str], config: TaskConfig, prompt: str, config_file: str) -> str:
         """Format user input summary"""
@@ -1122,10 +1124,19 @@ class UI:
             f"- Model: {config.model}",
         ]
 
-        if config.provider == "bedrock" and config.credentials:
-            parts.append("- Using custom AWS credentials: ✅")
-        elif config.provider in ["openai", "anthropic"] and config.credentials:
-            parts.append(f"- Using {config.provider} API key: ✅")
+        # Unified credentials display
+        already_setup = st.session_state.get(
+            f"{config.provider}_already_setup", False)
+        if already_setup:
+            parts.append(
+                f"- Using already configured {config.provider} credentials: ✅")
+        elif config.credentials:
+            if config.provider == "bedrock":
+                parts.append("- Using custom AWS credentials: ✅")
+            else:
+                parts.append(f"- Using {config.provider} API key: ✅")
+        else:
+            parts.append(f"- {config.provider} credentials: ❌ Not provided")
 
         parts.extend(["\n✏️ **Initial prompt:**\n", f"> {prompt or '(none)'}"])
 
@@ -1202,6 +1213,7 @@ class TaskManager:
             else:
                 st.info("Error log not found")
 
+
     def handle_submission(self, submission):
         """Handle user submission"""
         # If waiting for input, handle it as iteration input
@@ -1215,16 +1227,25 @@ class TaskManager:
 
         if not files:
             SessionState.add_message(
-                Message.text("⚠️ No data files provided. Please drag and drop your data files or ZIP.")
+                Message.text(
+                    "⚠️ No data files provided. Please drag and drop your data files or ZIP.")
             )
             st.rerun()
             return
 
-        # Validate credentials if needed
-        if self.config.provider in ["openai", "anthropic"] and not self.config.credentials:
-            SessionState.add_message(Message.text(f"❌ Please provide {self.config.provider} API key first"))
-            st.rerun()
-            return
+        # Validate credentials if needed (unified for all providers)
+        if not self.config.credentials:
+            already_setup = st.session_state.get(
+                f"{self.config.provider}_already_setup", False)
+            if not already_setup:
+                if self.config.provider == "bedrock":
+                    SessionState.add_message(Message.text(
+                        "❌ Please provide AWS credentials first"))
+                else:
+                    SessionState.add_message(Message.text(
+                        f"❌ Please provide {self.config.provider} API key first"))
+                st.rerun()
+                return
 
         # Process files
         data_folder = handle_uploaded_files(files)
@@ -1235,8 +1256,10 @@ class TaskManager:
         config_name = self.config.uploaded_config.name if self.config.uploaded_config else "default.yaml (modified)"
 
         # Add user summary
-        summary = UI.format_user_summary([f.name for f in files], self.config, user_text, config_name)
-        SessionState.add_message(Message.user_summary(summary, input_dir=data_folder))
+        summary = UI.format_user_summary(
+            [f.name for f in files], self.config, user_text, config_name)
+        SessionState.add_message(Message.user_summary(
+            summary, input_dir=data_folder))
 
         # Start task
         self._start_task(data_folder, config_path, user_text)
