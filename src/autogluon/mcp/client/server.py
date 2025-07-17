@@ -120,8 +120,9 @@ async def run_autogluon_assistant(
             
             if RSYNC_SERVER:  # Remote transfer
                 # Use ~ for remote path - let remote system resolve it
+                remote_user = RSYNC_SERVER.split('@')[0] if '@' in RSYNC_SERVER else 'ubuntu'
                 remote_base = f"~/.autogluon_assistant/mcp_uploads/{upload_dirname}"
-                server_input_dir = f"~/.autogluon_assistant/mcp_uploads/{upload_dirname}"
+                server_input_dir = f"/home/{remote_user}/.autogluon_assistant/mcp_uploads/{upload_dirname}"
                 rsync_dest = f"{RSYNC_SERVER}:{remote_base}/"
                 log(f"Remote transfer to: {RSYNC_SERVER}", "INFO")
             else:  # Local transfer
@@ -162,8 +163,9 @@ async def run_autogluon_assistant(
                 config_dirname = f"config_{timestamp}_{unique_id}"
                 
                 if RSYNC_SERVER:  # Remote transfer
+                    remote_user = RSYNC_SERVER.split('@')[0] if '@' in RSYNC_SERVER else 'ubuntu'
                     remote_config_dir = f"~/.autogluon_assistant/mcp_uploads/{config_dirname}"
-                    server_config_path = f"~/.autogluon_assistant/mcp_uploads/{config_dirname}/{config_path.name}"
+                    server_config_path = f"/home/{remote_user}/.autogluon_assistant/mcp_uploads/{config_dirname}/{config_path.name}"
                     rsync_config_dest = f"{RSYNC_SERVER}:{remote_config_dir}/"
                 else:  # Local transfer
                     local_config_dir = Path.home() / ".autogluon_assistant" / "mcp_uploads" / config_dirname
