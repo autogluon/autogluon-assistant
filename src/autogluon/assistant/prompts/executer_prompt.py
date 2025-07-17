@@ -126,7 +126,7 @@ If there is a validation score present in the execution results, extract and ret
             content=error_summary, save_name="error_summary.txt", per_iteration=True, add_uuid=True
         )
         self.manager.save_and_log_states(
-            content=validation_score, save_name="validation_score.txt", per_iteration=True, add_uuid=True
+            content=str(validation_score), save_name="validation_score.txt", per_iteration=True, add_uuid=True
         )
 
         return decision, error_summary, validation_score
