@@ -1128,11 +1128,6 @@ class UI:
 
                 manager = ResultManager(content["output_dir"], content["run_id"])
                 manager.render()
-        elif msg.type == "debug_config":
-            # DEBUG block - easy to remove later
-            with st.expander("🐛 DEBUG: Final Config Content", expanded=True):
-                st.caption(f"Config saved to: {msg.content['path']}")
-                st.code(msg.content["content"], language="yaml")
 
     @staticmethod
     def render_messages():
