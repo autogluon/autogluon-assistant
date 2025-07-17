@@ -37,7 +37,7 @@ dependencies = [
   "tenacity>=8.2.2",
   "torchaudio",
   "torchvision",
-  "transformers<=4.49.0",
+  "transformers<=4.53.2",
   "pandas>=2.2",
   "streamlit>=1.37",
   "streamlit-aggrid>=1.0.2",
