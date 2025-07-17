@@ -3,6 +3,7 @@
 import re
 import shutil
 import subprocess
+import os
 import sys
 import time
 import uuid
@@ -19,7 +20,7 @@ import yaml
 from botocore.exceptions import ClientError, NoCredentialsError
 from streamlit_theme import st_theme
 
-from autogluon.assistant.constants import API_URL, LOGO_PATH, PROVIDER_DEFAULTS, SUCCESS_MESSAGE, VERBOSITY_MAP, LOGO_DAY_PATH, LOGO_NIGHT_PATH
+from autogluon.assistant.constants import API_URL, LOGO_PATH, PROVIDER_DEFAULTS, SUCCESS_MESSAGE, VERBOSITY_MAP, LOGO_DAY_PATH, LOGO_NIGHT_PATH, DEFAULT_CONFIG_PATH
 
 # Import prompt classes for default templates
 from autogluon.assistant.prompts import (
@@ -27,6 +28,7 @@ from autogluon.assistant.prompts import (
     ErrorAnalyzerPrompt,
     ExecuterPrompt,
     PythonCoderPrompt,
+    BashCoderPrompt, 
     PythonReaderPrompt,
     RerankerPrompt,
     RetrieverPrompt,
@@ -36,10 +38,12 @@ from autogluon.assistant.prompts import (
 from autogluon.assistant.webui.file_uploader import handle_uploaded_files
 from autogluon.assistant.webui.log_processor import messages, process_logs, render_task_logs
 
+BEDROCK_ONLY_MODE = os.environ.get("AUTOGLUON_BEDROCK_ONLY", "false").lower() == "true"
 
 # Agent list for template setter
 AGENTS_LIST = [
-    "coder",
+    "bash_coder", 
+    "python_coder",
     "executer",
     "reader",
     "error_analyzer",
@@ -52,7 +56,8 @@ AGENTS_LIST = [
 
 # Agent to Prompt class mapping
 AGENT_PROMPT_MAPPING = {
-    "coder": PythonCoderPrompt,  # Note: This is for Python coder
+    "bash_coder": BashCoderPrompt, 
+    "python_coder": PythonCoderPrompt,
     "executer": ExecuterPrompt,
     "reader": PythonReaderPrompt,
     "error_analyzer": ErrorAnalyzerPrompt,
@@ -156,7 +161,7 @@ def get_default_template(agent_name: str) -> str:
         # All agents use the same initialization pattern based on BasePrompt
         instance = prompt_class(llm_config=mock_config, manager=mock_manager, template=None)
 
-        return instance.default_template()
+        return str(instance.default_template()).strip()
     except Exception as e:
         # Log the error for debugging
         print(f"Error getting default template for {agent_name}: {str(e)}")
@@ -452,7 +457,7 @@ class SessionState:
             "prev_iter_placeholder": None,  # Placeholder object
             # Centralized config overrides
             "config_overrides": {
-                "provider": None,
+                "provider": "bedrock" if BEDROCK_ONLY_MODE else None,  # Force bedrock in bedrock-only mode
                 "model": None,
                 "templates": {agent: {"mode": "use_default", "value": None} for agent in AGENTS_LIST},
             },
@@ -461,6 +466,13 @@ class SessionState:
         for key, value in defaults.items():
             if key not in st.session_state:
                 st.session_state[key] = value
+        
+        # Force bedrock if in bedrock-only mode and provider is not bedrock
+        if BEDROCK_ONLY_MODE and st.session_state.config_overrides["provider"] != "bedrock":
+            st.session_state.config_overrides["provider"] = "bedrock"
+            # Also reset model if it's not a bedrock model
+            if st.session_state.config_overrides["model"] and not st.session_state.config_overrides["model"].startswith(("us.", "eu.", "anthropic.claude")):
+                st.session_state.config_overrides["model"] = None
 
     @staticmethod
     def update_provider_model_from_config(provider: str, model: str):
@@ -714,7 +726,7 @@ class UI:
 
             # Group agents by category
             categories = {
-                "Code Generation": ["coder"],
+                "Code Generation": ["bash_coder", "python_coder"],
                 "Execution & Analysis": ["executer", "error_analyzer"],
                 "Data Processing": ["reader"],
                 "Information Retrieval": ["retriever", "reranker", "description_file_retriever"],
@@ -806,14 +818,14 @@ class UI:
                             if (
                                 temp_value
                                 and isinstance(temp_value, str)
-                                and (temp_value.endswith(".txt") or "/" in temp_value or "\\" in temp_value)
+                                and temp_value.endswith(".txt")
                             ):
                                 path_value = temp_value
 
                             value = st.text_input(
                                 f"Template file path for {agent}",
                                 value=path_value,
-                                placeholder="Enter path to template file (e.g., /path/to/template.txt)",
+                                placeholder="Enter path to template file on the machine running backend (e.g., /path/to/template.txt)",
                                 key=f"{agent}_path",
                                 label_visibility="collapsed",
                                 on_change=on_path_change,
@@ -874,15 +886,27 @@ class UI:
                         st.session_state.config_overrides["provider"] = st.session_state.llm_provider
 
                 # Provider selection
-                provider = st.selectbox(
-                    "LLM Provider",
-                    options=["bedrock", "openai", "anthropic"],
-                    index=["bedrock", "openai", "anthropic"].index(
-                        overrides["provider"] or "bedrock"),
-                    key="llm_provider",
-                    on_change=on_provider_change,
-                    disabled=st.session_state._config_has_provider_model,
-                )
+                if BEDROCK_ONLY_MODE:
+                    # In bedrock-only mode, don't show selectbox, just display bedrock
+                    provider = "bedrock"
+                    st.text_input(
+                        "LLM Provider",
+                        value="bedrock",
+                        disabled=True,
+                        help="Only Bedrock is supported due to company policy",
+                    )
+                    # Force override to bedrock
+                    st.session_state.config_overrides["provider"] = "bedrock"
+                else:
+                    # Normal mode with all providers
+                    provider = st.selectbox(
+                        "LLM Provider",
+                        options=["bedrock", "openai", "anthropic"],
+                        index=["bedrock", "openai", "anthropic"].index(overrides["provider"] or "bedrock"),
+                        key="llm_provider",
+                        on_change=on_provider_change,
+                        disabled=st.session_state._config_has_provider_model,
+                    )
 
                 # Callback for model change
                 def on_model_change():
@@ -1000,7 +1024,6 @@ class UI:
                 # Single divider
                 st.markdown("---")
 
-                # Config file uploader with callback
                 def on_config_change():
                     """Handle config file upload"""
                     uploaded_file = st.session_state.config_uploader
@@ -1009,14 +1032,20 @@ class UI:
                             # Read and store content
                             content = yaml.safe_load(uploaded_file.getvalue())
                             st.session_state._config_uploaded_content = content
-
+                            
                             # Check if it has provider/model
-                            config_provider, config_model = ConfigFileHandler.extract_provider_model(
-                                content)
+                            config_provider, config_model = ConfigFileHandler.extract_provider_model(content)
+                            
+                            # In bedrock-only mode, validate provider
+                            if BEDROCK_ONLY_MODE and config_provider and config_provider != "bedrock":
+                                st.error(f"❌ Config file specifies provider '{config_provider}', but only 'bedrock' is allowed in bedrock-only mode")
+                                st.session_state._config_uploaded_content = None
+                                st.session_state._config_has_provider_model = False
+                                return
+                            
                             if config_provider and config_model:
                                 # Update overrides
-                                SessionState.update_provider_model_from_config(
-                                    config_provider, config_model)
+                                SessionState.update_provider_model_from_config(config_provider, config_model)
                                 st.session_state._config_has_provider_model = True
                                 # Update templates
                                 SessionState.update_templates_from_config(content)
@@ -1040,7 +1069,7 @@ class UI:
 
                 # Show error if parsing failed
                 if uploaded_config and st.session_state._config_uploaded_content is None:
-                    st.error("Failed to parse config file")
+                    st.error("Failed to parse config file. Only Bedrock is supported due to company policy")
 
                 # Template setter button
                 st.markdown("---")

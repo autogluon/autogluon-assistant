@@ -48,7 +48,7 @@ async def run_autogluon_assistant(
     cleanup_server: bool = True,
 ) -> dict:
     """
-    Run complete AutoGluon pipeline from data upload to results download.
+    This tool takes a folder path containing a dataset as input, identifies the machine learning task, trains a model, and outputs the model and results to a user-specified folder.
 
     Use this tool when:
     - User wants to train a machine learning model using AutoGluon
@@ -59,15 +59,15 @@ async def run_autogluon_assistant(
     This tool will upload data, run AutoGluon training, and download results automatically.
 
     Args:
-        input_folder: Local path to input data
-        output_folder: Local path where results will be saved
-        server_url: MCP server URL (e.g., https://your-server.ngrok.app)
-        verbosity: Log level - "brief", "info", or "detail"
-        config_file: Optional path to config file
+        input_folder: Local path to input data (required)
+        output_folder: Local path where results will be saved (required)
+        server_url: MCP server URL (e.g., https://your-server.ngrok.app) (default: http://127.0.0.1:8000/mcp/)
+        verbosity: Log level - "brief", "info", or "detail" (default: info)
+        config_file: Optional path to config file (optional)
         max_iterations: Maximum iterations (default: 5)
         init_prompt: Initial user prompt (optional)
         creds_path: Path to credentials file (optional)
-        cleanup_server: Whether to clean up server files after download
+        cleanup_server: Whether to clean up server files after download (default: True)
 
     Returns:
         dict: Execution results with brief logs and output file paths
@@ -342,7 +342,6 @@ async def run_autogluon_assistant(
                 "success": True,
                 "logs": brief_logs,
                 "output_directory": str(local_output_base),
-                "output_files": downloaded_files,
                 "task_id": task_id,
             }
 

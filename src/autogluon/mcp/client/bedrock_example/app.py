@@ -12,7 +12,7 @@ from autogluon.mcp.constants import MCP_BEDROCK_MODEL_ID
 PIPELINE_SERVER_URL = "https://your_server_url/mcp/"
 
 # Use a dictionary to avoid scope issues
-config = {"debug_mode": True}
+config = {"debug_mode": False}
 
 
 def format_response(response_data):
