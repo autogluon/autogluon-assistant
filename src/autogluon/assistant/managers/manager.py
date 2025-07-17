@@ -443,7 +443,7 @@ class Manager:
         summary = ["Validation Score Summary:"]
         for i, score in enumerate(self.val_scores):
             marker = " (BEST)" if i == self.best_step else ""
-            summary.append(f"  Step {i}: {score:.4f if score is not None else 'N/A'}{marker}")
+            summary.append(f"Step {i}: {score if score is not None else 'N/A'}{marker}")
         
         if self.best_step >= 0:
             summary.append(f"\nBest score: {self.best_validation_score:.4f} at step {self.best_step}")

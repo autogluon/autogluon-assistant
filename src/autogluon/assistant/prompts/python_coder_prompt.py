@@ -43,6 +43,8 @@ ONLY save files to the working directory: {output_folder}.
 
 {tool_prompt}
 
+{best_code_prompt}
+
 Please provide the complete Python script that accomplishes these tasks, ensuring it's ready to run given the appropriate data inputs.
 
 ### Task Description
@@ -72,16 +74,20 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
         else:
             user_prompt = "N/A"
 
+        # Generate best code prompt
+        best_code_prompt = self._generate_best_code_prompt()
+
         # Format the prompt using the template
         prompt = self.template.format(
             output_folder=self.manager.per_iteration_output_folder,
             selected_tool=self.manager.selected_tool,
             tool_prompt=self.manager.tool_prompt,
-            task_description=self.manager.task_description,  # TODO: add task_description in manager
+            task_description=self.manager.task_description,
             data_prompt=self.manager.data_prompt,
             user_prompt=user_prompt,
             error_prompt=self.manager.all_previous_error_prompts,
             tutorial_prompt=self.manager.tutorial_prompt,
+            best_code_prompt=best_code_prompt,
         )
 
         # Add format instruction if configured
@@ -110,6 +116,45 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
         )
 
         return prompt
+
+    def _generate_best_code_prompt(self) -> str:
+        """Generate prompt section about best/successful previous code."""
+        if self.manager.time_step == 0:
+            return ""  # No previous code on first iteration
+        
+        best_code_prompt = []
+        
+        # Check if we have a best step with validation score
+        if self.manager.best_step >= 0 and self.manager.best_step < self.manager.time_step:
+            best_code = self.manager.python_codes[self.manager.best_step]
+            best_score = self.manager.val_scores[self.manager.best_step]
+            
+            best_code_prompt.append("### Previous Best Code")
+            best_code_prompt.append(f"The following code achieved the best validation score so far ({best_score:.4f}):")
+            best_code_prompt.append("```python")
+            best_code_prompt.append(best_code)
+            best_code_prompt.append("```")
+            best_code_prompt.append("")
+            
+            # Ask for improvement
+            best_code_prompt.append("Please further improve its performance.")
+        
+        # Check if we have a last successful step (different from best step)
+        elif self.manager.last_successful_step >= 0 and self.manager.last_successful_step < self.manager.time_step:
+            successful_code = self.manager.python_codes[self.manager.last_successful_step]
+            successful_score = self.manager.val_scores[self.manager.last_successful_step]
+            
+            best_code_prompt.append("### Previous Successful Code")
+            best_code_prompt.append(f"The following code executed successfully:")
+            best_code_prompt.append("```python")
+            best_code_prompt.append(successful_code)
+            best_code_prompt.append("```")
+            best_code_prompt.append("")
+            
+            # Ask for improvement
+            best_code_prompt.append("Please further improve its performance.")
+
+        return "\n".join(best_code_prompt)
 
     def parse(self, response: Dict) -> Tuple[str, Optional[str]]:
         """Parse the LLM's response to generated python code"""
