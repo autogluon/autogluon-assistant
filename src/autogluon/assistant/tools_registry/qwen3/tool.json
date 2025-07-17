@@ -1,0 +1,10 @@
+{
+  "name": "qwen3",
+  "version": "0.0.0",
+  "description": "Qwen3-0.6B is a compact 0.6 billion parameter text generation model that uniquely switches between thinking and non-thinking modes for both efficient dialogue and complex reasoning tasks.",
+  "features": [],
+  "requirements": [],
+  "prompt_template": [
+    "It's easier to use with in-context learning rather than fine-tuning."
+  ]
+}

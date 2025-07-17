@@ -1,9 +1,8 @@
 {
   "name": "autogluon.timeseries",
   "version": "1.2.0",
-  "description": "AutoGluon Timeseries is an open-source AutoML framework that automates the training and tuning of forecasting models for time series data, handling tasks from preprocessing to model ensembling with built-in support for both univariate and multivariate forecasting.",
+  "description": "AutoGluon TimeSeries automates forecasting model training for time series data, supporting both univariate and multivariate predictions.",
   "features": [
-    "timeseries forecasting"
   ],
   "requirements": [],
   "prompt_template": [

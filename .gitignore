@@ -2,6 +2,7 @@
 maab/datasets/
 runs/
 maab/runs/
+temp/
 /maab/
 
 # OS specific
