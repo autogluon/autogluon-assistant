@@ -121,5 +121,6 @@ def run_agent(
 
     manager.report_token_usage()
     manager.get_validation_score_summary()
+    manager.create_best_run_copy()
     logger.brief(f"output saved in {output_dir}.")
     manager.cleanup()
