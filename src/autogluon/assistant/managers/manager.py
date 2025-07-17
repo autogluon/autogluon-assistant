@@ -289,6 +289,13 @@ class Manager:
         assert len(self.val_scores) == self.time_step + 1, "validation score is not updated yet"
         return self.val_scores[self.time_step]
 
+    @property
+    def best_validation_score(self) -> Optional[float]:
+        """Get the best validation score found so far."""
+        if self.best_step >= 0 and self.best_step < len(self.val_scores):
+            return self.val_scores[self.best_step]
+        return None
+
     def set_initial_user_input(self, need_user_input, initial_user_input):
         self.need_user_input = need_user_input
         self.initial_user_input = initial_user_input
