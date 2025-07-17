@@ -39,6 +39,7 @@ def load_credentials_from_file(file_path: str) -> str:
 async def run_autogluon_assistant(
     input_folder: str,
     output_folder: str,
+    rsync_server: str = "",
     server_url: str = "http://127.0.0.1:8000/mcp/",
     verbosity: str = "info",
     config_file: Optional[str] = None,
@@ -48,15 +49,16 @@ async def run_autogluon_assistant(
     cleanup_server: bool = True,
 ) -> dict:
     """
-    This tool takes a folder path containing a dataset as input, identifies the machine learning task, trains a model, and outputs the model and results to a user-specified folder.
+    This tool transforms raw multimodal data into high-quality ML solutions
+
 
     Use this tool when:
-    - User wants to train a machine learning model using AutoGluon
-    - User has data files (CSV, Parquet, etc.) and wants automated ML
-    - User mentions AutoML, AutoGluon, or automatic model training
-    - User asks to analyze/predict/classify data using ML
+        user provides a folder containing a dataset and needs to obtain ML solutions.
+
 
     This tool will upload data, run AutoGluon training, and download results automatically.
+    When you decide to use this tool but the user only provides an input folder without specifying an output folder, prompt the user to provide an output folder.
+
 
     Args:
         input_folder: Local path to input data (required)
@@ -69,11 +71,15 @@ async def run_autogluon_assistant(
         creds_path: Path to credentials file (optional)
         cleanup_server: Whether to clean up server files after download (default: True)
 
+
     Returns:
         dict: Execution results with brief logs and output file paths
     """
-    # Initialize log collectors
-    RSYNC_SERVER = os.environ.get('AUTOGLUON_RSYNC_SERVER', '')
+
+    server_info_path = Path(__file__).parent.parent / "server_info.txt"
+    RSYNC_SERVER = ""
+    if server_info_path.exists():
+        RSYNC_SERVER = server_info_path.read_text().strip()
 
     all_logs = []
     brief_logs = []
@@ -354,17 +360,19 @@ async def run_autogluon_assistant(
 
 
 def main():
+    """Entry point for mlzero-mcp-client command"""
     parser = argparse.ArgumentParser(description='AutoGluon MCP Client')
     parser.add_argument('--server', '-s', type=str, default='',
                         help='Rsync server (e.g., ubuntu@ec2-ip). Leave empty for local mode.')
     parser.add_argument('--port', '-p', type=int, default=8005,
                         help='MCP server port (default: 8005)')
     args = parser.parse_args()
-    
-    os.environ['AUTOGLUON_RSYNC_SERVER'] = args.server
 
-    mcp.run(transport="streamable-http", host="0.0.0.0", port=args.port, path="/mcp")
+    server_info_path = Path(__file__).parent.parent / "server_info.txt"
+    server_info_path.write_text(args.server)
 
+    mcp.run(transport="streamable-http",
+            host="0.0.0.0", port=args.port, path="/mcp")
 
 if __name__ == "__main__":
     main()
