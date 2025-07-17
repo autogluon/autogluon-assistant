@@ -29,12 +29,15 @@ ONLY save files to the working directory: {output_folder}.
    - Save the predicted results to {output_folder}, result file name should be "results", the format and extension should be same as the test data file
    - Output column names must exactly match those in the training or sample submission files without adding "predicted_" prefixes or creating any new columns.
 
-4. Documentation:
+4. Validation:
+   - The code should **print the value of the evaluation metric computed on a hold-out validation set at the end, ensuring higher values indicate better performance**. If the metric is naturally "lower is better" like RMSE, multiply by -1 to make it "higher is better".
+
+5. Documentation:
    - Add a brief docstring at the beginning of the script explaining its purpose
    - Include additional installation steps with comments at the beginning of the script
    - Include comments explaining any complex operations or design decisions
 
-5. Others:
+6. Others:
    - To avoid DDP errors, wrap the code in: if __name__ == "__main__":
    - Ensure errors are propagated up and not silently caught - do not use try/except blocks unless you explicitly re-raise the exception.
 
@@ -71,7 +74,7 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
 
         # Format the prompt using the template
         prompt = self.template.format(
-            output_folder=self.manager.output_folder,
+            output_folder=self.manager.per_iteration_output_folder,
             selected_tool=self.manager.selected_tool,
             tool_prompt=self.manager.tool_prompt,
             task_description=self.manager.task_description,  # TODO: add task_description in manager

@@ -111,14 +111,15 @@ def run_agent(
         manager.update_bash_script()
 
         successful = manager.execute_code()
-        if successful:
+        if config.stop_when_success and successful:
             break
 
         if manager.time_step + 1 >= max_iterations:
             logger.warning(
-                f"[bold red]Warning: Reached maximum iterations ({max_iterations}) without success[/bold red]"
+                f"[bold red]Warning: Reached maximum iterations ({max_iterations})[/bold red]"
             )
 
     manager.report_token_usage()
+    manager.get_validation_score_summary()
     logger.brief(f"output saved in {output_dir}.")
     manager.cleanup()

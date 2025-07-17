@@ -2,7 +2,7 @@ import logging
 import os
 import uuid
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from ..agents import (
     CoderAgent,
@@ -41,6 +41,8 @@ class Manager:
             config_path: Path to YAML configuration file
         """
         self.time_step = -1
+        self.best_step = -1
+        self.last_successful_step = -1
 
         # Store required paths
         self.input_data_folder = input_data_folder
@@ -97,6 +99,7 @@ class Manager:
         self.bash_scripts: List[str] = []
         self.tutorial_retrievals: List[str] = []
         self.tutorial_prompts: List[str] = []
+        self.val_scores: List[Optional[float]] = []
 
         self.error_analyzer = ErrorAnalyzerAgent(
             config=self.config,
@@ -273,6 +276,19 @@ class Manager:
         os.makedirs(iter_folder, exist_ok=True)
         return iter_folder
 
+    @property
+    def per_iteration_output_folder(self) -> str:
+        iter_output_folder = os.path.join(self.iteration_folder, "output")
+        os.makedirs(iter_output_folder, exist_ok=True)
+        return iter_output_folder
+
+    @property
+    def validation_score(self) -> Optional[float]:
+        """Get the current validation score."""
+        assert self.time_step >= 0, "No validation score because the prompt generator is not stepped yet."
+        assert len(self.val_scores) == self.time_step + 1, "validation score is not updated yet"
+        return self.val_scores[self.time_step]
+
     def set_initial_user_input(self, need_user_input, initial_user_input):
         self.need_user_input = need_user_input
         self.initial_user_input = initial_user_input
@@ -352,7 +368,7 @@ class Manager:
         self.bash_scripts.append(bash_script)
 
     def execute_code(self):
-        planner_decision, planner_error_summary, planner_prompt, stderr, stdout = self.executer(
+        planner_decision, planner_error_summary, validation_score, planner_prompt, stderr, stdout = self.executer(
             code_to_execute=self.bash_script,
             code_to_analyze=self.python_code,
             task_description=self.task_description,
@@ -361,6 +377,26 @@ class Manager:
 
         self.save_and_log_states(stderr, "stderr", per_iteration=True, add_uuid=False)
         self.save_and_log_states(stdout, "stdout", per_iteration=True, add_uuid=False)
+
+        # Track validation scores and update best step
+        assert len(self.val_scores) == self.time_step
+        self.val_scores.append(validation_score)
+        
+        # Update best step if we have a better validation score (higher is better)
+        if validation_score is not None:
+            if self.best_step == -1 or validation_score > self.val_scores[self.best_step]:
+                self.best_step = self.time_step
+                logger.brief(f"[bold green]New best validation score: {validation_score:.4f} at step {self.time_step}[/bold green]")
+            else:
+                logger.brief(f"[bold yellow]Current validation score: {validation_score:.4f} (best: {self.val_scores[self.best_step]:.4f} at step {self.best_step})[/bold yellow]")
+        
+        # Save validation score information
+        self.save_and_log_states(
+            content=f"Step: {self.time_step}\nValidation Score: {validation_score}\nBest Step: {self.best_step}\nBest Score: {self.best_validation_score}",
+            save_name="validation_score.txt",
+            per_iteration=True,
+            add_uuid=False
+        )
 
         if planner_decision == "FIX":
             logger.brief(f"[bold red]Code generation failed in iteration[/bold red] {self.time_step}!")
@@ -371,10 +407,15 @@ class Manager:
             )
             self.update_error_message(error_message=error_message)
             return False
-        elif planner_decision == "FINISH":
+        elif planner_decision == "SUCCESS":
+            self.last_successful_step = self.time_step
             logger.brief(
-                f"[bold green]Code generation successful after[/bold green] {self.time_step + 1} [bold green]iterations[/bold green]"
+                f"[bold green]Code generation successful at iteration[/bold green] {self.time_step}"
             )
+            if validation_score is not None:
+                logger.brief(f"[bold green]Final validation score: {validation_score:.4f}[/bold green]")
+            if self.best_step >= 0:
+                logger.brief(f"[bold green]Best validation score achieved: {self.best_validation_score:.4f} at step {self.best_step}[/bold green]")
             self.update_error_message(error_message="")
             return True
         else:
@@ -386,6 +427,21 @@ class Manager:
         """Update the current error message."""
         assert len(self.error_messages) == self.time_step
         self.error_messages.append(error_message)
+
+    def get_validation_score_summary(self) -> str:
+        """Get a summary of all validation scores."""
+        if not self.val_scores:
+            return "No validation scores available."
+        
+        summary = ["Validation Score Summary:"]
+        for i, score in enumerate(self.val_scores):
+            marker = " (BEST)" if i == self.best_step else ""
+            summary.append(f"  Step {i}: {score:.4f if score is not None else 'N/A'}{marker}")
+        
+        if self.best_step >= 0:
+            summary.append(f"\nBest score: {self.best_validation_score:.4f} at step {self.best_step}")
+        
+        return "\n".join(summary)
 
     def save_and_log_states(self, content, save_name, per_iteration=False, add_uuid=False):
         if add_uuid:
@@ -431,6 +487,93 @@ class Manager:
         )
 
         logger.info(f"Full token usage detail:\n{usage}")
+
+    def create_best_run_copy(self):
+        """Create a 'best_run' folder that copies the best step folder.
+        
+        If no best step is available, uses the last successful step.
+        If neither is available, logs a warning and does nothing.
+        """
+        import shutil
+        
+        # Determine which step to copy
+        target_step = None
+        copy_reason = ""
+        
+        if self.best_step >= 0:
+            target_step = self.best_step
+            copy_reason = f"best validation score ({self.best_validation_score:.4f})"
+        elif self.last_successful_step >= 0:
+            target_step = self.last_successful_step
+            copy_reason = "last successful execution"
+        else:
+            logger.warning("No best step or successful step found. Cannot create best_run copy.")
+            return
+        
+        # Create paths
+        source_folder = os.path.join(self.output_folder, f"generation_iter_{target_step}")
+        best_run_folder = os.path.join(self.output_folder, "best_run")
+        
+        # Verify source folder exists
+        if not os.path.exists(source_folder):
+            logger.warning(f"Source folder does not exist: {source_folder}")
+            return
+            
+        # Check if source folder has an 'output' subdirectory
+        source_output_folder = os.path.join(source_folder, "output")
+        if not os.path.exists(source_folder):
+            logger.warning(f"Source output folder does not exist: {source_output_folder}")
+            return
+            
+        # Remove existing best_run folder if it exists
+        if os.path.exists(best_run_folder):
+            try:
+                shutil.rmtree(best_run_folder)
+                logger.info(f"Removed existing best_run folder")
+            except Exception as e:
+                logger.error(f"Failed to remove existing best_run folder: {e}")
+                return
+        
+        try:
+            # Copy all files from source_output_folder to self.output_folder
+            for item in os.listdir(source_output_folder):
+                source_item = os.path.join(source_output_folder, item)
+                dest_item = os.path.join(self.output_folder, item)
+                
+                if os.path.isfile(source_item):
+                    shutil.copy2(source_item, dest_item)
+                elif os.path.isdir(source_item):
+                    shutil.copytree(source_item, dest_item, dirs_exist_ok=True)
+
+            # Copy the entire source folder to best_run folder
+            shutil.copytree(source_folder, best_run_folder)
+            
+            logger.brief(f"[bold green]Created best_run folder (copied from step {target_step} - {copy_reason})[/bold green]")
+            
+            # Save summary information in the best_run folder
+            summary_content = [
+                f"Best Run Summary",
+                f"================",
+                f"Copied from: generation_iter_{target_step}",
+                f"Reason: {copy_reason}",
+                f"Copy created at: {os.path.basename(best_run_folder)}",
+                f"",
+                self.get_validation_score_summary()
+            ]
+            
+            # Save summary in both the main output folder and the best_run folder
+            summary_text = "\n".join(summary_content)
+            
+            self.save_and_log_states(
+                content=summary_text,
+                save_name="best_run_summary.txt",
+                per_iteration=False,
+                add_uuid=False
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to copy folder: {e}")
+            return
 
     def cleanup(self):
         """Clean up resources."""

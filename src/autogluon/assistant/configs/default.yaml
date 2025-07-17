@@ -15,6 +15,7 @@ max_tutorial_length: 32768
 create_venv: false
 condense_tutorials: True
 use_tutorial_summary: True
+stop_when_success: True
 
 # Default LLM Configuration
 # For each agent (coder, etc.) you can use a different one
