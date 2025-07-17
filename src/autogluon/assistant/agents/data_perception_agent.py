@@ -180,7 +180,7 @@ class DataPerceptionAgent(BaseAgent):
 
         # 3. execute code
         # TODO: add iterative calls if failed
-        planner_decision, planner_error_summary, planner_prompt, stderr, stdout, _ = self.executer(
+        planner_decision, planner_error_summary, _, planner_prompt, stderr, stdout = self.executer(
             code_to_execute=generated_python_code,
             code_to_analyze=generated_python_code,
             task_description=prompt,  # use reader's task
