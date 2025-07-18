@@ -42,7 +42,11 @@ VALIDATION_SCORE: [If there is a validation score for the solution, provide it a
 
 The error summary should be brief but informative enough for another agent to understand what needs to be fixed.
 Even if the code executed without throwing errors, it might still have issues with logic or not meet all requirements.
-If there is a validation score present in the execution results, extract and return it."""
+
+For validation scores:
+- If there is a validation score present in the execution results, extract it
+- Convert the score to ensure higher values indicate better performance (multiply "lower is better" metrics like RMSE, MAE, or loss by -1)
+- Return the converted score that follows the "higher is better" convention"""
 
     def build(self, stdout: str, stderr: str, python_code: str, task_description: str, data_prompt: str) -> str:
         """Build a prompt for the LLM to evaluate execution logs."""
