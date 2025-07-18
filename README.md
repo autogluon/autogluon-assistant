@@ -69,7 +69,7 @@ mlzero-frontend # command to start frontend on 8509(default)
 
 ![Demo](https://github.com/autogluon/autogluon-assistant/blob/main/docs/assets/mcp_demo.gif)
 
-Note: The system can run on a single machine or distributed across multiple machines (e.g., server on EC2, client on local).
+Note: It supports running both components on the same machine, or calling the MCP server on one machine while running the MCP tool on another (e.g., host the MCP server locally and run the MCP tool on EC2).
 1. **Start the server**
 ```bash
 mlzero-backend # command to start backend
