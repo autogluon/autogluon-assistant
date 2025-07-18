@@ -3,17 +3,19 @@
 MCP Server that exposes the complete AutoGluon pipeline as a single tool
 """
 
+import argparse
 import asyncio
-import base64
 import json
+import subprocess
+import uuid
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from autogluon.mcp.file_handler import analyze_folder, read_files_for_upload
 from fastmcp import Client, FastMCP
 
 # Create MCP server
-mcp = FastMCP("AutoGluon Pipeline Server")
+mcp = FastMCP("AutoGluon Assistant MCP Server")
 
 
 def parse_mcp_response(response):
@@ -22,14 +24,6 @@ def parse_mcp_response(response):
         text_content = response[0].text
         return json.loads(text_content)
     return response
-
-
-def count_files(structure: dict) -> int:
-    """Count files in folder structure"""
-    if structure["type"] == "file":
-        return 1
-    else:
-        return sum(count_files(child) for child in structure.get("children", []))
 
 
 def load_credentials_from_file(file_path: str) -> str:
@@ -41,9 +35,10 @@ def load_credentials_from_file(file_path: str) -> str:
 
 
 @mcp.tool()
-async def run_autogluon_pipeline(
+async def run_autogluon_assistant(
     input_folder: str,
     output_folder: str,
+    rsync_server: str = "",
     server_url: str = "http://127.0.0.1:8000/mcp/",
     verbosity: str = "info",
     config_file: Optional[str] = None,
@@ -53,31 +48,38 @@ async def run_autogluon_pipeline(
     cleanup_server: bool = True,
 ) -> dict:
     """
-    Run complete AutoGluon pipeline from data upload to results download.
+    This tool transforms raw multimodal data into high-quality ML solutions
+
 
     Use this tool when:
-    - User wants to train a machine learning model using AutoGluon
-    - User has data files (CSV, Parquet, etc.) and wants automated ML
-    - User mentions AutoML, AutoGluon, or automatic model training
-    - User asks to analyze/predict/classify data using ML
+        user provides a folder containing a dataset and needs to obtain ML solutions.
+
 
     This tool will upload data, run AutoGluon training, and download results automatically.
+    When you decide to use this tool but the user only provides an input folder without specifying an output folder, prompt the user to provide an output folder.
+
 
     Args:
-        input_folder: Local path to input data
-        output_folder: Local path where results will be saved
-        server_url: MCP server URL (e.g., https://your-server.ngrok.app)
-        verbosity: Log level - "brief", "info", or "detail"
-        config_file: Optional path to config file
+        input_folder: Local path to input data (required)
+        output_folder: Local path where results will be saved (required)
+        server_url: MCP server URL (e.g., https://your-server.ngrok.app) (default: http://127.0.0.1:8000/mcp/)
+        verbosity: Log level - "brief", "info", or "detail" (default: info)
+        config_file: Optional path to config file (optional)
         max_iterations: Maximum iterations (default: 5)
         init_prompt: Initial user prompt (optional)
         creds_path: Path to credentials file (optional)
-        cleanup_server: Whether to clean up server files after download
+        cleanup_server: Whether to clean up server files after download (default: True)
+
 
     Returns:
         dict: Execution results with brief logs and output file paths
     """
-    # Initialize log collectors
+
+    server_info_path = Path(__file__).parent.parent / "server_info.txt"
+    RSYNC_SERVER = ""
+    if server_info_path.exists():
+        RSYNC_SERVER = server_info_path.read_text().strip()
+
     all_logs = []
     brief_logs = []
 
@@ -111,35 +113,50 @@ async def run_autogluon_pipeline(
 
     try:
         async with client:
-            log("Connected to AutoGluon MCP Server", "BRIEF")
+            log("Connected to AutoGluon Assistant MCP Server", "BRIEF")
 
-            # 1. Upload input folder
+            # 1. Upload input folder using rsync
             log(f"Uploading input folder: {input_folder}", "BRIEF")
 
-            # Analyze folder structure
-            folder_structure = analyze_folder(input_folder)
-            log(f"Found {count_files(folder_structure)} files", "INFO")
+            # Generate directory path based on local/remote mode
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            unique_id = uuid.uuid4().hex[:8]
+            upload_dirname = f"upload_{timestamp}_{unique_id}"
 
-            # Read file contents
-            file_contents = read_files_for_upload(input_folder)
-            total_size = sum(len(c) for c in file_contents.values()) / 1024 / 1024
-            log(f"Total size: {total_size:.1f} MB", "INFO")
+            if RSYNC_SERVER:  # Remote transfer
+                # Use ~ for remote path - let remote system resolve it
+                remote_user = RSYNC_SERVER.split("@")[0] if "@" in RSYNC_SERVER else "ubuntu"
+                remote_base = f"~/.autogluon_assistant/mcp_uploads/{upload_dirname}"
+                server_input_dir = f"/home/{remote_user}/.autogluon_assistant/mcp_uploads/{upload_dirname}"
+                rsync_dest = f"{RSYNC_SERVER}:{remote_base}/"
+                log(f"Remote transfer to: {RSYNC_SERVER}", "INFO")
+            else:  # Local transfer
+                # Use Path.home() for cross-platform compatibility
+                local_base = Path.home() / ".autogluon_assistant" / "mcp_uploads" / upload_dirname
+                local_base.mkdir(parents=True, exist_ok=True)
+                server_input_dir = str(local_base)
+                rsync_dest = f"{local_base}/"
+                log("Local transfer mode", "INFO")
 
-            # Upload folder
-            result = await client.call_tool(
-                "upload_input_folder", {"folder_structure": folder_structure, "file_contents": file_contents}
-            )
-            result = parse_mcp_response(result)
+            # Rsync upload
+            rsync_cmd = [
+                "rsync",
+                "-avz",
+                "--progress",
+                f"{input_folder.rstrip('/')}/",  # Ensure trailing slash for content only
+                rsync_dest,
+            ]
 
-            if not result.get("success", False):
-                error_msg = result.get("error", "Upload failed")
-                log(f"ERROR: {error_msg}", "ERROR")
-                return {"success": False, "error": error_msg, "logs": brief_logs}
+            log(f"Running: {' '.join(rsync_cmd)}", "INFO")
+            rsync_result = subprocess.run(rsync_cmd, capture_output=True, text=True)
 
-            server_input_dir = result["path"]
+            if rsync_result.returncode != 0:
+                log(f"ERROR: rsync failed: {rsync_result.stderr}", "ERROR")
+                return {"success": False, "error": f"rsync failed: {rsync_result.stderr}", "logs": brief_logs}
+
             log(f"Uploaded to: {server_input_dir}", "INFO")
 
-            # 2. Upload config file if provided
+            # 2. Upload config file if provided using rsync
             server_config_path = None
             if config_file:
                 log(f"Uploading config file: {config_file}", "INFO")
@@ -149,19 +166,36 @@ async def run_autogluon_pipeline(
                     log("ERROR: Config file not found", "ERROR")
                     return {"success": False, "error": "Config file not found", "logs": brief_logs}
 
-                # Read and encode config
-                config_content = config_path.read_bytes()
-                config_b64 = base64.b64encode(config_content).decode("utf-8")
+                # Generate config directory path
+                config_dirname = f"config_{timestamp}_{unique_id}"
 
-                result = await client.call_tool("upload_config", {"filename": config_path.name, "content": config_b64})
-                result = parse_mcp_response(result)
+                if RSYNC_SERVER:  # Remote transfer
+                    remote_user = RSYNC_SERVER.split("@")[0] if "@" in RSYNC_SERVER else "ubuntu"
+                    remote_config_dir = f"~/.autogluon_assistant/mcp_uploads/{config_dirname}"
+                    server_config_path = (
+                        f"/home/{remote_user}/.autogluon_assistant/mcp_uploads/{config_dirname}/{config_path.name}"
+                    )
+                    rsync_config_dest = f"{RSYNC_SERVER}:{remote_config_dir}/"
+                else:  # Local transfer
+                    local_config_dir = Path.home() / ".autogluon_assistant" / "mcp_uploads" / config_dirname
+                    local_config_dir.mkdir(parents=True, exist_ok=True)
+                    server_config_path = str(local_config_dir / config_path.name)
+                    rsync_config_dest = f"{local_config_dir}/"
 
-                if not result["success"]:
-                    error_msg = result.get("error", "Upload failed")
-                    log(f"ERROR: {error_msg}", "ERROR")
-                    return {"success": False, "error": error_msg, "logs": brief_logs}
+                # Rsync upload config file
+                rsync_cmd = ["rsync", "-avz", "--progress", str(config_file), rsync_config_dest]
 
-                server_config_path = result["path"]
+                log(f"Running: {' '.join(rsync_cmd)}", "INFO")
+                rsync_result = subprocess.run(rsync_cmd, capture_output=True, text=True)
+
+                if rsync_result.returncode != 0:
+                    log(f"ERROR: rsync config failed: {rsync_result.stderr}", "ERROR")
+                    return {
+                        "success": False,
+                        "error": f"rsync config failed: {rsync_result.stderr}",
+                        "logs": brief_logs,
+                    }
+
                 log(f"Config uploaded to: {server_config_path}", "INFO")
 
             # 3. Start task
@@ -170,7 +204,7 @@ async def run_autogluon_pipeline(
             if init_prompt:
                 log(f"Initial prompt: {init_prompt}", "INFO")
 
-            result = await client.call_tool(
+            task_result = await client.call_tool(
                 "start_task",
                 {
                     "input_dir": server_input_dir,
@@ -181,15 +215,15 @@ async def run_autogluon_pipeline(
                     "credentials_text": credentials_text,
                 },
             )
-            result = parse_mcp_response(result)
+            task_result = parse_mcp_response(task_result)
 
-            if not result["success"]:
-                error_msg = result.get("error", "Failed to start task")
+            if not task_result["success"]:
+                error_msg = task_result.get("error", "Failed to start task")
                 log(f"ERROR: {error_msg}", "ERROR")
                 return {"success": False, "error": error_msg, "logs": brief_logs}
 
-            task_id = result["task_id"]
-            position = result.get("position", 0)
+            task_id = task_result["task_id"]
+            position = task_result.get("position", 0)
 
             log(f"Task started: {task_id}", "BRIEF")
             if position > 0:
@@ -199,18 +233,20 @@ async def run_autogluon_pipeline(
             log("Monitoring task progress...", "INFO")
 
             last_log_count = 0
+            output_dir = None  # Will be set when task completes
+
             while True:
                 # Check status
-                status = await client.call_tool("check_status", {})
-                status = parse_mcp_response(status)
+                status_result = await client.call_tool("check_status", {})
+                status_result = parse_mcp_response(status_result)
 
-                if not status["success"]:
-                    error_msg = status.get("error", "Status check failed")
+                if not status_result["success"]:
+                    error_msg = status_result.get("error", "Status check failed")
                     log(f"ERROR: {error_msg}", "ERROR")
                     break
 
                 # Process new logs
-                logs = status.get("logs", [])
+                logs = status_result.get("logs", [])
                 new_logs = logs[last_log_count:]
                 for task_log in new_logs:
                     if isinstance(task_log, dict):
@@ -228,18 +264,19 @@ async def run_autogluon_pipeline(
                 last_log_count = len(logs)
 
                 # Check if completed
-                if status.get("state") == "completed":
+                if status_result.get("state") == "completed":
+                    output_dir = status_result.get("output_dir")
                     log("Task completed successfully!", "BRIEF")
                     break
-                elif status.get("state") == "failed":
+                elif status_result.get("state") == "failed":
                     log("Task failed!", "ERROR")
                     break
 
                 # Update progress
-                progress_info = await client.call_tool("get_progress", {})
-                progress_info = parse_mcp_response(progress_info)
-                if isinstance(progress_info, dict):
-                    progress = progress_info.get("progress", 0.0)
+                progress_result = await client.call_tool("get_progress", {})
+                progress_result = parse_mcp_response(progress_result)
+                if isinstance(progress_result, dict):
+                    progress = progress_result.get("progress", 0.0)
                     log(f"Progress: {progress * 100:.1f}%", "DETAIL")
 
                 # Wait before next check
@@ -248,78 +285,76 @@ async def run_autogluon_pipeline(
             # 5. Download results
             log(f"Downloading results to: {output_folder}", "BRIEF")
 
-            # List output files
-            result = await client.call_tool("list_outputs", {})
-            result = parse_mcp_response(result)
+            # Get server output directory if not already from status
+            if not output_dir:
+                outputs_result = await client.call_tool("list_outputs", {})
+                outputs_result = parse_mcp_response(outputs_result)
 
-            if not result["success"]:
-                error_msg = result.get("error", "Failed to list outputs")
-                log(f"ERROR: {error_msg}", "ERROR")
-                return {"success": False, "error": error_msg, "logs": brief_logs}
+                if not outputs_result["success"]:
+                    error_msg = outputs_result.get("error", "Failed to get outputs")
+                    log(f"ERROR: {error_msg}", "ERROR")
+                    return {"success": False, "error": error_msg, "logs": brief_logs}
 
-            files = result["files"]
-            output_dir = result.get("output_dir")
-            log(f"Found {len(files)} output files", "INFO")
+                output_dir = outputs_result.get("output_dir")
 
-            # Create output directory
+            if not output_dir:
+                log("ERROR: No output directory found", "ERROR")
+                return {"success": False, "error": "No output directory", "logs": brief_logs}
+
+            log(f"Server output directory: {output_dir}", "INFO")
+
+            # Create local output directory
             output_path = Path(output_folder)
             output_path.mkdir(parents=True, exist_ok=True)
 
-            # Extract folder name from server path
-            if output_dir:
-                server_folder_name = Path(output_dir).name
-                local_output_base = output_path / server_folder_name
-                local_output_base.mkdir(exist_ok=True)
-            else:
-                local_output_base = output_path
+            # Rsync download from server to client
+            if RSYNC_SERVER:  # Remote transfer
+                rsync_source = f"{RSYNC_SERVER}:{output_dir}"
+            else:  # Local transfer
+                rsync_source = output_dir
 
-            # Download each file
+            rsync_cmd = [
+                "rsync",
+                "-avz",
+                "--progress",
+                rsync_source,  # No trailing slash - copy the folder itself
+                f"{output_folder}/",
+            ]
+
+            log(f"Running: {' '.join(rsync_cmd)}", "INFO")
+            rsync_result = subprocess.run(rsync_cmd, capture_output=True, text=True)
+
+            if rsync_result.returncode != 0:
+                log(f"ERROR: rsync failed: {rsync_result.stderr}", "ERROR")
+                return {"success": False, "error": f"rsync download failed: {rsync_result.stderr}", "logs": brief_logs}
+
+            # List downloaded files
+            server_folder_name = Path(output_dir).name
+            local_output_base = output_path / server_folder_name
             downloaded_files = []
-            for file_path in files:
-                log(f"Downloading: {file_path}", "DETAIL")
-
-                result = await client.call_tool("download_file", {"file_path": file_path})
-                result = parse_mcp_response(result)
-
-                if not result["success"]:
-                    log(f"ERROR: Failed to download {file_path}", "ERROR")
-                    continue
-
-                # Decode and save file
-                content = base64.b64decode(result["content"])
-
-                # Preserve directory structure
-                if output_dir and file_path.startswith(output_dir):
-                    rel_path = Path(file_path).relative_to(output_dir)
-                else:
-                    rel_path = Path(file_path).name
-
-                local_path = local_output_base / rel_path
-                local_path.parent.mkdir(parents=True, exist_ok=True)
-                local_path.write_bytes(content)
-
-                downloaded_files.append(str(local_path))
-                log(f"Saved to: {local_path}", "INFO")
+            if local_output_base.exists():
+                for file_path in local_output_base.rglob("*"):
+                    if file_path.is_file():
+                        downloaded_files.append(str(file_path))
 
             log(f"All files downloaded to: {local_output_base}", "BRIEF")
 
             # Optionally clean up server files
             if cleanup_server and output_dir:
                 log("Cleaning up server files...", "INFO")
-                result = await client.call_tool("cleanup_output", {"output_dir": output_dir})
-                result = parse_mcp_response(result)
+                cleanup_result = await client.call_tool("cleanup_output", {"output_dir": output_dir})
+                cleanup_result = parse_mcp_response(cleanup_result)
 
-                if result.get("success"):
+                if cleanup_result.get("success"):
                     log("Server files cleaned up", "INFO")
                 else:
-                    log(f"Cleanup failed: {result.get('error', 'Unknown error')}", "ERROR")
+                    log(f"Cleanup failed: {cleanup_result.get('error', 'Unknown error')}", "ERROR")
 
             # Return results
             return {
                 "success": True,
                 "logs": brief_logs,
                 "output_directory": str(local_output_base),
-                "output_files": downloaded_files,
                 "task_id": task_id,
             }
 
@@ -331,7 +366,17 @@ async def run_autogluon_pipeline(
 
 def main():
     """Entry point for mlzero-mcp-client command"""
-    mcp.run(transport="streamable-http", host="0.0.0.0", port=8005, path="/mcp")
+    parser = argparse.ArgumentParser(description="AutoGluon MCP Client")
+    parser.add_argument(
+        "--server", "-s", type=str, default="", help="Rsync server (e.g., ubuntu@ec2-ip). Leave empty for local mode."
+    )
+    parser.add_argument("--port", "-p", type=int, default=8005, help="MCP server port (default: 8005)")
+    args = parser.parse_args()
+
+    server_info_path = Path(__file__).parent.parent / "server_info.txt"
+    server_info_path.write_text(args.server)
+
+    mcp.run(transport="streamable-http", host="0.0.0.0", port=args.port, path="/mcp")
 
 
 if __name__ == "__main__":

@@ -18,6 +18,7 @@ def run_frontend():
     parser.add_argument(
         "--theme", type=str, choices=["light", "dark"], default=None, help="Streamlit theme (default: None)"
     )
+    parser.add_argument("--bedrock-only", action="store_true", help="Restrict LLM provider to bedrock only")
 
     args = parser.parse_args()
 
@@ -46,9 +47,15 @@ def run_frontend():
     # Prepare environment variables
     env = os.environ.copy()
 
+    # Pass bedrock-only flag through environment variable
+    if args.bedrock_only:
+        env["AUTOGLUON_BEDROCK_ONLY"] = "true"
+
     try:
         # Start the frontend server
         print(f"Starting AutoGluon Assistant Frontend on http://{args.host}:{args.port}")
+        if args.bedrock_only:
+            print("Running in bedrock-only mode")
         subprocess.run(cmd, env=env)
     except KeyboardInterrupt:
         # Handle keyboard interrupt gracefully

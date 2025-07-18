@@ -1,5 +1,6 @@
 # src/autogluon/assistant/webui/pages/Launch_MLZero.py
 
+import os
 import re
 import shutil
 import subprocess
@@ -19,10 +20,20 @@ import yaml
 from botocore.exceptions import ClientError, NoCredentialsError
 from streamlit_theme import st_theme
 
-from autogluon.assistant.constants import API_URL, LOGO_PATH, PROVIDER_DEFAULTS, SUCCESS_MESSAGE, VERBOSITY_MAP
+from autogluon.assistant.constants import (
+    API_URL,
+    DEFAULT_CONFIG_PATH,
+    LOGO_DAY_PATH,
+    LOGO_NIGHT_PATH,
+    LOGO_PATH,
+    PROVIDER_DEFAULTS,
+    SUCCESS_MESSAGE,
+    VERBOSITY_MAP,
+)
 
 # Import prompt classes for default templates
 from autogluon.assistant.prompts import (
+    BashCoderPrompt,
     DescriptionFileRetrieverPrompt,
     ErrorAnalyzerPrompt,
     ExecuterPrompt,
@@ -36,14 +47,12 @@ from autogluon.assistant.prompts import (
 from autogluon.assistant.webui.file_uploader import handle_uploaded_files
 from autogluon.assistant.webui.log_processor import messages, process_logs, render_task_logs
 
-PACKAGE_ROOT = Path(__file__).parents[2]
-DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "assistant" / "configs" / "default.yaml"
-logo_day_path = PACKAGE_ROOT / "assistant" / "webui" / "static" / "sidebar_logo_blue.png"
-logo_night_path = PACKAGE_ROOT / "assistant" / "webui" / "static" / "sidebar_icon.png"
+BEDROCK_ONLY_MODE = os.environ.get("AUTOGLUON_BEDROCK_ONLY", "false").lower() == "true"
 
 # Agent list for template setter
 AGENTS_LIST = [
-    "coder",
+    "bash_coder",
+    "python_coder",
     "executer",
     "reader",
     "error_analyzer",
@@ -56,7 +65,8 @@ AGENTS_LIST = [
 
 # Agent to Prompt class mapping
 AGENT_PROMPT_MAPPING = {
-    "coder": PythonCoderPrompt,  # Note: This is for Python coder
+    "bash_coder": BashCoderPrompt,
+    "python_coder": PythonCoderPrompt,
     "executer": ExecuterPrompt,
     "reader": PythonReaderPrompt,
     "error_analyzer": ErrorAnalyzerPrompt,
@@ -121,11 +131,6 @@ class Message:
     def queue_status(cls, task_id: str, position: int) -> "Message":
         return cls(role="assistant", type="queue_status", content={"task_id": task_id, "position": position})
 
-    @classmethod
-    def debug_config(cls, config_path: str, config_content: str) -> "Message":
-        """Debug message for showing final config content"""
-        return cls(role="assistant", type="debug_config", content={"path": config_path, "content": config_content})
-
 
 @dataclass
 class TaskConfig:
@@ -165,7 +170,7 @@ def get_default_template(agent_name: str) -> str:
         # All agents use the same initialization pattern based on BasePrompt
         instance = prompt_class(llm_config=mock_config, manager=mock_manager, template=None)
 
-        return instance.default_template()
+        return str(instance.default_template()).strip()
     except Exception as e:
         # Log the error for debugging
         print(f"Error getting default template for {agent_name}: {str(e)}")
@@ -461,7 +466,7 @@ class SessionState:
             "prev_iter_placeholder": None,  # Placeholder object
             # Centralized config overrides
             "config_overrides": {
-                "provider": None,
+                "provider": "bedrock" if BEDROCK_ONLY_MODE else None,  # Force bedrock in bedrock-only mode
                 "model": None,
                 "templates": {agent: {"mode": "use_default", "value": None} for agent in AGENTS_LIST},
             },
@@ -470,6 +475,15 @@ class SessionState:
         for key, value in defaults.items():
             if key not in st.session_state:
                 st.session_state[key] = value
+
+        # Force bedrock if in bedrock-only mode and provider is not bedrock
+        if BEDROCK_ONLY_MODE and st.session_state.config_overrides["provider"] != "bedrock":
+            st.session_state.config_overrides["provider"] = "bedrock"
+            # Also reset model if it's not a bedrock model
+            if st.session_state.config_overrides["model"] and not st.session_state.config_overrides[
+                "model"
+            ].startswith(("us.", "eu.", "anthropic.claude")):
+                st.session_state.config_overrides["model"] = None
 
     @staticmethod
     def update_provider_model_from_config(provider: str, model: str):
@@ -723,7 +737,7 @@ class UI:
 
             # Group agents by category
             categories = {
-                "Code Generation": ["coder"],
+                "Code Generation": ["bash_coder", "python_coder"],
                 "Execution & Analysis": ["executer", "error_analyzer"],
                 "Data Processing": ["reader"],
                 "Information Retrieval": ["retriever", "reranker", "description_file_retriever"],
@@ -812,17 +826,13 @@ class UI:
                             # For path mode, only show the actual path value from temp settings
                             temp_value = st.session_state.temp_template_settings[agent]["value"]
                             path_value = ""
-                            if (
-                                temp_value
-                                and isinstance(temp_value, str)
-                                and (temp_value.endswith(".txt") or "/" in temp_value or "\\" in temp_value)
-                            ):
+                            if temp_value and isinstance(temp_value, str) and temp_value.endswith(".txt"):
                                 path_value = temp_value
 
                             value = st.text_input(
                                 f"Template file path for {agent}",
                                 value=path_value,
-                                placeholder="Enter path to template file (e.g., /path/to/template.txt)",
+                                placeholder="Enter path to template file on the machine running backend (e.g., /path/to/template.txt)",
                                 key=f"{agent}_path",
                                 label_visibility="collapsed",
                                 on_change=on_path_change,
@@ -863,63 +873,51 @@ class UI:
     def render_sidebar() -> TaskConfig:
         """Render sidebar"""
         with st.sidebar:
-            with st.expander("⚙️ Settings", expanded=False):
-                # Upper section: iterations, control, verbosity
-                max_iter = st.number_input("Max iterations", min_value=1, max_value=20, value=5, key="max_iterations")
-                control = st.checkbox("Manual prompts between iterations", key="control_prompts")
-                log_verbosity = st.select_slider(
-                    "Log verbosity",
-                    options=["BRIEF", "INFO", "DETAIL"],
-                    value="BRIEF",
-                    key="log_verbosity",
-                )
+            # We need to handle config file state across reruns
+            # Initialize session state for config if not exists
+            if "_config_uploaded_content" not in st.session_state:
+                st.session_state._config_uploaded_content = None
+                st.session_state._config_has_provider_model = False
 
-                # Single divider
-                st.markdown("---")
-
-                # Lower section: config, provider, model, credentials (compact)
-                # Config file uploader
-                uploaded_config = st.file_uploader(
-                    "Config file (optional)",
-                    type=["yaml", "yml"],
-                    key="config_uploader",
-                    help="Upload a custom YAML config file. If not provided, default config will be used.",
-                )
-
-                # Parse config if uploaded
-                config_provider = None
-                config_model = None
-                disable_provider_model = False
-
-                if uploaded_config:
-                    try:
-                        config_content = yaml.safe_load(uploaded_config.getvalue())
-                        config_provider, config_model = ConfigFileHandler.extract_provider_model(config_content)
-                        if config_provider and config_model:
-                            # Update centralized overrides
-                            SessionState.update_provider_model_from_config(config_provider, config_model)
-                            disable_provider_model = True
-
-                            # Also update templates from config (only for use_default items)
-                            SessionState.update_templates_from_config(config_content)
-                    except Exception as e:
-                        st.error(f"Failed to parse config file: {str(e)}")
+            # Container for LLM settings (outside of expander, with border)
+            with st.container(border=True):
+                st.markdown("**LLM Configuration**")
 
                 # Get current overrides
                 overrides = st.session_state.config_overrides
 
-                # Provider selection
-                provider = st.selectbox(
-                    "LLM Provider",
-                    options=["bedrock", "openai", "anthropic"],
-                    index=["bedrock", "openai", "anthropic"].index(overrides["provider"] or "bedrock"),
-                    key="llm_provider",
-                    disabled=disable_provider_model,
-                )
+                # Callback for provider change
+                def on_provider_change():
+                    if not st.session_state._config_has_provider_model:
+                        st.session_state.config_overrides["provider"] = st.session_state.llm_provider
 
-                # Update override if not disabled
-                if not disable_provider_model:
-                    st.session_state.config_overrides["provider"] = provider
+                # Provider selection
+                if BEDROCK_ONLY_MODE:
+                    # In bedrock-only mode, don't show selectbox, just display bedrock
+                    provider = "bedrock"
+                    st.text_input(
+                        "LLM Provider",
+                        value="bedrock",
+                        disabled=True,
+                        help="Only Bedrock is supported due to company policy",
+                    )
+                    # Force override to bedrock
+                    st.session_state.config_overrides["provider"] = "bedrock"
+                else:
+                    # Normal mode with all providers
+                    provider = st.selectbox(
+                        "LLM Provider",
+                        options=["bedrock", "openai", "anthropic"],
+                        index=["bedrock", "openai", "anthropic"].index(overrides["provider"] or "bedrock"),
+                        key="llm_provider",
+                        on_change=on_provider_change,
+                        disabled=st.session_state._config_has_provider_model,
+                    )
+
+                # Callback for model change
+                def on_model_change():
+                    if not st.session_state._config_has_provider_model:
+                        st.session_state.config_overrides["model"] = st.session_state.model_name
 
                 # Model input (with default based on provider)
                 model_default = overrides["model"] if overrides["model"] else PROVIDER_DEFAULTS.get(provider, "")
@@ -927,24 +925,22 @@ class UI:
                     "Model Name",
                     value=model_default,
                     key="model_name",
-                    disabled=disable_provider_model,
+                    on_change=on_model_change,
+                    disabled=st.session_state._config_has_provider_model,
                     help="Enter the model identifier",
                 )
 
-                # Update override if not disabled
-                if not disable_provider_model:
-                    st.session_state.config_overrides["model"] = model
+                # Credentials section (unified for all providers)
+                already_setup = st.checkbox(
+                    "Already set up credentials",
+                    key=f"{provider}_already_setup",
+                    help="Check if credentials are already configured in your environment",
+                )
 
-                # Credentials section (dynamic based on provider)
                 credentials = None
-                if provider == "bedrock":
-                    use_custom_creds = st.checkbox(
-                        "Use custom AWS credentials",
-                        key="bedrock_custom_creds",
-                        help="If unchecked, will use EC2 IAM role",
-                    )
-
-                    if use_custom_creds:
+                if not already_setup:
+                    # Show input fields based on provider
+                    if provider == "bedrock":
                         credentials_text = st.text_area(
                             "AWS Credentials",
                             height=120,
@@ -965,47 +961,111 @@ class UI:
                             else:
                                 st.error("❌ Invalid format. Please include all required fields.")
 
-                elif provider == "openai":
-                    credentials_text = st.text_area(
-                        "OpenAI API Key",
-                        height=68,
-                        key="openai_credentials",
-                        placeholder='export OPENAI_API_KEY="sk-..."',
-                        help="Paste your OpenAI API key",
-                    )
+                    elif provider == "openai":
+                        credentials_text = st.text_area(
+                            "OpenAI API Key",
+                            height=68,
+                            key="openai_credentials",
+                            placeholder='export OPENAI_API_KEY="sk-..."',
+                            help="Paste your OpenAI API key",
+                        )
 
-                    if credentials_text:
-                        parsed_creds = OpenAICredentialsValidator.parse_credentials(credentials_text)
-                        if parsed_creds:
-                            is_valid, message = OpenAICredentialsValidator.validate_credentials(parsed_creds)
-                            if is_valid:
-                                st.success(f"✅ {message}")
-                                credentials = parsed_creds
+                        if credentials_text:
+                            parsed_creds = OpenAICredentialsValidator.parse_credentials(credentials_text)
+                            if parsed_creds:
+                                is_valid, message = OpenAICredentialsValidator.validate_credentials(parsed_creds)
+                                if is_valid:
+                                    st.success(f"✅ {message}")
+                                    credentials = parsed_creds
+                                else:
+                                    st.error(f"❌ {message}")
                             else:
-                                st.error(f"❌ {message}")
-                        else:
-                            st.error('❌ Invalid format. Please use: export OPENAI_API_KEY="sk-..."')
+                                st.error('❌ Invalid format. Please use: export OPENAI_API_KEY="sk-..."')
 
-                elif provider == "anthropic":
-                    credentials_text = st.text_area(
-                        "Anthropic API Key",
-                        height=68,
-                        key="anthropic_credentials",
-                        placeholder='export ANTHROPIC_API_KEY="your-anthropic-api-key"',
-                        help="Paste your Anthropic API key",
-                    )
+                    elif provider == "anthropic":
+                        credentials_text = st.text_area(
+                            "Anthropic API Key",
+                            height=68,
+                            key="anthropic_credentials",
+                            placeholder='export ANTHROPIC_API_KEY="your-anthropic-api-key"',
+                            help="Paste your Anthropic API key",
+                        )
 
-                    if credentials_text:
-                        parsed_creds = AnthropicCredentialsValidator.parse_credentials(credentials_text)
-                        if parsed_creds:
-                            is_valid, message = AnthropicCredentialsValidator.validate_credentials(parsed_creds)
-                            if is_valid:
-                                st.success(f"✅ {message}")
-                                credentials = parsed_creds
+                        if credentials_text:
+                            parsed_creds = AnthropicCredentialsValidator.parse_credentials(credentials_text)
+                            if parsed_creds:
+                                is_valid, message = AnthropicCredentialsValidator.validate_credentials(parsed_creds)
+                                if is_valid:
+                                    st.success(f"✅ {message}")
+                                    credentials = parsed_creds
+                                else:
+                                    st.error(f"❌ {message}")
                             else:
-                                st.error(f"❌ {message}")
-                        else:
-                            st.error('❌ Invalid format. Please use: export ANTHROPIC_API_KEY="..."')
+                                st.error('❌ Invalid format. Please use: export ANTHROPIC_API_KEY="..."')
+
+            # Settings expander
+            with st.expander("⚙️ Settings", expanded=False):
+                # Upper section: iterations, control, verbosity
+                max_iter = st.number_input("Max iterations", min_value=1, max_value=20, value=5, key="max_iterations")
+                control = st.checkbox("Manual prompts between iterations", key="control_prompts")
+                log_verbosity = st.select_slider(
+                    "Log verbosity",
+                    options=["BRIEF", "INFO", "DETAIL"],
+                    value="BRIEF",
+                    key="log_verbosity",
+                )
+
+                # Single divider
+                st.markdown("---")
+
+                def on_config_change():
+                    """Handle config file upload"""
+                    uploaded_file = st.session_state.config_uploader
+                    if uploaded_file is not None:
+                        try:
+                            # Read and store content
+                            content = yaml.safe_load(uploaded_file.getvalue())
+                            st.session_state._config_uploaded_content = content
+
+                            # Check if it has provider/model
+                            config_provider, config_model = ConfigFileHandler.extract_provider_model(content)
+
+                            # In bedrock-only mode, validate provider
+                            if BEDROCK_ONLY_MODE and config_provider and config_provider != "bedrock":
+                                st.error(
+                                    f"❌ Config file specifies provider '{config_provider}', but only 'bedrock' is allowed in bedrock-only mode"
+                                )
+                                st.session_state._config_uploaded_content = None
+                                st.session_state._config_has_provider_model = False
+                                return
+
+                            if config_provider and config_model:
+                                # Update overrides
+                                SessionState.update_provider_model_from_config(config_provider, config_model)
+                                st.session_state._config_has_provider_model = True
+                                # Update templates
+                                SessionState.update_templates_from_config(content)
+                            else:
+                                st.session_state._config_has_provider_model = False
+                        except Exception:
+                            st.session_state._config_uploaded_content = None
+                            st.session_state._config_has_provider_model = False
+                    else:
+                        # No file uploaded
+                        st.session_state._config_uploaded_content = None
+                        st.session_state._config_has_provider_model = False
+
+                uploaded_config = st.file_uploader(
+                    "Config file (optional)",
+                    type=["yaml", "yml"],
+                    key="config_uploader",
+                    help="Upload a custom YAML config file. If not provided, default config will be used.",
+                    on_change=on_config_change,
+                )
+
+                # Show error if parsing failed
+                if uploaded_config and st.session_state._config_uploaded_content is None:
+                    st.error("Failed to parse config file. Only Bedrock is supported due to company policy")
 
                 # Template setter button
                 st.markdown("---")
@@ -1015,16 +1075,16 @@ class UI:
                         del st.session_state.temp_template_settings
                     UI.render_template_dialog()
 
-                # Create config object
-                config = TaskConfig(
-                    uploaded_config=uploaded_config,
-                    max_iter=max_iter,
-                    control=control,
-                    log_verbosity=log_verbosity,
-                    provider=provider,
-                    model=model,
-                    credentials=credentials,
-                )
+            # Create config object
+            config = TaskConfig(
+                uploaded_config=uploaded_config,
+                max_iter=max_iter,
+                control=control,
+                log_verbosity=log_verbosity,
+                provider=provider,
+                model=model,
+                credentials=credentials,
+            )
 
             # History management
             task_count = sum(1 for msg in st.session_state.messages if msg.type == "task_log")
@@ -1064,11 +1124,6 @@ class UI:
 
                 manager = ResultManager(content["output_dir"], content["run_id"])
                 manager.render()
-        elif msg.type == "debug_config":
-            # DEBUG block - easy to remove later
-            with st.expander("🐛 DEBUG: Final Config Content", expanded=True):
-                st.caption(f"Config saved to: {msg.content['path']}")
-                st.code(msg.content["content"], language="yaml")
 
     @staticmethod
     def render_messages():
@@ -1092,10 +1147,17 @@ class UI:
             f"- Model: {config.model}",
         ]
 
-        if config.provider == "bedrock" and config.credentials:
-            parts.append("- Using custom AWS credentials: ✅")
-        elif config.provider in ["openai", "anthropic"] and config.credentials:
-            parts.append(f"- Using {config.provider} API key: ✅")
+        # Unified credentials display
+        already_setup = st.session_state.get(f"{config.provider}_already_setup", False)
+        if already_setup:
+            parts.append(f"- Using already configured {config.provider} credentials: ✅")
+        elif config.credentials:
+            if config.provider == "bedrock":
+                parts.append("- Using custom AWS credentials: ✅")
+            else:
+                parts.append(f"- Using {config.provider} API key: ✅")
+        else:
+            parts.append(f"- {config.provider} credentials: ❌ Not provided")
 
         parts.extend(["\n✏️ **Initial prompt:**\n", f"> {prompt or '(none)'}"])
 
@@ -1190,11 +1252,16 @@ class TaskManager:
             st.rerun()
             return
 
-        # Validate credentials if needed
-        if self.config.provider in ["openai", "anthropic"] and not self.config.credentials:
-            SessionState.add_message(Message.text(f"❌ Please provide {self.config.provider} API key first"))
-            st.rerun()
-            return
+        # Validate credentials if needed (unified for all providers)
+        if not self.config.credentials:
+            already_setup = st.session_state.get(f"{self.config.provider}_already_setup", False)
+            if not already_setup:
+                if self.config.provider == "bedrock":
+                    SessionState.add_message(Message.text("❌ Please provide AWS credentials first"))
+                else:
+                    SessionState.add_message(Message.text(f"❌ Please provide {self.config.provider} API key first"))
+                st.rerun()
+                return
 
         # Process files
         data_folder = handle_uploaded_files(files)
@@ -1548,16 +1615,6 @@ class TaskManager:
     def _start_task(self, data_folder: str, config_path: str, user_prompt: str):
         """Start task"""
 
-        # ===== DEBUG BLOCK START - EASY TO REMOVE =====
-        # Read and display the saved config content
-        try:
-            with open(config_path, "r") as f:
-                config_content = f.read()
-            SessionState.add_message(Message.debug_config(config_path, config_content))
-        except Exception as e:
-            SessionState.add_message(Message.text(f"❌ DEBUG: Failed to read config: {str(e)}"))
-        # ===== DEBUG BLOCK END =====
-
         # Submit task to queue
         task_id, position = BackendAPI.start_task(data_folder, config_path, user_prompt, self.config)
 
@@ -1755,15 +1812,15 @@ def main():
     """Entry point"""
     st.set_page_config(
         page_title="AutoGluon Assistant",
-        page_icon=LOGO_PATH,
+        page_icon=str(LOGO_PATH),
         layout="wide",
         initial_sidebar_state="auto",
     )
     theme = st_theme()
     if theme and theme.get("base") == "dark":
-        st.logo(logo_night_path, size="large", link="https://github.com/autogluon")
+        st.logo(str(LOGO_NIGHT_PATH), size="large", link="https://github.com/autogluon")
     else:
-        st.logo(logo_day_path, size="large", link="https://github.com/autogluon")
+        st.logo(str(LOGO_DAY_PATH), size="large", link="https://github.com/autogluon")
 
     reload_warning = """
     <script>
