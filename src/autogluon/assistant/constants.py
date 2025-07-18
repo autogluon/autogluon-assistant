@@ -23,7 +23,6 @@ DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "configs" / "default.yaml"
 LOGO_DAY_PATH = PACKAGE_ROOT / "webui" / "static" / "sidebar_logo_blue.png"
 LOGO_NIGHT_PATH = PACKAGE_ROOT / "webui" / "static" / "sidebar_icon.png"
 LOGO_PATH = PACKAGE_ROOT / "webui" / "static" / "page_icon.png"
-DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "configs" / "default.yaml"
 
 # TODO
 IGNORED_MESSAGES = [

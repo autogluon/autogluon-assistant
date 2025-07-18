@@ -42,7 +42,7 @@ if [ -z "$AGENTS" ] || [ -z "$DATASETS" ]; then
 fi
 
 # Set the base directory for MAAB
-MAAB_DIR="$(pwd)/maab"
+MAAB_DIR="$(dirname "$(realpath "$0")")"
 
 # Generate a timestamp for the evaluation run
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)

@@ -67,11 +67,13 @@ mlzero-frontend # command to start frontend on 8509(default)
 
 ### 2.3 MCP (Model Context Protocol)
 
+![Demo](https://github.com/autogluon/autogluon-assistant/blob/main/docs/assets/mcp_demo.gif)
+
 Note: The system can run on a single machine or distributed across multiple machines (e.g., server on EC2, client on local).
 1. **Start the server**
 ```bash
 mlzero-backend # command to start backend
-mlzero-mcp-server # This will start the service—run it in a new terminal.
+mlzero-mcp-server # Start this in a new terminal.
 ```
 2. **Start the client**
 ```bash

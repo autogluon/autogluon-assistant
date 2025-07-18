@@ -3,7 +3,20 @@ maab/datasets/
 runs/
 maab/runs/
 temp/
+
+# temp
 /maab/
+src/autogluon/assistant/tools_registry/indices
+
+# MCP specific
+src/autogluon/mcp/server/.flask.pid
+src/autogluon/mcp/server/.mcp.pid
+src/autogluon/mcp/server/test_output/
+src/autogluon/mcp/server/test_data/
+src/autogluon/mcp/server/nohup.out
+src/autogluon/mcp/**/uploads/
+src/autogluon/mcp/**/mlzero-*/
+src/autogluon/mcp/server_info.txt
 
 # OS specific
 *.DS_Store
@@ -208,15 +221,6 @@ output/
 # OS specific
 *.DS_Store
 
-src/autogluon/mcp/server/.flask.pid
-src/autogluon/mcp/server/.mcp.pid
-src/autogluon/mcp/server/test_output/
-src/autogluon/mcp/server/test_data/
-src/autogluon/mcp/server/nohup.out
-src/autogluon/mcp/**/uploads/
-src/autogluon/mcp/**/mlzero-*/
-src/autogluon/mcp/server_info.txt
-
 # Credentials
 *.credentials
 *.creds
@@ -224,5 +228,3 @@ credentials.txt
 aws_credentials.txt
 
 .claude
-
-src/autogluon/assistant/tools_registry/indices
