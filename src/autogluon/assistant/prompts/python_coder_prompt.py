@@ -30,7 +30,7 @@ ONLY save files to the working directory: {output_folder}.
    - Output column names must exactly match those in the training or sample submission files without adding "predicted_" prefixes or creating any new columns.
 
 4. Validation:
-   - The code should **print the value of the evaluation metric computed on a hold-out validation set at the end, ensuring higher values indicate better performance**. If the metric is naturally "lower is better" like RMSE, multiply by -1 to make it "higher is better".
+   - Hold out a validation dataset at the start, train only on the remaining data, and print the final evaluation metric score on the validation set (ensuring higher values indicate better performance by multiplying "lower is better" metrics like RMSE by -1).
 
 5. Documentation:
    - Add a brief docstring at the beginning of the script explaining its purpose
