@@ -5,7 +5,6 @@ Task manager for MCP server - manages AutoGluon tasks via Flask API
 import logging
 import threading
 from datetime import datetime
-from pathlib import Path
 from typing import Optional
 
 try:
@@ -214,7 +213,6 @@ class TaskManager:
             except Exception as e:
                 logger.error(f"Failed to cancel task: {str(e)}")
                 return {"success": False, "error": str(e)}
-
 
     async def list_outputs(self) -> dict:
         if not self.current_task:

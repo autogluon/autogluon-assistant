@@ -98,10 +98,10 @@ class LogProcessor:
         """Format log text for Streamlit display with colors"""
         # Replace [bold green]...[/bold green] with :green[**...**]
         text = re.sub(r"\[bold green\](.*?)\[/bold green\]", r":green[**\1**]", text)
-        
+
         # Replace [bold red]...[/bold red] with :red[**...**]
         text = re.sub(r"\[bold red\](.*?)\[/bold red\]", r":red[**\1**]", text)
-        
+
         # Handle special cases
         # Planner decision: FINISH (green) or FIX (red)
         if "Planner decision:" in text:
@@ -109,11 +109,11 @@ class LogProcessor:
                 text = text.replace("FINISH", ":green[**FINISH**]")
             elif "FIX" in text:
                 text = text.replace("FIX", ":red[**FIX**]")
-        
+
         # Starting iteration X! (green)
         if re.match(r"Starting iteration \d+!", text):
             text = f":green[**{text}**]"
-        
+
         return text
 
     def _process_log_entry(self, text: str) -> None:

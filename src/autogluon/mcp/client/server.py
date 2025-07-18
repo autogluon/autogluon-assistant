@@ -3,15 +3,14 @@
 MCP Server that exposes the complete AutoGluon pipeline as a single tool
 """
 
+import argparse
 import asyncio
 import json
+import subprocess
+import uuid
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
-import subprocess
-from datetime import datetime
-import uuid
-import os
-import argparse
 
 from fastmcp import Client, FastMCP
 
@@ -123,10 +122,10 @@ async def run_autogluon_assistant(
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             unique_id = uuid.uuid4().hex[:8]
             upload_dirname = f"upload_{timestamp}_{unique_id}"
-            
+
             if RSYNC_SERVER:  # Remote transfer
                 # Use ~ for remote path - let remote system resolve it
-                remote_user = RSYNC_SERVER.split('@')[0] if '@' in RSYNC_SERVER else 'ubuntu'
+                remote_user = RSYNC_SERVER.split("@")[0] if "@" in RSYNC_SERVER else "ubuntu"
                 remote_base = f"~/.autogluon_assistant/mcp_uploads/{upload_dirname}"
                 server_input_dir = f"/home/{remote_user}/.autogluon_assistant/mcp_uploads/{upload_dirname}"
                 rsync_dest = f"{RSYNC_SERVER}:{remote_base}/"
@@ -141,9 +140,11 @@ async def run_autogluon_assistant(
 
             # Rsync upload
             rsync_cmd = [
-                "rsync", "-avz", "--progress",
+                "rsync",
+                "-avz",
+                "--progress",
                 f"{input_folder.rstrip('/')}/",  # Ensure trailing slash for content only
-                rsync_dest
+                rsync_dest,
             ]
 
             log(f"Running: {' '.join(rsync_cmd)}", "INFO")
@@ -167,11 +168,13 @@ async def run_autogluon_assistant(
 
                 # Generate config directory path
                 config_dirname = f"config_{timestamp}_{unique_id}"
-                
+
                 if RSYNC_SERVER:  # Remote transfer
-                    remote_user = RSYNC_SERVER.split('@')[0] if '@' in RSYNC_SERVER else 'ubuntu'
+                    remote_user = RSYNC_SERVER.split("@")[0] if "@" in RSYNC_SERVER else "ubuntu"
                     remote_config_dir = f"~/.autogluon_assistant/mcp_uploads/{config_dirname}"
-                    server_config_path = f"/home/{remote_user}/.autogluon_assistant/mcp_uploads/{config_dirname}/{config_path.name}"
+                    server_config_path = (
+                        f"/home/{remote_user}/.autogluon_assistant/mcp_uploads/{config_dirname}/{config_path.name}"
+                    )
                     rsync_config_dest = f"{RSYNC_SERVER}:{remote_config_dir}/"
                 else:  # Local transfer
                     local_config_dir = Path.home() / ".autogluon_assistant" / "mcp_uploads" / config_dirname
@@ -180,18 +183,18 @@ async def run_autogluon_assistant(
                     rsync_config_dest = f"{local_config_dir}/"
 
                 # Rsync upload config file
-                rsync_cmd = [
-                    "rsync", "-avz", "--progress",
-                    str(config_file),
-                    rsync_config_dest
-                ]
+                rsync_cmd = ["rsync", "-avz", "--progress", str(config_file), rsync_config_dest]
 
                 log(f"Running: {' '.join(rsync_cmd)}", "INFO")
                 rsync_result = subprocess.run(rsync_cmd, capture_output=True, text=True)
 
                 if rsync_result.returncode != 0:
                     log(f"ERROR: rsync config failed: {rsync_result.stderr}", "ERROR")
-                    return {"success": False, "error": f"rsync config failed: {rsync_result.stderr}", "logs": brief_logs}
+                    return {
+                        "success": False,
+                        "error": f"rsync config failed: {rsync_result.stderr}",
+                        "logs": brief_logs,
+                    }
 
                 log(f"Config uploaded to: {server_config_path}", "INFO")
 
@@ -231,7 +234,7 @@ async def run_autogluon_assistant(
 
             last_log_count = 0
             output_dir = None  # Will be set when task completes
-            
+
             while True:
                 # Check status
                 status_result = await client.call_tool("check_status", {})
@@ -293,7 +296,7 @@ async def run_autogluon_assistant(
                     return {"success": False, "error": error_msg, "logs": brief_logs}
 
                 output_dir = outputs_result.get("output_dir")
-            
+
             if not output_dir:
                 log("ERROR: No output directory found", "ERROR")
                 return {"success": False, "error": "No output directory", "logs": brief_logs}
@@ -309,11 +312,13 @@ async def run_autogluon_assistant(
                 rsync_source = f"{RSYNC_SERVER}:{output_dir}"
             else:  # Local transfer
                 rsync_source = output_dir
-                
+
             rsync_cmd = [
-                "rsync", "-avz", "--progress",
+                "rsync",
+                "-avz",
+                "--progress",
                 rsync_source,  # No trailing slash - copy the folder itself
-                f"{output_folder}/"
+                f"{output_folder}/",
             ]
 
             log(f"Running: {' '.join(rsync_cmd)}", "INFO")
@@ -361,18 +366,18 @@ async def run_autogluon_assistant(
 
 def main():
     """Entry point for mlzero-mcp-client command"""
-    parser = argparse.ArgumentParser(description='AutoGluon MCP Client')
-    parser.add_argument('--server', '-s', type=str, default='',
-                        help='Rsync server (e.g., ubuntu@ec2-ip). Leave empty for local mode.')
-    parser.add_argument('--port', '-p', type=int, default=8005,
-                        help='MCP server port (default: 8005)')
+    parser = argparse.ArgumentParser(description="AutoGluon MCP Client")
+    parser.add_argument(
+        "--server", "-s", type=str, default="", help="Rsync server (e.g., ubuntu@ec2-ip). Leave empty for local mode."
+    )
+    parser.add_argument("--port", "-p", type=int, default=8005, help="MCP server port (default: 8005)")
     args = parser.parse_args()
 
     server_info_path = Path(__file__).parent.parent / "server_info.txt"
     server_info_path.write_text(args.server)
 
-    mcp.run(transport="streamable-http",
-            host="0.0.0.0", port=args.port, path="/mcp")
+    mcp.run(transport="streamable-http", host="0.0.0.0", port=args.port, path="/mcp")
+
 
 if __name__ == "__main__":
     main()

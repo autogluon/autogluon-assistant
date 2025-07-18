@@ -1,9 +1,9 @@
 # src/autogluon/assistant/webui/pages/Launch_MLZero.py
 
+import os
 import re
 import shutil
 import subprocess
-import os
 import sys
 import time
 import uuid
@@ -20,15 +20,24 @@ import yaml
 from botocore.exceptions import ClientError, NoCredentialsError
 from streamlit_theme import st_theme
 
-from autogluon.assistant.constants import API_URL, LOGO_PATH, PROVIDER_DEFAULTS, SUCCESS_MESSAGE, VERBOSITY_MAP, LOGO_DAY_PATH, LOGO_NIGHT_PATH, DEFAULT_CONFIG_PATH
+from autogluon.assistant.constants import (
+    API_URL,
+    DEFAULT_CONFIG_PATH,
+    LOGO_DAY_PATH,
+    LOGO_NIGHT_PATH,
+    LOGO_PATH,
+    PROVIDER_DEFAULTS,
+    SUCCESS_MESSAGE,
+    VERBOSITY_MAP,
+)
 
 # Import prompt classes for default templates
 from autogluon.assistant.prompts import (
+    BashCoderPrompt,
     DescriptionFileRetrieverPrompt,
     ErrorAnalyzerPrompt,
     ExecuterPrompt,
     PythonCoderPrompt,
-    BashCoderPrompt, 
     PythonReaderPrompt,
     RerankerPrompt,
     RetrieverPrompt,
@@ -42,7 +51,7 @@ BEDROCK_ONLY_MODE = os.environ.get("AUTOGLUON_BEDROCK_ONLY", "false").lower() ==
 
 # Agent list for template setter
 AGENTS_LIST = [
-    "bash_coder", 
+    "bash_coder",
     "python_coder",
     "executer",
     "reader",
@@ -56,7 +65,7 @@ AGENTS_LIST = [
 
 # Agent to Prompt class mapping
 AGENT_PROMPT_MAPPING = {
-    "bash_coder": BashCoderPrompt, 
+    "bash_coder": BashCoderPrompt,
     "python_coder": PythonCoderPrompt,
     "executer": ExecuterPrompt,
     "reader": PythonReaderPrompt,
@@ -466,12 +475,14 @@ class SessionState:
         for key, value in defaults.items():
             if key not in st.session_state:
                 st.session_state[key] = value
-        
+
         # Force bedrock if in bedrock-only mode and provider is not bedrock
         if BEDROCK_ONLY_MODE and st.session_state.config_overrides["provider"] != "bedrock":
             st.session_state.config_overrides["provider"] = "bedrock"
             # Also reset model if it's not a bedrock model
-            if st.session_state.config_overrides["model"] and not st.session_state.config_overrides["model"].startswith(("us.", "eu.", "anthropic.claude")):
+            if st.session_state.config_overrides["model"] and not st.session_state.config_overrides[
+                "model"
+            ].startswith(("us.", "eu.", "anthropic.claude")):
                 st.session_state.config_overrides["model"] = None
 
     @staticmethod
@@ -815,11 +826,7 @@ class UI:
                             # For path mode, only show the actual path value from temp settings
                             temp_value = st.session_state.temp_template_settings[agent]["value"]
                             path_value = ""
-                            if (
-                                temp_value
-                                and isinstance(temp_value, str)
-                                and temp_value.endswith(".txt")
-                            ):
+                            if temp_value and isinstance(temp_value, str) and temp_value.endswith(".txt"):
                                 path_value = temp_value
 
                             value = st.text_input(
@@ -913,8 +920,7 @@ class UI:
                         st.session_state.config_overrides["model"] = st.session_state.model_name
 
                 # Model input (with default based on provider)
-                model_default = overrides["model"] if overrides["model"] else PROVIDER_DEFAULTS.get(
-                    provider, "")
+                model_default = overrides["model"] if overrides["model"] else PROVIDER_DEFAULTS.get(provider, "")
                 model = st.text_input(
                     "Model Name",
                     value=model_default,
@@ -944,19 +950,16 @@ class UI:
                         )
 
                         if credentials_text:
-                            parsed_creds = BedrockCredentialsValidator.parse_credentials(
-                                credentials_text)
+                            parsed_creds = BedrockCredentialsValidator.parse_credentials(credentials_text)
                             if parsed_creds:
-                                is_valid, message = BedrockCredentialsValidator.validate_credentials(
-                                    parsed_creds)
+                                is_valid, message = BedrockCredentialsValidator.validate_credentials(parsed_creds)
                                 if is_valid:
                                     st.success(f"✅ {message}")
                                     credentials = parsed_creds
                                 else:
                                     st.error(f"❌ {message}")
                             else:
-                                st.error(
-                                    "❌ Invalid format. Please include all required fields.")
+                                st.error("❌ Invalid format. Please include all required fields.")
 
                     elif provider == "openai":
                         credentials_text = st.text_area(
@@ -968,19 +971,16 @@ class UI:
                         )
 
                         if credentials_text:
-                            parsed_creds = OpenAICredentialsValidator.parse_credentials(
-                                credentials_text)
+                            parsed_creds = OpenAICredentialsValidator.parse_credentials(credentials_text)
                             if parsed_creds:
-                                is_valid, message = OpenAICredentialsValidator.validate_credentials(
-                                    parsed_creds)
+                                is_valid, message = OpenAICredentialsValidator.validate_credentials(parsed_creds)
                                 if is_valid:
                                     st.success(f"✅ {message}")
                                     credentials = parsed_creds
                                 else:
                                     st.error(f"❌ {message}")
                             else:
-                                st.error(
-                                    '❌ Invalid format. Please use: export OPENAI_API_KEY="sk-..."')
+                                st.error('❌ Invalid format. Please use: export OPENAI_API_KEY="sk-..."')
 
                     elif provider == "anthropic":
                         credentials_text = st.text_area(
@@ -992,27 +992,22 @@ class UI:
                         )
 
                         if credentials_text:
-                            parsed_creds = AnthropicCredentialsValidator.parse_credentials(
-                                credentials_text)
+                            parsed_creds = AnthropicCredentialsValidator.parse_credentials(credentials_text)
                             if parsed_creds:
-                                is_valid, message = AnthropicCredentialsValidator.validate_credentials(
-                                    parsed_creds)
+                                is_valid, message = AnthropicCredentialsValidator.validate_credentials(parsed_creds)
                                 if is_valid:
                                     st.success(f"✅ {message}")
                                     credentials = parsed_creds
                                 else:
                                     st.error(f"❌ {message}")
                             else:
-                                st.error(
-                                    '❌ Invalid format. Please use: export ANTHROPIC_API_KEY="..."')
+                                st.error('❌ Invalid format. Please use: export ANTHROPIC_API_KEY="..."')
 
             # Settings expander
             with st.expander("⚙️ Settings", expanded=False):
                 # Upper section: iterations, control, verbosity
-                max_iter = st.number_input(
-                    "Max iterations", min_value=1, max_value=20, value=5, key="max_iterations")
-                control = st.checkbox(
-                    "Manual prompts between iterations", key="control_prompts")
+                max_iter = st.number_input("Max iterations", min_value=1, max_value=20, value=5, key="max_iterations")
+                control = st.checkbox("Manual prompts between iterations", key="control_prompts")
                 log_verbosity = st.select_slider(
                     "Log verbosity",
                     options=["BRIEF", "INFO", "DETAIL"],
@@ -1031,17 +1026,19 @@ class UI:
                             # Read and store content
                             content = yaml.safe_load(uploaded_file.getvalue())
                             st.session_state._config_uploaded_content = content
-                            
+
                             # Check if it has provider/model
                             config_provider, config_model = ConfigFileHandler.extract_provider_model(content)
-                            
+
                             # In bedrock-only mode, validate provider
                             if BEDROCK_ONLY_MODE and config_provider and config_provider != "bedrock":
-                                st.error(f"❌ Config file specifies provider '{config_provider}', but only 'bedrock' is allowed in bedrock-only mode")
+                                st.error(
+                                    f"❌ Config file specifies provider '{config_provider}', but only 'bedrock' is allowed in bedrock-only mode"
+                                )
                                 st.session_state._config_uploaded_content = None
                                 st.session_state._config_has_provider_model = False
                                 return
-                            
+
                             if config_provider and config_model:
                                 # Update overrides
                                 SessionState.update_provider_model_from_config(config_provider, config_model)
@@ -1050,7 +1047,7 @@ class UI:
                                 SessionState.update_templates_from_config(content)
                             else:
                                 st.session_state._config_has_provider_model = False
-                        except Exception as e:
+                        except Exception:
                             st.session_state._config_uploaded_content = None
                             st.session_state._config_has_provider_model = False
                     else:
@@ -1063,7 +1060,7 @@ class UI:
                     type=["yaml", "yml"],
                     key="config_uploader",
                     help="Upload a custom YAML config file. If not provided, default config will be used.",
-                    on_change=on_config_change
+                    on_change=on_config_change,
                 )
 
                 # Show error if parsing failed
@@ -1090,8 +1087,7 @@ class UI:
             )
 
             # History management
-            task_count = sum(
-                1 for msg in st.session_state.messages if msg.type == "task_log")
+            task_count = sum(1 for msg in st.session_state.messages if msg.type == "task_log")
             if task_count > 0:
                 st.markdown(f"### 📋 Task History ({task_count} tasks)")
                 if st.button("🗑️ Clear All History"):
@@ -1136,7 +1132,6 @@ class UI:
             with st.chat_message(msg.role):
                 UI.render_single_message(msg)
 
-
     @staticmethod
     def format_user_summary(files: List[str], config: TaskConfig, prompt: str, config_file: str) -> str:
         """Format user input summary"""
@@ -1153,11 +1148,9 @@ class UI:
         ]
 
         # Unified credentials display
-        already_setup = st.session_state.get(
-            f"{config.provider}_already_setup", False)
+        already_setup = st.session_state.get(f"{config.provider}_already_setup", False)
         if already_setup:
-            parts.append(
-                f"- Using already configured {config.provider} credentials: ✅")
+            parts.append(f"- Using already configured {config.provider} credentials: ✅")
         elif config.credentials:
             if config.provider == "bedrock":
                 parts.append("- Using custom AWS credentials: ✅")
@@ -1241,7 +1234,6 @@ class TaskManager:
             else:
                 st.info("Error log not found")
 
-
     def handle_submission(self, submission):
         """Handle user submission"""
         # If waiting for input, handle it as iteration input
@@ -1255,23 +1247,19 @@ class TaskManager:
 
         if not files:
             SessionState.add_message(
-                Message.text(
-                    "⚠️ No data files provided. Please drag and drop your data files or ZIP.")
+                Message.text("⚠️ No data files provided. Please drag and drop your data files or ZIP.")
             )
             st.rerun()
             return
 
         # Validate credentials if needed (unified for all providers)
         if not self.config.credentials:
-            already_setup = st.session_state.get(
-                f"{self.config.provider}_already_setup", False)
+            already_setup = st.session_state.get(f"{self.config.provider}_already_setup", False)
             if not already_setup:
                 if self.config.provider == "bedrock":
-                    SessionState.add_message(Message.text(
-                        "❌ Please provide AWS credentials first"))
+                    SessionState.add_message(Message.text("❌ Please provide AWS credentials first"))
                 else:
-                    SessionState.add_message(Message.text(
-                        f"❌ Please provide {self.config.provider} API key first"))
+                    SessionState.add_message(Message.text(f"❌ Please provide {self.config.provider} API key first"))
                 st.rerun()
                 return
 
@@ -1284,10 +1272,8 @@ class TaskManager:
         config_name = self.config.uploaded_config.name if self.config.uploaded_config else "default.yaml (modified)"
 
         # Add user summary
-        summary = UI.format_user_summary(
-            [f.name for f in files], self.config, user_text, config_name)
-        SessionState.add_message(Message.user_summary(
-            summary, input_dir=data_folder))
+        summary = UI.format_user_summary([f.name for f in files], self.config, user_text, config_name)
+        SessionState.add_message(Message.user_summary(summary, input_dir=data_folder))
 
         # Start task
         self._start_task(data_folder, config_path, user_text)
