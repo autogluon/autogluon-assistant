@@ -12,5 +12,5 @@ def main():
     cmd = ["/bin/bash", os.path.join(os.path.dirname(__file__), "start_services.sh")]
     cmd.extend(["--flask-port", str(args.flask_port)])
     cmd.extend(["--server-port", str(args.server_port)])
-    
+
     subprocess.run(cmd)
