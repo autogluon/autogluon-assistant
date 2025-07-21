@@ -6,7 +6,7 @@ per_execution_timeout: 86400
 max_file_group_size_to_show: 5
 num_example_files_to_show: 1
 
-max_chars_per_file: 1024
+max_chars_per_file: 768
 num_tutorial_retrievals: 30
 max_num_tutorials: 5
 max_user_input_length: 2048
