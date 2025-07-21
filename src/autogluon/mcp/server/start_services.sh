@@ -13,10 +13,45 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Default ports
+FLASK_PORT=5000
+MCP_PORT=8000
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --flask-port|-f)
+            FLASK_PORT="$2"
+            shift 2
+            ;;
+        --server-port|-s)
+            MCP_PORT="$2"
+            shift 2
+            ;;
+        --help|-h)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --flask-port, -f PORT    Flask backend port (default: 5000)"
+            echo "  --server-port, -s PORT   MCP server port (default: 8000)"
+            echo "  --help, -h               Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
+echo "Using ports: Flask=$FLASK_PORT, MCP=$MCP_PORT"
+echo
+
 # Check if Flask backend is running
 check_flask_backend() {
-    echo -n "Checking Flask backend on port 5000... "
-    if curl -s http://localhost:5000/api/queue/info > /dev/null 2>&1; then
+    echo -n "Checking Flask backend on port $FLASK_PORT... "
+    if curl -s http://localhost:$FLASK_PORT/api/queue/info > /dev/null 2>&1; then
         echo -e "${GREEN}✓ Running${NC}"
         return 0
     else
@@ -58,7 +93,7 @@ start_mcp_server() {
         pip install fastmcp aiohttp
     fi
     
-    python "$(dirname "$0")/server.py" &
+    python "$(dirname "$0")/server.py" --port $MCP_PORT &
     MCP_PID=$!
     echo "MCP Server PID: $MCP_PID"
     
@@ -66,12 +101,16 @@ start_mcp_server() {
     sleep 2
     
     # Check if running
-    if curl -s http://localhost:8000 > /dev/null 2>&1; then
+    if curl -s http://localhost:$MCP_PORT > /dev/null 2>&1; then
         echo -e "${GREEN}MCP Server started successfully${NC}"
         
         # Save PIDs for shutdown
         echo $FLASK_PID > .flask.pid
         echo $MCP_PID > .mcp.pid
+        
+        # Also save ports for stop script
+        echo $FLASK_PORT > .flask.port
+        echo $MCP_PORT > .mcp.port
         
         return 0
     else
@@ -102,7 +141,8 @@ main() {
     echo -e "${GREEN}=== All services started successfully! ===${NC}"
     echo
     echo "Services running:"
-    echo "  - Flask Backend: http://localhost:5000"
+    echo "  - Flask Backend: http://localhost:$FLASK_PORT"
+    echo "  - MCP Server: http://localhost:$MCP_PORT/mcp"
     
     echo
     echo "To stop services, run: ./stop_services.sh"

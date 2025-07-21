@@ -6,6 +6,7 @@ This server provides MCP interface for AutoGluon Assistant,
 allowing remote clients to submit ML tasks and retrieve results.
 """
 
+import argparse
 import logging
 from pathlib import Path
 from typing import Optional
@@ -196,5 +197,10 @@ async def cleanup_output(output_dir: str) -> dict:
 # ==================== Main ====================
 
 if __name__ == "__main__":
-    # Run with streamable HTTP transport by default
-    mcp.run(transport="streamable-http", host="0.0.0.0", port=8000)
+    parser = argparse.ArgumentParser(description="AutoGluon Assistant MCP Server")
+    parser.add_argument("--port", type=int, default=8000, help="Server port (default: 8000)")
+    parser.add_argument("--host", type=str, default="0.0.0.0", help="Server host (default: 0.0.0.0)")
+    args = parser.parse_args()
+    
+    # Run with streamable HTTP transport
+    mcp.run(transport="streamable-http", host=args.host, port=args.port)
