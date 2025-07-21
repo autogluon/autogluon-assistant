@@ -448,7 +448,15 @@ class SessionState:
             "user_session_id": uuid.uuid4().hex,
             "messages": [
                 Message.text(
-                    "Hello! Drag your data (folder or ZIP) into the chat box below, then press ENTER to start."
+                            """
+1. Make sure your credentials are set in the :orange-badge[LLM Configuration] panel on the left.\n\n
+
+2. Drag your dataset into the :green-badge[chatbox] below.\n\n
+
+3. (Optional) Adjust :blue-badge[⚙️ Settings] in the sidebar and type your instruction in the :green-badge[chatbox].\n\n
+
+4. Press ENTER in the :green-badge[chatbox] to start.
+"""
                 )
             ],
             "data_src": None,
@@ -1004,7 +1012,7 @@ class UI:
                                 st.error('❌ Invalid format. Please use: export ANTHROPIC_API_KEY="..."')
 
             # Settings expander
-            with st.expander("⚙️ Settings", expanded=False):
+            with st.expander("⚙️ Settings (optional)", expanded=False):
                 # Upper section: iterations, control, verbosity
                 max_iter = st.number_input("Max iterations", min_value=1, max_value=20, value=5, key="max_iterations")
                 control = st.checkbox("Manual prompts between iterations", key="control_prompts")
@@ -1093,7 +1101,15 @@ class UI:
                 if st.button("🗑️ Clear All History"):
                     st.session_state.messages = [
                         Message.text(
-                            "Hello! Drag your data (folder or ZIP) into the chat box below, then press ENTER to start."
+                            """
+1. Make sure your credentials are set in the :orange-badge[LLM Configuration] panel on the left.\n\n
+
+2. Drag your dataset into the :green-badge[chatbox] below.\n\n
+
+3. (Optional) Adjust :blue-badge[⚙️ Settings] in the sidebar and type your instruction in the :green-badge[chatbox].\n\n
+
+4. Press ENTER in the :green-badge[chatbox] to start.
+"""
                         )
                     ]
                     st.rerun()
@@ -1770,7 +1786,7 @@ class AutoMLAgentApp:
             accept_file = False
         else:
             # Normal state - ready to accept new tasks
-            placeholder = "Type optional prompt, or drag & drop your data files/ZIP here"
+            placeholder = "Drag your dataset files here, then type optional prompt"
             accept_file = "multiple"
 
         # Handle user input
