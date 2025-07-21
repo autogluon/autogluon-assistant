@@ -448,7 +448,7 @@ class SessionState:
             "user_session_id": uuid.uuid4().hex,
             "messages": [
                 Message.text(
-                            """
+                    """
 1. Make sure your credentials are set in the :orange-badge[LLM Configuration] panel on the left.\n\n
 
 2. Drag your dataset into the :green-badge[chatbox] below.\n\n
