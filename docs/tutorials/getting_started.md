@@ -144,8 +144,8 @@ If you upload your own config file in advanced settings, it will override the pr
 #### Local Setup (All services on the same machine)
 
 1. `mlzero-backend`
-2. `mlzero-mcp-server` # default port 8000
-3. `mlzero-mcp-client` # default port 8005
+2. `mlzero-mcp-server` # default port 8000, you can specify a different port using --server-port or -s
+3. `mlzero-mcp-client` # default port 8005, you can specify a different port using --port or -p
 4. Tunnel for mlzero-mcp-client (e.g. `ngrok http 8005`)
 5. Add MCP server to LLM (e.g. `claude mcp add --transport http <your-server-name> https://<your-tunnel-url>/mcp/`)
 6. Start and watch logs in mlzero-mcp-client terminal (tell LLM the input and output folders)
@@ -160,8 +160,8 @@ If you upload your own config file in advanced settings, it will override the pr
 
 ##### On the machine calling MCP (e.g. Mac)
 
-1. Set up SSH, ensure you can `ssh ubuntu@your-ec2-ip` without providing pem
-2. `mlzero-mcp-client --server user@host` # e.g.: mlzero-mcp-client --server ubuntu@your-ec2-ip
+1. Set up SSH, ensure you can `ssh <username>@<ip-or-dns>` (e.g. ssh ubuntu@your-ec2-ip) without providing pem
+2. `mlzero-mcp-client --server <username>@<ip-or-dns>` # e.g.: mlzero-mcp-client --server ubuntu@your-ec2-ip
 3. Tunnel for mlzero-mcp-client (e.g. `ngrok http 8005`)
 4. Add MCP server to LLM (e.g. `claude mcp add --transport http <your-server-name> https://<your-tunnel-url>/mcp/`)
 5. Start and watch logs in mlzero-mcp-client terminal (in this mode, besides input and output folders, also tell LLM the tunneled address of mlzero-mcp-server)
