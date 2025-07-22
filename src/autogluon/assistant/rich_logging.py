@@ -44,7 +44,7 @@ def _configure_logging(console_level: int, output_dir: Path = None) -> None:
     root_level = logging.DEBUG
 
     if sys.stdout.isatty():
-        console = Console(file=sys.stderr)
+        console = Console(file=sys.stdout)
         console_handler = RichHandler(console=console, markup=True, rich_tracebacks=True)
         console_handler.setLevel(console_level)
         console_handler.name = CONSOLE_HANDLER

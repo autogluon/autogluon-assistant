@@ -404,20 +404,24 @@ class ConfigFileHandler:
             config = copy.deepcopy(base_config)
 
             # Apply provider and model overrides
-            if overrides.get("provider") and overrides.get("model"):
+            if overrides.get("model"):  # 只要有 model 就应用
+                # 如果 provider 为 None，使用默认值
+                provider = overrides.get("provider") or "bedrock"
+                model = overrides["model"]
+
                 # Update the llm section
                 if "llm" not in config:
                     config["llm"] = {}
-                config["llm"]["provider"] = overrides["provider"]
-                config["llm"]["model"] = overrides["model"]
+                config["llm"]["provider"] = provider
+                config["llm"]["model"] = model
 
                 # Update all agent sections that have provider/model
                 agent_sections = AGENTS_LIST
 
                 for agent in agent_sections:
                     if agent in config and isinstance(config[agent], dict):
-                        config[agent]["provider"] = overrides["provider"]
-                        config[agent]["model"] = overrides["model"]
+                        config[agent]["provider"] = provider
+                        config[agent]["model"] = model
 
             # Apply template overrides
             templates = overrides.get("templates", {})
@@ -1279,15 +1283,18 @@ class TaskManager:
                 st.rerun()
                 return
 
-        # Process files
-        data_folder = handle_uploaded_files(files)
+        data_files = []
+        for f in files:
+            if self.config.uploaded_config and f.name == self.config.uploaded_config.name:
+                continue
+            data_files.append(f)
+
+        data_folder = handle_uploaded_files(data_files)
         st.session_state.data_src = data_folder
 
-        # Save config file
-        config_path = self._save_config(data_folder)
+        config_path = self._save_config(st.session_state.user_session_id)
         config_name = self.config.uploaded_config.name if self.config.uploaded_config else "default.yaml (modified)"
 
-        # Add user summary
         summary = UI.format_user_summary([f.name for f in files], self.config, user_text, config_name)
         SessionState.add_message(Message.user_summary(summary, input_dir=data_folder))
 
@@ -1599,9 +1606,14 @@ class TaskManager:
                     pass
         return 1  # Default to 1 if not found
 
-    def _save_config(self, data_folder: str) -> str:
+    def _save_config(self, session_id: str) -> str:
         """Save config file with all overrides applied"""
         overrides = st.session_state.config_overrides
+
+        user_dir = Path.home() / ".autogluon_assistant" / session_id
+        run_id = uuid.uuid4().hex[:8]
+        config_dir = user_dir / f"config_{run_id}"
+        config_dir.mkdir(parents=True, exist_ok=True)
 
         if self.config.uploaded_config:
             # Load uploaded config
@@ -1610,20 +1622,19 @@ class TaskManager:
             # Check if uploaded config has provider/model that should be preserved
             config_provider, config_model = ConfigFileHandler.extract_provider_model(config_content)
 
-            # If UI controls are disabled (config file has provider/model), use file as base
-            # but still apply template overrides
             if config_provider and config_model and not overrides["provider"]:
-                # Use uploaded config as base
                 base_config = config_content
             else:
-                # Apply all overrides to uploaded config
                 base_config = config_content
 
-            config_path = Path(data_folder) / self.config.uploaded_config.name
+            config_path = config_dir / self.config.uploaded_config.name
         else:
             # No uploaded config, use default
             base_config = ConfigFileHandler.load_default_config()
-            config_path = Path(data_folder) / "autogluon_config.yaml"
+            config_path = config_dir / "autogluon_config.yaml"
+
+        # Save with all overrides applied
+        return ConfigFileHandler.save_modified_config(base_config, overrides, config_path)
 
         # Save with all overrides applied
         return ConfigFileHandler.save_modified_config(base_config, overrides, config_path)
