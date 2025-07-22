@@ -89,3 +89,28 @@ def get_user_input_webui(prompt: str) -> str:
             user_input = line[len(WEBUI_INPUT_MARKER) :].strip()
             logger.debug(f"Received WebUI input: {user_input}")
             return user_input
+
+
+def get_cpu_count(self) -> int:
+    """Get the number of available CPU cores."""
+    try:
+        return multiprocessing.cpu_count()
+    except Exception as e:
+        logger.warning(f"Could not determine CPU count: {e}")
+        return 1
+
+
+def get_gpu_count(self) -> int:
+    """Get the number of available GPUs using PyTorch."""
+    try:
+        import torch
+        if torch.cuda.is_available():
+            return torch.cuda.device_count()
+        else:
+            return 0
+    except ImportError:
+        logger.warning("PyTorch not available for GPU detection")
+        return 0
+    except Exception as e:
+        logger.warning(f"Could not determine GPU count: {e}")
+        return 0

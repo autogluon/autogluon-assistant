@@ -3,6 +3,7 @@ from typing import Dict, Optional, Tuple
 
 from .base_prompt import BasePrompt
 from .utils import extract_code
+from ..utils import get_cpu_count, get_gpu_count
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,11 @@ class PythonCoderPrompt(BasePrompt):
 As an AutoML Agent, you will be given a folder containing data and description files. Please generate Python code using {selected_tool} to train a predictor and make predictions on test data. Follow these specifications:
 
 ONLY save files to the working directory: {output_folder}.
+
+### System Resources
+Available CPUs: {cpu_count}
+Available GPUs: {gpu_count}
+Please optimize your code to efficiently utilize the available hardware resources. 
 
 1. Data preprocessing:
    - Remove training data samples without valid labels (drop NA values from training dataset ONLY, NOT from test dataset) unless explicitly instructed otherwise.
@@ -89,6 +95,8 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             error_prompt=self.manager.all_previous_error_prompts,
             tutorial_prompt=self.manager.tutorial_prompt,
             best_code_prompt=best_code_prompt,
+            cpu_count=get_cpu_count(),
+            gpu_count=get_gpu_count(),
         )
 
         # Add format instruction if configured
@@ -129,32 +137,27 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
         if self.manager.best_step >= 0 and self.manager.best_step < self.manager.time_step:
             best_code = self.manager.python_codes[self.manager.best_step]
             best_score = self.manager.val_scores[self.manager.best_step]
-            
+
             best_code_prompt.append("### Previous Best Code")
             best_code_prompt.append(f"The following code achieved the best validation score so far ({best_score:.4f}):")
             best_code_prompt.append("```python")
             best_code_prompt.append(best_code)
             best_code_prompt.append("```")
             best_code_prompt.append("")
-            
-            # Ask for improvement
-            best_code_prompt.append("Please further improve its performance.")
-        
         # Check if we have a last successful step (different from best step)
         elif self.manager.last_successful_step >= 0 and self.manager.last_successful_step < self.manager.time_step:
             successful_code = self.manager.python_codes[self.manager.last_successful_step]
             successful_score = self.manager.val_scores[self.manager.last_successful_step]
-            
+
             best_code_prompt.append("### Previous Successful Code")
             best_code_prompt.append(f"The following code executed successfully:")
             best_code_prompt.append("```python")
             best_code_prompt.append(successful_code)
             best_code_prompt.append("```")
             best_code_prompt.append("")
-            
-            # Ask for improvement
-            best_code_prompt.append("Please further improve its performance.")
 
+        best_code_prompt.append("Please focus on model architecture improvements and training optimization to further improve its performance. You may apply necessary feature engineering without over-complicating.")
+        
         return "\n".join(best_code_prompt)
 
     def parse(self, response: Dict) -> Tuple[str, Optional[str]]:
