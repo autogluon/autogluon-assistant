@@ -404,8 +404,7 @@ class ConfigFileHandler:
             config = copy.deepcopy(base_config)
 
             # Apply provider and model overrides
-            if overrides.get("model"):  # 只要有 model 就应用
-                # 如果 provider 为 None，使用默认值
+            if overrides.get("model"):
                 provider = overrides.get("provider") or "bedrock"
                 model = overrides["model"]
 
