@@ -99,7 +99,7 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             prompt = f"{prompt}\n\n{format_instruction}"
 
         # TODO: Remove hardcoding. And add this safeguard for other prompts.
-        if len(prompt) > 100000:
+        if len(prompt) > 80000:
             logger.warning(f"Coder's prompt too long: {len(prompt)}. Truncated.")
             self.manager.save_and_log_states(
                 content=prompt,
@@ -109,7 +109,7 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             )
             prompt = self._truncate_output_end(
                 output=prompt,
-                max_length=100000,
+                max_length=80000,
             )
 
         self.manager.save_and_log_states(
