@@ -119,6 +119,8 @@ def run_agent(
                 f"[bold red]Warning: Reached maximum iterations ({max_iterations})[/bold red]"
             )
 
+        manager.create_best_run_copy()
+
     manager.report_token_usage()
     manager.get_validation_score_summary()
     manager.create_best_run_copy()
