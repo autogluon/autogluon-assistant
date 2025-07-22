@@ -91,7 +91,7 @@ def get_user_input_webui(prompt: str) -> str:
             return user_input
 
 
-def get_cpu_count(self) -> int:
+def get_cpu_count() -> int:
     """Get the number of available CPU cores."""
     try:
         return multiprocessing.cpu_count()
@@ -100,7 +100,7 @@ def get_cpu_count(self) -> int:
         return 1
 
 
-def get_gpu_count(self) -> int:
+def get_gpu_count() -> int:
     """Get the number of available GPUs using PyTorch."""
     try:
         import torch
