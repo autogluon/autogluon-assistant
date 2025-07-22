@@ -93,6 +93,8 @@ def get_user_input_webui(prompt: str) -> str:
 
 def get_cpu_count() -> int:
     """Get the number of available CPU cores."""
+    import multiprocessing
+
     try:
         return multiprocessing.cpu_count()
     except Exception as e:
