@@ -28,7 +28,7 @@ llm: &default_llm
   #model: gpt-4o-2024-08-06
   #provider: anthropic
   # model: claude-3-7-sonnet-20250219
-  max_tokens: 32768
+  max_tokens: 65535
   proxy_url: null
   temperature: 0.1
   top_p: 0.9
