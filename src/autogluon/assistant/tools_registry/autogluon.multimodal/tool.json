@@ -6,8 +6,8 @@
   ],
   "requirements": [],
   "prompt_template": [
-    "time_limit: 21600 (seconds)",
-    "presets: best_quality",
+    "time_limit: 1800 (seconds)",
+    "presets: medium_quality",
     "tuning_data: only use validation if there is a validation dataset.",
     "Hyperparameter tuning is unnecessary because the presets is already configured.",
     "The usage of document prediction is different from image prediction.",

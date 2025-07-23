@@ -6,8 +6,8 @@
   ],
   "requirements": [],
   "prompt_template": [
-    "time_limit: 21600 (seconds)",
-    "presets: best_quality",
+    "time_limit: 1800 (seconds)",
+    "presets: medium_quality",
     "DO NOT drop any data samples (to make sure the frequency is regular).",
     "tuning_data: only use validation if there is a validation dataset.",
     "Note that the prediction is given in a column named \"mean\". You need to rename the column in the result.",
