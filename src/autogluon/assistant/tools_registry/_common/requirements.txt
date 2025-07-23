@@ -1,0 +1,8 @@
+chardet>=5.2.0
+pydantic
+python-calamine
+torch
+torchaudio
+torchvision
+pandas
+opencv-python

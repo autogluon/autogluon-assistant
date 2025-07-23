@@ -34,7 +34,24 @@ uv pip install git+https://github.com/autogluon/autogluon-assistant.git
 
 For detailed usage instructions, Anthropic/Azure/OpenAI setup, and advanced configuration options, see our [Getting Started Tutorial](docs/tutorials/getting_started.md).
 
-### 1. API Setup
+### 📋 Prerequisites
+
+#### Environment Setup
+MLZero requires conda for environment management for different ML Libraries. If you don't have conda installed, follow the [official installation guide](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) or use these quick install scripts:
+
+```bash
+# If conda is not installed: 
+
+# For Linux
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+
+# For macOS
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+bash Miniconda3-latest-MacOSX-x86_64.sh
+```
+
+#### API Configuration
 MLZero uses AWS Bedrock by default. Configure your AWS credentials:
 
 ```bash
@@ -45,7 +62,11 @@ export AWS_SECRET_ACCESS_KEY="<your-secret-key>"
 
 We also support Anthropic, Azure, and OpenAI. Support for more LLM providers (e.g. DeepSeek, etc.) will be added soon.
 
-### 2.1 CLI
+### 🚀 Running MLZero
+
+MLZero offers multiple interfaces—choose the one that best fits your workflow.
+
+#### 1. CLI Interface
 
 ![Demo](https://github.com/autogluon/autogluon-assistant/blob/main/docs/assets/cli_demo.gif)
 
@@ -53,7 +74,7 @@ We also support Anthropic, Azure, and OpenAI. Support for more LLM providers (e.
 mlzero -i <input_data_folder> [-t <optional_user_instructions>]
 ```
 
-### 2.2 Web UI
+#### 2. Web Interface
 
 ![Demo](https://github.com/autogluon/autogluon-assistant/blob/main/docs/assets/web_demo.gif)
 
@@ -65,7 +86,7 @@ mlzero-frontend # command to start frontend on 8509(default)
 1. **Configure**: Set your model provider and credentials in settings
 2. **Upload & Describe**: Drag your data folder into the chat input box, then type what you want to accomplish and press Enter
 
-### 2.3 MCP (Model Context Protocol)
+#### 3. MCP (Model Context Protocol)
 
 Note: The system can run on a single machine or distributed across multiple machines (e.g., server on EC2, client on local).
 1. **Start the server**
@@ -79,7 +100,7 @@ mlzero-mcp-client
 ```
 Note: You may need to set up port tunneling to expose your local MCP Client Server (port 8005) if you want to use it with remote LLM services (e.g., Claude API, OpenAI API).
 
-### 2.4 Python API
+#### 4. Python API
 
 ```python
 from autogluon.assistant.coding_agent import run_agent
