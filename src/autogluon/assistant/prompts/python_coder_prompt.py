@@ -156,7 +156,7 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             best_code_prompt.append("```")
             best_code_prompt.append("")
 
-        best_code_prompt.append("Please focus on model architecture improvements and training optimization to further improve its performance. You may apply necessary feature engineering without over-complicating.")
+        best_code_prompt.append("Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority.")
         
         return "\n".join(best_code_prompt)
 
