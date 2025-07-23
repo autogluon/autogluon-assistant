@@ -1,7 +1,7 @@
 {
   "name": "autogluon.multimodal",
   "version": "1.2.0",
-  "description": "AutoGluon Multimodal excels at multimodal classification, regression, document classification, and semantic segmentation tasks. The framework is not optimized for pure tabular data processing and doesn't support generative tasks (like image-to-image or sequence-to-sequence) or audio-related tasks. It also doesn't handle object detection.",
+  "description": "AutoGluon Multimodal excels at multimodal classification, regression, document classification, and semantic segmentation tasks. The framework is not optimized for pure tabular data processing and DOES NOT support generative tasks (image generation, text generation, etc.) or audio-related tasks. It also doesn't handle object detection.",
   "features": [
   ],
   "requirements": [],
@@ -9,6 +9,7 @@
     "time_limit: 21600 (seconds)",
     "presets: best_quality",
     "tuning_data: only use validation if there is a validation dataset.",
+    "Hyperparameter tuning is unnecessary because the presets is already configured.",
     "The usage of document prediction is different from image prediction.",
     "Check data path carefully when encounter ValueError: No model is available for this dataset.",
     "No need to specify model.names, and do not increase default per gpu batch size to avoid OOM errors.",
