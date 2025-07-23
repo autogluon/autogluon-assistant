@@ -186,14 +186,16 @@ class ExecuterAgent(BaseAgent):
         # Query the LLM
         response = self.executer_llm.assistant_chat(prompt)
 
-        # Parse the LLM response to extract decision and error summary
-        decision, error_summary = self.executer_prompt.parse(response)
+        # Parse the LLM response to extract decision, error summary, and validation score
+        decision, error_summary, validation_score = self.executer_prompt.parse(response)
 
-        # Log the decision and error summary
+        # Log the decision, error summary, and validation score
         logger.brief(f"Planner decision: {decision}")
         if error_summary:
             logger.info(f"Error summary: {error_summary}")
+        if validation_score is not None:
+            logger.info(f"Validation score: {validation_score}")
 
         self.manager.log_agent_end("ExecuterAgent: execution finished; planner decision logged.")
 
-        return decision, error_summary, prompt, stderr, stdout
+        return decision, error_summary, validation_score, prompt, stderr, stdout

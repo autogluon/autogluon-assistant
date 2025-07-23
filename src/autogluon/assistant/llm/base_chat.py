@@ -135,7 +135,7 @@ class BaseAssistantChat(BaseModel):
     def initialize_conversation(
         self,
         llm: Any,
-        system_prompt: str = "You are a technical assistant that excels at working on data science tasks.",
+        system_prompt: str = "",
     ) -> None:
         """Initialize conversation using LangGraph."""
         prompt_template = ChatPromptTemplate.from_messages(

@@ -3,6 +3,7 @@ from typing import Dict, Optional, Tuple
 
 from .base_prompt import BasePrompt
 from .utils import extract_code
+from ..utils import get_cpu_count, get_gpu_count
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,11 @@ class PythonCoderPrompt(BasePrompt):
 As an AutoML Agent, you will be given a folder containing data and description files. Please generate Python code using {selected_tool} to train a predictor and make predictions on test data. Follow these specifications:
 
 ONLY save files to the working directory: {output_folder}.
+
+### System Resources
+Available CPUs: {cpu_count}
+Available GPUs: {gpu_count}
+Please optimize your code to efficiently utilize the available hardware resources. 
 
 1. Data preprocessing:
    - Remove training data samples without valid labels (drop NA values from training dataset ONLY, NOT from test dataset) unless explicitly instructed otherwise.
@@ -29,16 +35,22 @@ ONLY save files to the working directory: {output_folder}.
    - Save the predicted results to {output_folder}, result file name should be "results", the format and extension should be same as the test data file
    - Output column names must exactly match those in the training or sample submission files without adding "predicted_" prefixes or creating any new columns.
 
-4. Documentation:
+4. Validation:
+   - Hold out a validation dataset at the start, train only on the remaining data, and at the end compute and print the final evaluation metric score on the validation set.
+   - Use a try-except block for the validation step - if validation fails, it's acceptable to continue.
+
+5. Documentation:
    - Add a brief docstring at the beginning of the script explaining its purpose
    - Include additional installation steps with comments at the beginning of the script
    - Include comments explaining any complex operations or design decisions
 
-5. Others:
+6. Others:
    - To avoid DDP errors, wrap the code in: if __name__ == "__main__":
    - Ensure errors are propagated up and not silently caught - do not use try/except blocks unless you explicitly re-raise the exception.
 
 {tool_prompt}
+
+{best_code_prompt}
 
 Please provide the complete Python script that accomplishes these tasks, ensuring it's ready to run given the appropriate data inputs.
 
@@ -69,16 +81,22 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
         else:
             user_prompt = "N/A"
 
+        # Generate best code prompt
+        best_code_prompt = self._generate_best_code_prompt()
+
         # Format the prompt using the template
         prompt = self.template.format(
-            output_folder=self.manager.output_folder,
+            output_folder=self.manager.per_iteration_output_folder,
             selected_tool=self.manager.selected_tool,
             tool_prompt=self.manager.tool_prompt,
-            task_description=self.manager.task_description,  # TODO: add task_description in manager
+            task_description=self.manager.task_description,
             data_prompt=self.manager.data_prompt,
             user_prompt=user_prompt,
             error_prompt=self.manager.all_previous_error_prompts,
             tutorial_prompt=self.manager.tutorial_prompt,
+            best_code_prompt=best_code_prompt,
+            cpu_count=get_cpu_count(),
+            gpu_count=get_gpu_count(),
         )
 
         # Add format instruction if configured
@@ -89,7 +107,7 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             prompt = f"{prompt}\n\n{format_instruction}"
 
         # TODO: Remove hardcoding. And add this safeguard for other prompts.
-        if len(prompt) > 100000:
+        if len(prompt) > 80000:
             logger.warning(f"Coder's prompt too long: {len(prompt)}. Truncated.")
             self.manager.save_and_log_states(
                 content=prompt,
@@ -99,7 +117,7 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             )
             prompt = self._truncate_output_end(
                 output=prompt,
-                max_length=100000,
+                max_length=80000,
             )
 
         self.manager.save_and_log_states(
@@ -107,6 +125,40 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
         )
 
         return prompt
+
+    def _generate_best_code_prompt(self) -> str:
+        """Generate prompt section about best/successful previous code."""
+        if self.manager.time_step == 0:
+            return ""  # No previous code on first iteration
+        
+        best_code_prompt = []
+        
+        # Check if we have a best step with validation score
+        if self.manager.best_step >= 0 and self.manager.best_step < self.manager.time_step:
+            best_code = self.manager.python_codes[self.manager.best_step]
+            best_score = self.manager.val_scores[self.manager.best_step]
+
+            best_code_prompt.append("### Previous Best Code")
+            best_code_prompt.append(f"The following code achieved the best validation score so far ({best_score:.4f}):")
+            best_code_prompt.append("```python")
+            best_code_prompt.append(best_code)
+            best_code_prompt.append("```")
+            best_code_prompt.append("")
+        # Check if we have a last successful step (different from best step)
+        elif self.manager.last_successful_step >= 0 and self.manager.last_successful_step < self.manager.time_step:
+            successful_code = self.manager.python_codes[self.manager.last_successful_step]
+            successful_score = self.manager.val_scores[self.manager.last_successful_step]
+
+            best_code_prompt.append("### Previous Successful Code")
+            best_code_prompt.append(f"The following code executed successfully:")
+            best_code_prompt.append("```python")
+            best_code_prompt.append(successful_code)
+            best_code_prompt.append("```")
+            best_code_prompt.append("")
+
+        best_code_prompt.append("Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority.")
+        
+        return "\n".join(best_code_prompt)
 
     def parse(self, response: Dict) -> Tuple[str, Optional[str]]:
         """Parse the LLM's response to generated python code"""
