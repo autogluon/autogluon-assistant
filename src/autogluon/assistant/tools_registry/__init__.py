@@ -11,7 +11,6 @@ get_tool = registry.get_tool
 list_tools = registry.list_tools
 get_tool_path = registry.get_tool_path
 get_tool_version = registry.get_tool_version
-get_tools_by_feature = registry.get_tools_by_feature
 get_tool_tutorials_folder = registry.get_tool_tutorials_folder
 get_tool_prompt_template = registry.get_tool_prompt_template
 

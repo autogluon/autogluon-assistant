@@ -43,6 +43,8 @@ class ToolsRegistry:
         tools_info = {}
         for tool_name, tool_data in catalog["tools"].items():
             tool_path = self.registry_path / tool_data["path"] / "tool.json"
+            requirements_path = self.registry_path / tool_data["path"] / "requirements.txt"
+            
             tool_info = {
                 "name": tool_name,
                 "path": tool_data["path"],
@@ -55,7 +57,6 @@ class ToolsRegistry:
                     tool_json = json.load(f)
                     tool_info.update(
                         {
-                            "features": tool_json.get("features", []),
                             "requirements": tool_json.get("requirements", []),
                             "prompt_template": tool_json.get("prompt_template", []),
                         }
@@ -64,11 +65,19 @@ class ToolsRegistry:
                 logger.warning(f"Error loading tool.json for {tool_name}: {e}")
                 tool_info.update(
                     {
-                        "features": [],
                         "requirements": [],
                         "prompt_template": [],
                     }
                 )
+
+            # Load requirements from requirements.txt if it exists
+            if requirements_path.exists():
+                try:
+                    with open(requirements_path, "r") as f:
+                        requirements_list = [line.strip() for line in f.readlines() if line.strip()]
+                        tool_info["requirements"] = requirements_list
+                except Exception as e:
+                    logger.warning(f"Error loading requirements.txt for {tool_name}: {e}")
 
             tools_info[tool_name] = tool_info
 
@@ -79,7 +88,6 @@ class ToolsRegistry:
         name: str,
         version: str,
         description: str,
-        features: List[str] = None,
         requirements: List[str] = None,
         prompt_template: List[str] = None,
         tutorials_path: Optional[Path] = None,
@@ -94,7 +102,6 @@ class ToolsRegistry:
             name: Name of the tool
             version: Version of the tool
             description: Description of the tool
-            features: List of tool features
             requirements: List of tool requirements
             prompt_template: List of prompt template strings
             tutorials_path: Optional path to tutorials directory to copy
@@ -125,13 +132,18 @@ class ToolsRegistry:
             "name": name,
             "version": version,
             "description": description,
-            "features": features or [],
             "requirements": requirements or [],
             "prompt_template": prompt_template or [],
         }
 
         with open(tool_path / "tool.json", "w") as f:
             json.dump(tool_json, f, indent=2)
+
+        # Create requirements.txt
+        if requirements:
+            with open(tool_path / "requirements.txt", "w") as f:
+                for req in requirements:
+                    f.write(f"{req}\n")
 
         # Handle tutorials if provided
         if tutorials_path and tutorials_path.exists():
@@ -309,7 +321,6 @@ Provide the summary in a single paragraph starting with "Summary: "."""
         tool_name: str,
         version: Optional[str] = None,
         description: Optional[str] = None,
-        features: Optional[List[str]] = None,
         requirements: Optional[List[str]] = None,
         prompt_template: Optional[List[str]] = None,
     ) -> None:
@@ -320,12 +331,13 @@ Provide the summary in a single paragraph starting with "Summary: "."""
             tool_name: Name of the tool to update
             version: New version (optional)
             description: New description (optional)
-            features: New features list (optional)
             requirements: New requirements list (optional)
             prompt_template: New prompt template list (optional)
         """
         if tool_name not in self.tools:
             raise ValueError(f"Tool {tool_name} not found in registry")
+
+        tool_path = self.registry_path / tool_name
 
         # Update catalog.json if needed
         if version or description:
@@ -341,23 +353,33 @@ Provide the summary in a single paragraph starting with "Summary: "."""
                 json.dump(catalog, f, indent=2)
 
         # Update tool.json if needed
-        tool_path = self.registry_path / tool_name / "tool.json"
-        with open(tool_path, "r") as f:
+        tool_json_path = tool_path / "tool.json"
+        with open(tool_json_path, "r") as f:
             tool_json = json.load(f)
 
         if version:
             tool_json["version"] = version
         if description:
             tool_json["description"] = description
-        if features is not None:
-            tool_json["features"] = features
         if requirements is not None:
             tool_json["requirements"] = requirements
         if prompt_template is not None:
             tool_json["prompt_template"] = prompt_template
 
-        with open(tool_path, "w") as f:
+        with open(tool_json_path, "w") as f:
             json.dump(tool_json, f, indent=2)
+
+        # Update requirements.txt if requirements provided
+        if requirements is not None:
+            requirements_path = tool_path / "requirements.txt"
+            if requirements:
+                with open(requirements_path, "w") as f:
+                    for req in requirements:
+                        f.write(f"{req}\n")
+            else:
+                # Remove requirements.txt if empty requirements list
+                if requirements_path.exists():
+                    requirements_path.unlink()
 
         # Clear cache to force reload
         self._tools_cache = None
@@ -386,13 +408,6 @@ Provide the summary in a single paragraph starting with "Summary: "."""
         if tool_info:
             return tool_info.get("prompt_template")
         return None
-
-    def get_tools_by_feature(self, feature: str) -> List[str]:
-        return [
-            tool_name
-            for tool_name, tool_info in self.tools.items()
-            if feature.lower() in [f.lower() for f in tool_info.get("features", [])]
-        ]
 
     def get_tool_tutorials_folder(self, tool_name: str, condensed: bool) -> Path:
         tool_path = self.get_tool_path(tool_name)

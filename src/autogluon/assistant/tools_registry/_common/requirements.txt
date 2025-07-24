@@ -6,3 +6,9 @@ torchaudio
 torchvision
 pandas
 opencv-python
+numpy
+pytz
+python-dateutil
+datasets>=3.6
+six
+pyarrow
