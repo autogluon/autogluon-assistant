@@ -7,6 +7,7 @@
   "requirements": [],
   "prompt_template": [
     "DO NOT drop any data samples (to make sure the frequency is regular).",
+    "Do not create validation dataset from training data. Validation score is provided during the training process.",
     "tuning_data: only use validation if there is a validation dataset.",
     "Note that the prediction is given in a column named \"mean\". You need to rename the column in the result.",
     "`from_data_frame()` method of TimeSeriesDataFrame does not accept a 'target' parameter.",
