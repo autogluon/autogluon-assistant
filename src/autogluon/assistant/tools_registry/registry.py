@@ -44,7 +44,7 @@ class ToolsRegistry:
         for tool_name, tool_data in catalog["tools"].items():
             tool_path = self.registry_path / tool_data["path"] / "tool.json"
             requirements_path = self.registry_path / tool_data["path"] / "requirements.txt"
-            
+
             tool_info = {
                 "name": tool_name,
                 "path": tool_data["path"],
