@@ -64,9 +64,9 @@ We also support Anthropic, Azure, and OpenAI. Support for more LLM providers (e.
 
 ### 🚀 Running MLZero
 
-MLZero offers multiple interfaces—choose the one that best fits your workflow.
+MLZero offers multiple interfaces, i.e., **Command Line Interface (CLI)**, **Web User Interface (Web UI)**, **Model Context Protocol (MCP)**, and **Python API**—choose the one that best fits your workflow.
 
-#### 1. CLI Interface
+#### CLI
 
 ![Demo](https://github.com/autogluon/autogluon-assistant/blob/main/docs/assets/cli_demo.gif)
 
@@ -74,7 +74,7 @@ MLZero offers multiple interfaces—choose the one that best fits your workflow.
 mlzero -i <input_data_folder> [-t <optional_user_instructions>]
 ```
 
-#### 2. Web Interface
+#### Web UI
 
 ![Demo](https://github.com/autogluon/autogluon-assistant/blob/main/docs/assets/web_demo.gif)
 
@@ -86,7 +86,7 @@ mlzero-frontend # command to start frontend on 8509(default)
 1. **Configure**: Set your model provider and credentials in settings
 2. **Upload & Describe**: Drag your data folder into the chat input box, then type what you want to accomplish and press Enter
 
-#### 3. MCP (Model Context Protocol)
+#### MCP 
 
 Note: The system can run on a single machine or distributed across multiple machines (e.g., server on EC2, client on local).
 1. **Start the server**
@@ -100,7 +100,7 @@ mlzero-mcp-client
 ```
 Note: You may need to set up port tunneling to expose your local MCP Client Server (port 8005) if you want to use it with remote LLM services (e.g., Claude API, OpenAI API).
 
-#### 4. Python API
+#### Python API
 
 ```python
 from autogluon.assistant.coding_agent import run_agent
