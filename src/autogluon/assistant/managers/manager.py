@@ -88,9 +88,6 @@ class Manager:
             prompt_template=None,  # TODO: add it to argument
         )
 
-        # Initialize prompts
-        self.generate_initial_prompts()
-
         self.user_inputs: List[str] = []
         self.error_messages: List[str] = []
         self.error_prompts: List[str] = []

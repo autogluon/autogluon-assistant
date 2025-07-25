@@ -48,6 +48,9 @@ You are a data science expert tasked with selecting the most appropriate ML libr
 ### Available ML Libraries:
 {tools_info}
 
+### User Instruction
+{user_prompt}
+
 IMPORTANT: Your response MUST follow this exact format:
 ---
 SELECTED_LIBRARY: <write only the exact library name from the options above>
@@ -69,6 +72,7 @@ Do not include any other formatting or additional sections in your response.
             task_description=self.manager.task_description,
             data_prompt=self.manager.data_prompt,
             tools_info=_format_tools_info(registry.tools),
+            user_prompt=self.manager.initial_user_input,
         )
 
         self.manager.save_and_log_states(
