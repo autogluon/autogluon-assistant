@@ -375,6 +375,12 @@ class Manager:
         self.bash_scripts.append(bash_script)
 
     def execute_code(self):
+        """Execute code and analyze results.
+        Returns:
+            tuple: (decision, error_summary) where:
+                - decision: "SUCCESS", "FIX", "RESTART", or "INVALID"
+                - error_summary: Error description for FIX/RESTART, empty string otherwise
+        """
         planner_decision, planner_error_summary, validation_score, planner_prompt, stderr, stdout = self.executer(
             code_to_execute=self.bash_script,
             code_to_analyze=self.python_code,
@@ -388,21 +394,25 @@ class Manager:
         # Track validation scores and update best step
         assert len(self.val_scores) == self.time_step
         self.val_scores.append(validation_score)
-        
+
         # Update best step if we have a better validation score (higher is better)
         if validation_score is not None:
             if self.best_step == -1 or validation_score > self.val_scores[self.best_step]:
                 self.best_step = self.time_step
-                logger.brief(f"[bold green]New best validation score: {validation_score:.4f} at step {self.time_step}[/bold green]")
+                logger.brief(
+                    f"[bold green]New best validation score: {validation_score:.4f} at step {self.time_step}[/bold green]"
+                )
             else:
-                logger.brief(f"[bold yellow]Current validation score: {validation_score:.4f} (best: {self.val_scores[self.best_step]:.4f} at step {self.best_step})[/bold yellow]")
-        
+                logger.brief(
+                    f"[bold yellow]Current validation score: {validation_score:.4f} (best: {self.val_scores[self.best_step]:.4f} at step {self.best_step})[/bold yellow]"
+                )
+
         # Save validation score information
         self.save_and_log_states(
             content=f"Step: {self.time_step}\nValidation Score: {validation_score}\nBest Step: {self.best_step}\nBest Score: {self.best_validation_score}",
             save_name="validation_score.txt",
             per_iteration=True,
-            add_uuid=False
+            add_uuid=False,
         )
 
         if planner_decision == "FIX":
@@ -413,22 +423,28 @@ class Manager:
                 f"Error summary from planner (the error can appear in stdout if it's catched): {planner_error_summary}"
             )
             self.update_error_message(error_message=error_message)
-            return False
+            return "FIX", planner_error_summary
         elif planner_decision == "SUCCESS":
             self.last_successful_step = self.time_step
-            logger.brief(
-                f"[bold green]Code generation successful at iteration[/bold green] {self.time_step}"
-            )
+            logger.brief(f"[bold green]Code generation successful at iteration[/bold green] {self.time_step}")
             if validation_score is not None:
                 logger.brief(f"[bold green]Final validation score: {validation_score:.4f}[/bold green]")
             if self.best_step >= 0:
-                logger.brief(f"[bold green]Best validation score achieved: {self.best_validation_score:.4f} at step {self.best_step}[/bold green]")
+                logger.brief(
+                    f"[bold green]Best validation score achieved: {self.best_validation_score:.4f} at step {self.best_step}[/bold green]"
+                )
             self.update_error_message(error_message="")
-            return True
+            return "SUCCESS", ""
+        elif planner_decision == "RESTART":
+            logger.warning(f"[bold yellow]Task restart required at iteration {self.time_step}![/bold yellow]")
+            logger.warning(f"[bold yellow]Restart reason: {planner_error_summary}[/bold yellow]")
+            # Store the restart error summary to be appended to initial instruction
+            self.update_error_message(error_message=f"Restart the task due to the error: {planner_error_summary}")
+            return "RESTART", planner_error_summary  # Return special value to indicate restart needed
         else:
             logger.warning(f"###INVALID Planner Output: {planner_decision}###")
             self.update_error_message(error_message="")
-            return False
+            return "INVALID", ""
 
     def update_error_message(self, error_message: str):
         """Update the current error message."""
@@ -439,15 +455,15 @@ class Manager:
         """Get a summary of all validation scores."""
         if not self.val_scores:
             return "No validation scores available."
-        
+
         summary = ["Validation Score Summary:"]
         for i, score in enumerate(self.val_scores):
             marker = " (BEST)" if i == self.best_step else ""
             summary.append(f"Step {i}: {score if score is not None else 'N/A'}{marker}")
-        
+
         if self.best_step >= 0:
             summary.append(f"\nBest score: {self.best_validation_score:.4f} at step {self.best_step}")
-        
+
         return "\n".join(summary)
 
     def save_and_log_states(self, content, save_name, per_iteration=False, add_uuid=False):
@@ -497,16 +513,16 @@ class Manager:
 
     def create_best_run_copy(self):
         """Create a 'best_run' folder that copies the best step folder.
-        
+
         If no best step is available, uses the last successful step.
         If neither is available, logs a warning and does nothing.
         """
         import shutil
-        
+
         # Determine which step to copy
         target_step = None
         copy_reason = ""
-        
+
         if self.best_step >= 0:
             target_step = self.best_step
             copy_reason = f"best validation score ({self.best_validation_score:.4f})"
@@ -516,37 +532,37 @@ class Manager:
         else:
             logger.warning("No best step or successful step found. Cannot create best_run copy.")
             return
-        
+
         # Create paths
         source_folder = os.path.join(self.output_folder, f"generation_iter_{target_step}")
         best_run_folder = os.path.join(self.output_folder, "best_run")
-        
+
         # Verify source folder exists
         if not os.path.exists(source_folder):
             logger.warning(f"Source folder does not exist: {source_folder}")
             return
-            
+
         # Check if source folder has an 'output' subdirectory
         source_output_folder = os.path.join(source_folder, "output")
         if not os.path.exists(source_folder):
             logger.warning(f"Source output folder does not exist: {source_output_folder}")
             return
-            
+
         # Remove existing best_run folder if it exists
         if os.path.exists(best_run_folder):
             try:
                 shutil.rmtree(best_run_folder)
-                logger.info(f"Removed existing best_run folder")
+                logger.info("Removed existing best_run folder")
             except Exception as e:
                 logger.error(f"Failed to remove existing best_run folder: {e}")
                 return
-        
+
         try:
             # Copy all files from source_output_folder to self.output_folder
             for item in os.listdir(source_output_folder):
                 source_item = os.path.join(source_output_folder, item)
                 dest_item = os.path.join(self.output_folder, item)
-                
+
                 if os.path.isfile(source_item):
                     shutil.copy2(source_item, dest_item)
                 elif os.path.isdir(source_item):
@@ -554,30 +570,29 @@ class Manager:
 
             # Copy the entire source folder to best_run folder
             shutil.copytree(source_folder, best_run_folder)
-            
-            logger.brief(f"[bold green]Created best_run folder (copied from step {target_step} - {copy_reason})[/bold green]")
-            
+
+            logger.brief(
+                f"[bold green]Created best_run folder (copied from step {target_step} - {copy_reason})[/bold green]"
+            )
+
             # Save summary information in the best_run folder
             summary_content = [
-                f"Best Run Summary",
-                f"================",
+                "Best Run Summary",
+                "================",
                 f"Copied from: generation_iter_{target_step}",
                 f"Reason: {copy_reason}",
                 f"Copy created at: {os.path.basename(best_run_folder)}",
-                f"",
-                self.get_validation_score_summary()
+                "",
+                self.get_validation_score_summary(),
             ]
-            
+
             # Save summary in both the main output folder and the best_run folder
             summary_text = "\n".join(summary_content)
-            
+
             self.save_and_log_states(
-                content=summary_text,
-                save_name="best_run_summary.txt",
-                per_iteration=False,
-                add_uuid=False
+                content=summary_text, save_name="best_run_summary.txt", per_iteration=False, add_uuid=False
             )
-            
+
         except Exception as e:
             logger.error(f"Failed to copy folder: {e}")
             return

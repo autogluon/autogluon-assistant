@@ -110,14 +110,25 @@ def run_agent(
         manager.update_python_code()
         manager.update_bash_script()
 
-        successful = manager.execute_code()
-        if config.stop_when_success and successful:
-            break
+        decision, error_summary = manager.execute_code()
+
+        if decision == "SUCCESS":
+            if config.stop_when_success:
+                break
+        elif decision in ["FIX", "INVALID"]:
+            # Continue to next iteration with current setup
+            pass
+        elif decision == "RESTART":
+            if error_summary:
+                initial_user_input += f"\n\nIMPORTANT - Previous attempt failed due to: {error_summary}"
+
+            # Regenerate initial prompts with updated context
+            manager.generate_initial_prompts()
+            manager.set_initial_user_input(need_user_input=need_user_input, initial_user_input=initial_user_input)
+            logger.brief(f"[bold yellow]Task restarted with updated instruction: {initial_user_input}[/bold yellow]")
 
         if manager.time_step + 1 >= max_iterations:
-            logger.warning(
-                f"[bold red]Warning: Reached maximum iterations ({max_iterations})[/bold red]"
-            )
+            logger.warning(f"[bold red]Warning: Reached maximum iterations ({max_iterations})[/bold red]")
 
         manager.create_best_run_copy()
 

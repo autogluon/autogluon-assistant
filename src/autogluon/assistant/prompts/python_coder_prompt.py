@@ -1,9 +1,9 @@
 import logging
 from typing import Dict, Optional, Tuple
 
+from ..utils import get_cpu_count, get_gpu_count
 from .base_prompt import BasePrompt
 from .utils import extract_code
-from ..utils import get_cpu_count, get_gpu_count
 
 logger = logging.getLogger(__name__)
 
@@ -130,16 +130,18 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
         """Generate prompt section about best/successful previous code."""
         if self.manager.time_step == 0:
             return ""  # No previous code on first iteration
-        
+
         best_code_prompt = []
-        
+
         # Check if we have a best step with validation score
         if self.manager.best_step >= 0 and self.manager.best_step < self.manager.time_step:
             best_code = self.manager.python_codes[self.manager.best_step]
             best_score = self.manager.val_scores[self.manager.best_step]
 
             best_code_prompt.append("### Previous Best Code")
-            best_code_prompt.append(f"The following code achieved the best validation score so far ({best_score:.4f}):")
+            best_code_prompt.append(
+                f"The following code achieved the best validation score so far ({best_score:.4f}):"
+            )
             best_code_prompt.append("```python")
             best_code_prompt.append(best_code)
             best_code_prompt.append("```")
@@ -150,14 +152,16 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             successful_score = self.manager.val_scores[self.manager.last_successful_step]
 
             best_code_prompt.append("### Previous Successful Code")
-            best_code_prompt.append(f"The following code executed successfully:")
+            best_code_prompt.append("The following code executed successfully:")
             best_code_prompt.append("```python")
             best_code_prompt.append(successful_code)
             best_code_prompt.append("```")
             best_code_prompt.append("")
 
-        best_code_prompt.append("Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority.")
-        
+        best_code_prompt.append(
+            "Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority."
+        )
+
         return "\n".join(best_code_prompt)
 
     def parse(self, response: Dict) -> Tuple[str, Optional[str]]:

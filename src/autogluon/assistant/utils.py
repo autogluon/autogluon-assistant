@@ -106,6 +106,7 @@ def get_gpu_count() -> int:
     """Get the number of available GPUs using PyTorch."""
     try:
         import torch
+
         if torch.cuda.is_available():
             return torch.cuda.device_count()
         else:

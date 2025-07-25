@@ -46,9 +46,7 @@ def create_bedrock_chat(config, session_name: str) -> AssistantChatBedrock:
         raise ValueError("AWS_DEFAULT_REGION key not found in environment")
 
     # Configure read timeout to 300 seconds
-    boto_config = Config(
-        read_timeout=300
-    )
+    boto_config = Config(read_timeout=300)
 
     return AssistantChatBedrock(
         model_id=model,
