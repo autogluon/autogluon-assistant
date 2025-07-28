@@ -194,7 +194,6 @@ class LogProcessor:
 
 # Convenience functions (maintain backward compatibility)
 
-
 def process_logs(log_entries: List[Dict], max_iter: int) -> Dict:
     """Process complete logs and return structured data (for completed tasks)"""
     processor = LogProcessor(max_iter)

@@ -1080,7 +1080,7 @@ class UI:
 
                 # Template setter button
                 st.markdown("---")
-                if st.button("🔧 Launch template setter", use_container_width=True):
+                if st.button("🔧  Template settings", use_container_width=True):
                     # Clear any existing temp settings before opening dialog
                     if "temp_template_settings" in st.session_state:
                         del st.session_state.temp_template_settings

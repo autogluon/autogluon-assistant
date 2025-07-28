@@ -4,24 +4,62 @@
 # Exit on errors
 set -Eeuo pipefail
 
-# Database location
-DB_PATH="$HOME/.autogluon_assistant/webui_queue.db"
-DB_DIR="$HOME/.autogluon_assistant"
+# Parse command line arguments
+COMMAND=""
+CUSTOM_DB_PATH=""
 
-# Command line usage information
+# Function to show usage
 usage() {
-    echo "Usage: $0 (create|reset|dump)"
-    echo "  create - Create and initialize the task queue database"
-    echo "  reset  - Clear all data from the tasks table"
-    echo "  dump   - Display all tasks in the database"
+    echo "Usage: $0 [--db-path PATH] (create|reset|dump)"
+    echo "  --db-path PATH  - Custom database path (optional)"
+    echo "  create          - Create and initialize the task queue database"
+    echo "  reset           - Clear all data from the tasks table"
+    echo "  dump            - Display all tasks in the database"
+    echo ""
+    echo "If --db-path is not specified, defaults to: \$HOME/.autogluon_assistant/webui_queue.db"
 }
 
-if [ $# -ne 1 ]; then
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --db-path)
+            CUSTOM_DB_PATH="$2"
+            shift 2
+            ;;
+        create|reset|dump)
+            COMMAND="$1"
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+# Check if command is provided
+if [ -z "$COMMAND" ]; then
     usage
     exit 1
 fi
 
-case $1 in
+# Set database path
+if [ -n "$CUSTOM_DB_PATH" ]; then
+    DB_PATH="$CUSTOM_DB_PATH"
+    DB_DIR=$(dirname "$DB_PATH")
+else
+    # Default path
+    DB_DIR="$HOME/.autogluon_assistant"
+    DB_PATH="$DB_DIR/webui_queue.db"
+fi
+
+# Execute command
+case $COMMAND in
     "create")
         # Create directory if it doesn't exist
         mkdir -p "$DB_DIR"
@@ -68,7 +106,7 @@ EOF
         # Reset the autoincrement counter
         sqlite3 "$DB_PATH" "DELETE FROM sqlite_sequence WHERE name='tasks';"
         
-        echo "All tasks cleared from database."
+        echo "All tasks cleared from database at $DB_PATH"
         ;;
 
     "dump")
@@ -78,6 +116,9 @@ EOF
             exit 1
         fi
 
+        echo "Database: $DB_PATH"
+        echo ""
+        
         # Show summary first
         echo "=== Task Queue Summary ==="
         sqlite3 "$DB_PATH" << 'EOF'
