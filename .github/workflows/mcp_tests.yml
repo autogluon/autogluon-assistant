@@ -1,12 +1,8 @@
-
 name: MCP Tests
 on:
   push:
-    paths:
-      - 'src/autogluon/mcp/**'
-      - 'tests/unittests/mcp/**'
-      - '.github/workflows/mcp_tests.yml'
-  pull_request:
+  pull_request_target:
+    types: [labeled, synchronize, opened]
     paths:
       - 'src/autogluon/mcp/**'
       - 'tests/unittests/mcp/**'
@@ -14,12 +10,45 @@ on:
 permissions:
   id-token: write
   contents: read
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.event.pull_request.head.sha }}
+  cancel-in-progress: true
 
 jobs:
-  mcp_test:
+  permission_check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Check for Actor Permission
+        id: check
+        continue-on-error: true
+        uses: prince-chrismc/check-actor-permissions-action@v3
+        with:
+          github_token: ${{ github.token }}
+          permission: write
+      - name: Check PR Safe to Run
+        if: ${{ github.event_name == 'pull_request_target' && !contains(github.event.pull_request.labels.*.name, 'safe to test') && steps.check.outputs.permitted == 'false' }}
+        run: exit 1
+      - name: Remove Safe to Test Label
+        if: ${{ github.event_name == 'pull_request_target' }}
+        uses: actions-ecosystem/action-remove-labels@v1.3.0
+        with:
+          labels: 'safe to test'
+  
+  mcp_test:
+    needs: permission_check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        if: ${{ github.event_name != 'pull_request_target' }}
+        uses: actions/checkout@v4
+
+      - name: Checkout repository(Pull Request Target)
+        if: ${{ github.event_name == 'pull_request_target' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
       
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
