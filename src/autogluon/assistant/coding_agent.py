@@ -115,9 +115,7 @@ def run_agent(
             break
 
         if manager.time_step + 1 >= max_iterations:
-            logger.warning(
-                f"[bold red]Warning: Reached maximum iterations ({max_iterations})[/bold red]"
-            )
+            logger.warning(f"[bold red]Warning: Reached maximum iterations ({max_iterations})[/bold red]")
 
         manager.create_best_run_copy()
 
