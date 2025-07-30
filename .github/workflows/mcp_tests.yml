@@ -10,6 +10,10 @@ on:
       - 'src/autogluon/mcp/**'
       - 'tests/unittests/mcp/**'
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   mcp_test:
     runs-on: ubuntu-latest
@@ -24,6 +28,13 @@ jobs:
           auto-update-conda: true
           python-version: "3.10"
           miniconda-version: "latest"
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_CI_ROLE_ARN }}
+          aws-region: us-west-2
+          role-duration-seconds: 1800
       
       - name: Install dependencies
         shell: bash -l {0}
