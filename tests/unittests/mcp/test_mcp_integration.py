@@ -37,8 +37,6 @@ def log_output(process, service_name):
     stdout_thread.start()
     stderr_thread.start()
 
-@pytest.mark.mcp_integration
-@pytest.mark.requires_port_5000
 class TestLocalMCPIntegration:
     """Test complete MCP flow in local setup"""
     
@@ -338,12 +336,6 @@ M,0.615,0.455,0.13,0.9685,0.49,0.182,0.2655,10"""
                     mlzero_dir = Path(data["output_directory"])
                     assert mlzero_dir.exists(), f"Output directory not found: {mlzero_dir}"
                     print(f"\nChecking output directory: {mlzero_dir}")
-                    
-                    # List all files in output directory
-                    print(f"\nFiles in output directory:")
-                    for file in mlzero_dir.rglob("*"):
-                        if file.is_file():
-                            print(f"  {file.relative_to(mlzero_dir)}")
                     
                     # Verify critical files exist
                     logs_file = mlzero_dir / "logs.txt"

@@ -49,11 +49,6 @@ dependencies = [
   "mcp>=0.1.0",
 ]
 
-markers = [
-    "mcp_integration: MCP integration tests that require multiple services",
-    "requires_port_5000: Tests that require port 5000 to be available"
-]
-
 [project.scripts]
 aga          = "autogluon.assistant.cli.app:app"
 mlzero       = "autogluon.assistant.cli.app:app"
