@@ -12,7 +12,7 @@ from autogluon.mcp.constants import MCP_BEDROCK_MODEL_ID
 PIPELINE_SERVER_URL = "https://your_server_url/mcp/"
 
 # Use a dictionary to avoid scope issues
-config = {"debug_mode": True}
+config = {"debug_mode": False}
 
 
 def format_response(response_data):
@@ -70,8 +70,8 @@ async def main():
     agent.tools = ConverseToolManager()
 
     # Define the agent's behavior through system prompt
-    agent.system_prompt = """You are a helpful assistant that, besides performing any other tasks, is also capable of running AutoGluon ML pipelines. You have access to the run_autogluon_pipeline tool, which can process data and train models. 
-When users provide a prompt, first determine whether they want you to use run_autogluon_pipeline. If they do not, respond normally without using this tool. If they do want you to use run_autogluon_pipeline, analyze what they need and ask for any missing required parameters. Once you have received all required parameters, proceed to run run_autogluon_pipeline.
+    agent.system_prompt = """You are a helpful assistant that, besides performing any other tasks, is also capable of running AutoGluon ML tasks. You have access to the run_autogluon_assistant tool, which can process data and train models.
+When users provide a prompt, first determine whether they want you to use run_autogluon_assistant. If they do not, respond normally without using this tool. If they do want you to use run_autogluon_assistant, analyze what they need and ask for any missing required parameters. Once you have received all required parameters, proceed to run run_autogluon_assistant.
 If you run into any errors, please explain in detail at which step the error occurred, what actions you took, what code you executed, and share the exact error message verbatim.
 """
 

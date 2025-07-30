@@ -268,6 +268,15 @@ class Manager:
             return ""
 
     @property
+    def common_env_file(self) -> str:
+        return registry.registry_path / "_common" / "requirements.txt"
+
+    @property
+    def selected_tool_env_file(self) -> str:
+        tool_path = registry.get_tool(self.selected_tool)["path"]
+        return registry.registry_path / tool_path / "requirements.txt"
+
+    @property
     def iteration_folder(self) -> str:
         if self.time_step >= 0:
             iter_folder = os.path.join(self.output_folder, f"generation_iter_{self.time_step}")
@@ -309,23 +318,23 @@ class Manager:
         if self.need_user_input:
             if self.time_step > 0:
                 logger.brief(
-                    f"\n[bold green]Previous iteration info is stored in:[/bold green] {os.path.join(self.output_folder, f'iteration_{self.time_step - 1}')}"
+                    f"[bold green]Previous iteration info is stored in:[/bold green] {os.path.join(self.output_folder, f'iteration_{self.time_step - 1}')}"
                 )
             else:
                 logger.brief(
-                    f"\n[bold green]Initialization info is stored in:[/bold green] {os.path.join(self.output_folder, 'initialization')}"
+                    f"[bold green]Initialization info is stored in:[/bold green] {os.path.join(self.output_folder, 'initialization')}"
                 )
             if user_input is None:
                 user_input = ""
-                if os.environ.get("AUTOGLUON_WEBUI", "false").lower() == "true":
-                    # If running in WebUI, get user input from stdin
-                    user_input += "\n" + get_user_input_webui(
-                        f"Enter your inputs for current iteration (iter {self.time_step}) (press Enter to skip): "
-                    )
-                else:
-                    user_input += "\n" + input(
-                        f"Enter your inputs for current iteration (iter {self.time_step}) (press Enter to skip): "
-                    )
+            if os.environ.get("AUTOGLUON_WEBUI", "false").lower() == "true":
+                # If running in WebUI, get user input from stdin
+                user_input += "\n" + get_user_input_webui(
+                    f"Enter your inputs for current iteration (iter {self.time_step}) (press Enter to skip): "
+                )
+            else:
+                user_input += "\n" + input(
+                    f"Enter your inputs for current iteration (iter {self.time_step}) (press Enter to skip): "
+                )
 
         assert len(self.user_inputs) == self.time_step
         self.user_inputs.append(user_input)

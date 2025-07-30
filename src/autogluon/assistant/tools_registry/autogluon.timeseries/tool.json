@@ -8,8 +8,8 @@
   "prompt_template": [
     "time_limit: 21600 (seconds)",
     "presets: best_quality",
-    "tuning_data: the validation split.",
     "DO NOT drop any data samples (to make sure the frequency is regular).",
+    "DO NOT create validation dataset from training data. Validation score is provided during the training process.",
     "Note that the prediction is given in a column named \"mean\". You need to rename the column in the result.",
     "`from_data_frame()` method of TimeSeriesDataFrame does not accept a 'target' parameter.",
     "If there are known covariates, they should be specified in both TimeSeriesPredictor initialization AND predict."

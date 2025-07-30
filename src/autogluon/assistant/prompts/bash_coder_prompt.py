@@ -75,17 +75,21 @@ Notes:
 
     def get_env_prompt(self):
         create_venv = self.manager.config.create_venv
-        output_folder = self.manager.output_folder
+        iteration_folder = self.manager.iteration_folder
         selected_tool = self.manager.selected_tool
+        common_env_file = self.manager.common_env_file
+        selected_tool_env_file = self.manager.selected_tool_env_file
 
-        env_prompt = ""
-        if create_venv:
-            env_prompt = f"""
-Create and configure a conda environment in {output_folder}:
-    - Python version: 3.11
-    - Activate the environment
-    - Install required packages"""
+        env_prompt = f"""
+Create and configure a conda environment in "conda_env" folder under {iteration_folder}:
+ - Python version: 3.11
+ - Activate the environment
+ - pip install uv
+ - Install required packages from {common_env_file} and {selected_tool_env_file} using uv pip install -r {selected_tool_env_file} -r {common_env_file}"""
+
+        if not create_venv:
+            env_prompt += f"\n - Do not install or update any package unless there is an error due to the missing package.\n - Do NOT upgrade {selected_tool} which is already installed."
         else:
-            env_prompt = f"The environment is already configured. Do not install or update any package unless there is an error due to the missing package. \nDo NOT upgrade {selected_tool} which is already installed."
+            env_prompt += "\n - Install any packages that are needed in the python script"
 
         return env_prompt
