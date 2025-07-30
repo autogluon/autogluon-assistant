@@ -109,7 +109,8 @@ M,0.615,0.455,0.13,0.9685,0.49,0.182,0.2655,10"""
 
         # First, stop any existing services
         print("Stopping any existing services...")
-        stop_script = "/opt/dlami/nvme/autogluon-assistant/src/autogluon/mcp/server/stop_services.sh"
+        PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+        stop_script = PROJECT_ROOT / "src/autogluon/mcp/server/stop_services.sh"
         if os.path.exists(stop_script):
             subprocess.run([stop_script], capture_output=True)
             await asyncio.sleep(2)
@@ -135,7 +136,8 @@ M,0.615,0.455,0.13,0.9685,0.49,0.182,0.2655,10"""
         try:
             # Reset the queue database before starting
             print("\n--- Resetting queue database ---")
-            queuedb_script = "/opt/dlami/nvme/autogluon-assistant/src/autogluon/assistant/webui/backend/queue/queuedb"
+            PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+            queuedb_script = PROJECT_ROOT / "src/autogluon/assistant/webui/backend/queue/queuedb"
             reset_result = subprocess.run([queuedb_script, "reset"], capture_output=True, text=True)
             if reset_result.returncode == 0:
                 print(f"Queue database reset: {reset_result.stdout.strip()}")
