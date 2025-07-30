@@ -35,18 +35,16 @@ Please optimize your code to efficiently utilize the available hardware resource
    - Save the predicted results to {output_folder}, result file name should be "results", the format and extension should be same as the test data file
    - Output column names must exactly match those in the training or sample submission files without adding "predicted_" prefixes or creating any new columns.
 
-4. Validation:
-   - Hold out a validation dataset at the start, train only on the remaining data, and at the end compute and print the final evaluation metric score on the validation set.
-   - Use a try-except block for the validation step - if validation fails, it's acceptable to continue.
-
-5. Documentation:
+4. Documentation:
    - Add a brief docstring at the beginning of the script explaining its purpose
    - Include additional installation steps with comments at the beginning of the script
    - Include comments explaining any complex operations or design decisions
 
-6. Others:
+5. Others:
    - To avoid DDP errors, wrap the code in: if __name__ == "__main__":
    - Ensure errors are propagated up and not silently caught - do not use try/except blocks unless you explicitly re-raise the exception.
+
+{validation_prompt}
 
 {tool_prompt}
 
@@ -88,6 +86,7 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
         prompt = self.template.format(
             output_folder=self.manager.per_iteration_output_folder,
             selected_tool=self.manager.selected_tool,
+            validation_prompt=self._generate_validation_prompt(),
             tool_prompt=self.manager.tool_prompt,
             task_description=self.manager.task_description,
             data_prompt=self.manager.data_prompt,
@@ -126,6 +125,16 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
 
         return prompt
 
+    def _generate_validation_prompt(self) -> str:
+        if self.manager.config.stop_when_success:
+            return ""
+        else:
+            return """6. Validation:
+   - If no validation data is given, hold out a validation dataset (10 percent of the data) at the start , train only on the remaining data.
+   - At the end compute and print the final evaluation metric score on the validation set.
+   - Use a try-except block for the validation step - if validation fails, it's acceptable to continue.
+"""
+
     def _generate_best_code_prompt(self) -> str:
         """Generate prompt section about best/successful previous code."""
         if self.manager.time_step == 0:
@@ -144,6 +153,7 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             best_code_prompt.append(best_code)
             best_code_prompt.append("```")
             best_code_prompt.append("")
+            best_code_prompt.append("Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority.")
         # Check if we have a last successful step (different from best step)
         elif self.manager.last_successful_step >= 0 and self.manager.last_successful_step < self.manager.time_step:
             successful_code = self.manager.python_codes[self.manager.last_successful_step]
@@ -155,9 +165,11 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             best_code_prompt.append(successful_code)
             best_code_prompt.append("```")
             best_code_prompt.append("")
+            best_code_prompt.append("Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority.")
+        # Do nothing if there's no successful code
+        else:
+            best_code_prompt = []
 
-        best_code_prompt.append("Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority.")
-        
         return "\n".join(best_code_prompt)
 
     def parse(self, response: Dict) -> Tuple[str, Optional[str]]:

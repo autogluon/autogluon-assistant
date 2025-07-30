@@ -121,6 +121,9 @@ For validation scores:
                 except ValueError:
                     logger.warning(f"Could not parse validation score: {validation_score_text}")
                     validation_score = None
+        # The Validation score is only meaningful if this is a success run
+        if decision != "SUCCESS":
+            validation_score = None
 
         self.manager.save_and_log_states(
             content=response, save_name="executer_response.txt", per_iteration=True, add_uuid=True
