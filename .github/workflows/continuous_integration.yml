@@ -95,3 +95,117 @@ jobs:
         with:
           aws-role-arn: ${{ secrets.AWS_CI_ROLE_ARN }}
           submodule-to-test: integration
+
+  webui_test:
+    needs: permission_check
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ["3.10"]
+
+    steps:
+      - name: Checkout repository
+        if: ${{ github.event_name != 'pull_request_target' }}
+        uses: actions/checkout@v4
+
+      - name: Checkout repository(Pull Request Target)
+        if: ${{ github.event_name == 'pull_request_target' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: assistant_py3
+          environment-file: .github/workflows_env/unittest_env.yml
+          auto-update-conda: true
+          python-version: ${{ matrix.python }}
+          miniconda-version: "latest"
+
+      - name: Check if changes beside docs
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            other_than_docs:
+              - '!(docs/**)**'
+      - name: WebUI Test
+        if: steps.changes.outputs.other_than_docs == 'true'
+        uses: ./.github/actions/test-assistant
+        with:
+          aws-role-arn: ${{ secrets.AWS_CI_ROLE_ARN }}
+          submodule-to-test: webui
+
+  mcp_test:
+    needs: permission_check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      matrix:
+        python: ["3.10"]
+
+    steps:
+      - name: Checkout repository
+        if: ${{ github.event_name != 'pull_request_target' }}
+        uses: actions/checkout@v4
+
+      - name: Checkout repository(Pull Request Target)
+        if: ${{ github.event_name == 'pull_request_target' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: assistant_py3
+          environment-file: .github/workflows_env/unittest_env.yml
+          auto-update-conda: true
+          python-version: ${{ matrix.python }}
+          miniconda-version: "latest"
+
+      - name: Check if changes beside docs
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            other_than_docs:
+              - '!(docs/**)**'
+            mcp_changes:
+              - 'src/autogluon/mcp/**'
+              - 'tests/unittests/mcp/**'
+      
+      - name: Install dependencies
+        if: steps.changes.outputs.other_than_docs == 'true' && steps.changes.outputs.mcp_changes == 'true'
+        shell: bash -l {0}
+        run: |
+          source .github/workflow_scripts/env_setup.sh
+          install_all
+          setup_test_env
+          python -m pip install fastmcp aiohttp
+          python -m pip install -e .
+      
+      - name: Stop existing services
+        if: steps.changes.outputs.other_than_docs == 'true' && steps.changes.outputs.mcp_changes == 'true'
+        shell: bash -l {0}
+        run: |
+          sudo lsof -ti:5000 | xargs -r sudo kill -9 || true
+          pkill -f "mlzero-" || true
+          pkill -f "autogluon.assistant.webui.backend" || true
+      
+      - name: Run MCP Test
+        if: steps.changes.outputs.other_than_docs == 'true' && steps.changes.outputs.mcp_changes == 'true'
+        shell: bash -l {0}
+        env:
+          PYTHONUNBUFFERED: "1"
+          FORCE_COLOR: "1"
+        run: |
+          python -m pytest -n 1 -v --capture=tee-sys --log-cli-level=INFO tests/unittests/mcp/test_mcp_integration.py
