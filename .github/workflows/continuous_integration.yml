@@ -90,7 +90,7 @@ jobs:
             other_than_docs:
               - '!(docs/**)**'
       - name: Integration Test
-        if: steps.changes.outputs.other_than_docs == 'true'
+        # if: steps.changes.outputs.other_than_docs == 'true'
         uses: ./.github/actions/test-assistant
         with:
           aws-role-arn: ${{ secrets.AWS_CI_ROLE_ARN }}
@@ -137,7 +137,7 @@ jobs:
               - '!(docs/**)**'
             
       - name: Install dependencies
-        if: steps.changes.outputs.other_than_docs == 'true'
+        # if: steps.changes.outputs.other_than_docs == 'true'
         shell: bash -l {0}
         run: |
           source .github/workflow_scripts/env_setup.sh
@@ -145,7 +145,7 @@ jobs:
           setup_test_env
             
       - name: WebUI Test
-        if: steps.changes.outputs.other_than_docs == 'true'
+        # if: steps.changes.outputs.other_than_docs == 'true'
         uses: ./.github/actions/test-assistant
         with:
           aws-role-arn: ${{ secrets.AWS_CI_ROLE_ARN }}
@@ -194,7 +194,7 @@ jobs:
               - '.github/workflows/continuous_integration.yml'
       
       - name: Install dependencies
-        if: steps.changes.outputs.other_than_docs == 'true'
+        # if: steps.changes.outputs.other_than_docs == 'true'
         shell: bash -l {0}
         run: |
           source .github/workflow_scripts/env_setup.sh
@@ -204,7 +204,7 @@ jobs:
           python -m pip install -e .
       
       - name: Stop existing services
-        if: steps.changes.outputs.other_than_docs == 'true'
+        # if: steps.changes.outputs.other_than_docs == 'true'
         shell: bash -l {0}
         run: |
           sudo lsof -ti:5000 | xargs -r sudo kill -9 || true
@@ -212,7 +212,7 @@ jobs:
           pkill -f "autogluon.assistant.webui.backend" || true
       
       - name: Run MCP Test
-        if: steps.changes.outputs.other_than_docs == 'true' && (steps.changes.outputs.mcp_changes == 'true' || github.event_name == 'push')
+        # if: steps.changes.outputs.other_than_docs == 'true' && (steps.changes.outputs.mcp_changes == 'true' || github.event_name == 'push')
         shell: bash -l {0}
         env:
           PYTHONUNBUFFERED: "1"
