@@ -265,6 +265,15 @@ class Manager:
             return ""
 
     @property
+    def common_env_file(self) -> str:
+        return registry.registry_path / "_common" / "requirements.txt"
+
+    @property
+    def selected_tool_env_file(self) -> str:
+        tool_path = registry.get_tool(self.selected_tool)["path"]
+        return registry.registry_path / tool_path / "requirements.txt"
+
+    @property
     def iteration_folder(self) -> str:
         if self.time_step >= 0:
             iter_folder = os.path.join(self.output_folder, f"generation_iter_{self.time_step}")

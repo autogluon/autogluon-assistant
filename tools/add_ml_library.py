@@ -86,10 +86,7 @@ def register_tool_interactive():
     version = get_user_input("Version", default="0.1.0")
     description = get_user_input("Description")
 
-    # Get optional information
-    print("\nFeatures (e.g., 'classification', 'regression', etc.)")
-    features = get_list_input("Enter tool features")
-
+    # Get requirements
     print("\nRequirements (e.g., 'numpy>=1.20.0', 'torch>=1.9.0', etc.)")
     requirements = get_list_input("Enter tool requirements")
 
@@ -122,7 +119,6 @@ def register_tool_interactive():
     print(f"Name: {name}")
     print(f"Version: {version}")
     print(f"Description: {description}")
-    print(f"Features: {', '.join(features) if features else 'None'}")
     print(f"Requirements: {', '.join(requirements) if requirements else 'None'}")
     print(f"Prompt Templates: {len(prompt_template)} templates")
     print(f"Tutorials Path: {tutorials_path or 'None'}")
@@ -143,7 +139,6 @@ def register_tool_interactive():
             name=name,
             version=version,
             description=description,
-            features=features,
             requirements=requirements,
             prompt_template=prompt_template,
             tutorials_path=tutorials_path,

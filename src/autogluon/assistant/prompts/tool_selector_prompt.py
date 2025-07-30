@@ -23,10 +23,6 @@ def _format_tools_info(tools_info: Dict) -> str:
         formatted_info += f"Library Name: {tool_name}\n"
         formatted_info += f"Version: v{info['version']}\n"
         formatted_info += f"Description: {info['description']}\n"
-        if info["features"]:
-            formatted_info += "Key Features & Limitations:\n"
-            for feature in info["features"]:
-                formatted_info += f"- {feature}\n"
         formatted_info += "\n\n"
     return formatted_info
 
