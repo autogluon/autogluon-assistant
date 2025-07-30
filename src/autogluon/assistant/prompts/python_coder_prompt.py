@@ -17,11 +17,6 @@ As an AutoML Agent, you will be given a folder containing data and description f
 
 ONLY save files to the working directory: {output_folder}.
 
-### System Resources
-Available CPUs: {cpu_count}
-Available GPUs: {gpu_count}
-Please optimize your code to efficiently utilize the available hardware resources. 
-
 1. Data preprocessing:
    - Remove training data samples without valid labels (drop NA values from training dataset ONLY, NOT from test dataset) unless explicitly instructed otherwise.
    - Remove the unneccesary index column (if applicable)
@@ -94,8 +89,6 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             error_prompt=self.manager.all_previous_error_prompts,
             tutorial_prompt=self.manager.tutorial_prompt,
             best_code_prompt=best_code_prompt,
-            cpu_count=get_cpu_count(),
-            gpu_count=get_gpu_count(),
         )
 
         # Add format instruction if configured
@@ -126,13 +119,20 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
         return prompt
 
     def _generate_validation_prompt(self) -> str:
-        if self.manager.config.stop_when_success:
-            return ""
-        else:
+        if self.manager.config.continuous_improvement:
             return """6. Validation:
    - If no validation data is given, hold out a validation dataset (10 percent of the data) at the start , train only on the remaining data.
    - At the end compute and print the final evaluation metric score on the validation set.
    - Use a try-except block for the validation step - if validation fails, it's acceptable to continue.
+"""
+        else:
+            return ""
+
+    def _generate_system_resources_prompt(self) -> str:
+        return f"""### System Resources
+Available CPUs: {get_cpu_count()}
+Available GPUs: {get_gpu_count()}
+Please optimize your code to efficiently utilize the available hardware resources. 
 """
 
     def _generate_best_code_prompt(self) -> str:
@@ -158,6 +158,8 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             best_code_prompt.append(
                 "Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority."
             )
+            if self.manager.config.optimize_system_resources:
+                best_code_prompt.append(self._generate_system_resources_prompt())
         # Check if we have a last successful step (different from best step)
         elif self.manager.last_successful_step >= 0 and self.manager.last_successful_step < self.manager.time_step:
             successful_code = self.manager.python_codes[self.manager.last_successful_step]
@@ -171,6 +173,8 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             best_code_prompt.append(
                 "Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority."
             )
+            if self.manager.config.optimize_system_resources:
+                best_code_prompt.append(self._generate_system_resources_prompt())
         # Do nothing if there's no successful code
         else:
             best_code_prompt = []
