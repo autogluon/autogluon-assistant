@@ -1,10 +1,6 @@
 name: MCP Tests
 on:
   push:
-    paths:
-      - 'src/autogluon/mcp/**'
-      - 'tests/unittests/mcp/**'
-      - '.github/workflows/mcp_tests.yml'
   pull_request_target:
     types: [labeled, synchronize, opened]
     paths:
