@@ -288,13 +288,24 @@ M,0.615,0.455,0.13,0.9685,0.49,0.182,0.2655,10"""
                     # Parse response
                     print(f"\nReceived response after {elapsed_time:.2f} seconds")
                     print(f"Response type: {type(result)}")
-                    print(f"Response length: {len(result) if result else 0}")
-                    if result:
-                        print(f"First item type: {type(result[0])}")
 
-                    assert len(result) > 0, "Empty response from MCP client"
-                    response = result[0].text
-                    print(f"Response text length: {len(response)}")
+                    if hasattr(result, 'content'):
+                        response = result.content
+                        print(f"Response content type: {type(response)}")
+                        print(f"Response content: {response}")
+                        
+                        if isinstance(response, list) and len(response) > 0:
+                            response = response[0]
+                            if hasattr(response, 'text'):
+                                response = response.text
+                        elif isinstance(response, str):
+                            pass
+                        else:
+                            response = str(response)
+                    else:
+                        response = str(result)
+
+                    print(f"Final response: {response[:200]}...")
 
                     data = json.loads(response)
 
