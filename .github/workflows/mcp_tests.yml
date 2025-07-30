@@ -47,6 +47,4 @@ jobs:
           PYTHONUNBUFFERED: "1"
           FORCE_COLOR: "1"
         run: |
-          # 暂时跳过，因为有timeout问题
-          echo "MCP tests temporarily disabled due to timeout issues"
-          # python -m pytest -n 1 -v --capture=tee-sys --log-cli-level=INFO tests/unittests/mcp/test_mcp_integration.py
+          python -m pytest -n 1 -v --capture=tee-sys --log-cli-level=INFO tests/unittests/mcp/test_mcp_integration.py
