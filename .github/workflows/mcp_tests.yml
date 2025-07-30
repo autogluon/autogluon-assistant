@@ -3,9 +3,6 @@ on:
   push:
   pull_request_target:
     types: [labeled, synchronize, opened]
-    paths:
-      - 'src/autogluon/mcp/**'
-      - 'tests/unittests/mcp/**'
 
 permissions:
   id-token: write
