@@ -1,13 +1,20 @@
 name: MCP Tests
 on:
   push:
+    paths:
+      - 'src/autogluon/mcp/**'
+      - 'tests/unittests/mcp/**'
+      - '.github/workflows/mcp_tests.yml'
   pull_request_target:
     types: [labeled, synchronize, opened]
+    paths:
+      - 'src/autogluon/mcp/**'
+      - 'tests/unittests/mcp/**'
 
 permissions:
   id-token: write
   contents: read
-  pull-requests: write # for removing tags
+  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number || github.event.pull_request.head.sha }}
@@ -24,33 +31,21 @@ jobs:
         with:
           github_token: ${{ github.token }}
           permission: write
-      - name: Debug Information
-        if: ${{ github.event_name == 'pull_request_target' }}
-        run: |
-          echo "Event Name: ${{ github.event_name }}"
-          echo "Labels: ${{ toJson(github.event.pull_request.labels) }}"
-          echo "Permitted: ${{ steps.check.outputs.permitted }}"
-          echo "Safe to Test Label Present: ${{ contains(github.event.pull_request.labels.*.name, 'safe to test') }}"
       - name: Check PR Safe to Run
         if: ${{ github.event_name == 'pull_request_target' && !contains(github.event.pull_request.labels.*.name, 'safe to test') && steps.check.outputs.permitted == 'false' }}
         run: exit 1
-      - name: Remove Safe to Test Label  # One commit is safe doesn't mean the next commit is safe.
+      - name: Remove Safe to Test Label
         if: ${{ github.event_name == 'pull_request_target' }}
         uses: actions-ecosystem/action-remove-labels@v1.3.0
         with:
           labels: 'safe to test'
+  
   mcp_test:
     needs: permission_check
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        python: ["3.10"]
-
     steps:
       - name: Checkout repository
         if: ${{ github.event_name != 'pull_request_target' }}
@@ -61,25 +56,17 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-
+      
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: assistant_py3
           environment-file: .github/workflows_env/unittest_env.yml
           auto-update-conda: true
-          python-version: ${{ matrix.python }}
+          python-version: "3.10"
           miniconda-version: "latest"
-
-      - name: Check if changes beside docs
-        uses: dorny/paths-filter@v3
-        id: changes
-        with:
-          filters: |
-            other_than_docs:
-              - '!(docs/**)**'
+      
       - name: Run MCP Test
-        if: steps.changes.outputs.other_than_docs == 'true'
         uses: ./.github/actions/test-assistant
         with:
           aws-role-arn: ${{ secrets.AWS_CI_ROLE_ARN }}

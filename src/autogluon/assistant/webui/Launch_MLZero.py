@@ -1018,7 +1018,7 @@ class UI:
             with st.expander("⚙️ Settings (optional)", expanded=False):
                 # Upper section: iterations, control, verbosity
                 max_iter = st.number_input("Max iterations", min_value=1, max_value=20, value=5, key="max_iterations")
-                control = st.checkbox("Manual prompts between iterations", key="control_prompts")
+                control = st.checkbox("Manual instructions between iterations", key="control_prompts")
                 log_verbosity = st.select_slider(
                     "Log verbosity",
                     options=["BRIEF", "INFO", "DETAIL"],
@@ -1796,7 +1796,7 @@ class AutoMLAgentApp:
             accept_file = False
         else:
             # Normal state - ready to accept new tasks
-            placeholder = "Drag your dataset files here, then type optional prompt"
+            placeholder = "Drag your dataset files here, then type optional instruction"
             accept_file = "multiple"
 
         # Handle user input
