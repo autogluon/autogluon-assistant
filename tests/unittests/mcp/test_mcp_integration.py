@@ -311,7 +311,7 @@ M,0.615,0.455,0.13,0.9685,0.49,0.182,0.2655,10"""
                         "verbosity": "info",
                         "max_iterations": 1,
                         "cleanup_server": True,  # Clean up server files after download
-                        "init_prompt": "time limit: 3 minutes"
+                        "init_prompt": "time limit: 3 minutes",
                     }
                     for k, v in params.items():
                         print(f"  {k}: {v}")
