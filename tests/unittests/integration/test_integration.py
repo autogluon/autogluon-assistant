@@ -2,7 +2,6 @@ import os
 
 import pandas as pd
 import pytest
-from omegaconf import OmegaConf
 
 from autogluon.assistant.coding_agent import run_agent
 

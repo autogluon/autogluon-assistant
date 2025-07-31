@@ -24,4 +24,4 @@ jobs:
           source .github/workflow_scripts/env_setup.sh
           install_all
           setup_test_env
-          python -m pytest -n 2 -v --capture=tee-sys --log-cli-level=INFO tests/unittests/webui/
+          python -m pytest -n 2 -vv -s --capture=tee-sys --log-cli-level=INFO tests/unittests/webui/

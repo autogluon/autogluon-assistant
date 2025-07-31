@@ -23,8 +23,8 @@ if [ "$MODULE" = "mcp" ]; then
     pkill -f "autogluon.assistant.webui.backend" || true
     
     # Run MCP integration test
-    python -m pytest -n 1 -v --capture=tee-sys --log-cli-level=INFO tests/unittests/mcp/test_mcp_integration.py
+    python -m pytest -n 1 -vv -s --capture=tee-sys --log-cli-level=INFO tests/unittests/mcp/test_mcp_integration.py
 else
     # Run standard unit tests for other modules
-    python -m pytest -n 2 -v --capture=tee-sys --log-cli-level=INFO --junitxml=results.xml tests/unittests/$MODULE/
+    python -m pytest -n 2 -vv -s --capture=tee-sys --log-cli-level=INFO --junitxml=results.xml tests/unittests/$MODULE/
 fi
