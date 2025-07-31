@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 import uuid
 from pathlib import Path
 from typing import List, Optional
@@ -15,6 +16,7 @@ from ..agents import (
     TaskDescriptorAgent,
     ToolSelectorAgent,
 )
+from ..constants import ENV_FOLDER_NAME
 from ..llm import ChatLLMFactory
 from ..tools_registry import registry
 from ..utils import get_user_input_webui
@@ -43,6 +45,7 @@ class Manager:
         self.time_step = -1
         self.best_step = -1
         self.last_successful_step = -1
+        self.best_step_saved = -1
 
         # Store required paths
         self.input_data_folder = input_data_folder
@@ -426,6 +429,7 @@ class Manager:
                 f"Error summary from planner (the error can appear in stdout if it's catched): {planner_error_summary}"
             )
             self.update_error_message(error_message=error_message)
+            self.remove_env_folder(self.iteration_folder)
             return False
         elif planner_decision == "SUCCESS":
             self.last_successful_step = self.time_step
@@ -441,6 +445,7 @@ class Manager:
         else:
             logger.warning(f"###INVALID Planner Output: {planner_decision}###")
             self.update_error_message(error_message="")
+            self.remove_env_folder(self.iteration_folder)
             return False
 
     def update_error_message(self, error_message: str):
@@ -514,7 +519,6 @@ class Manager:
         If no best step is available, uses the last successful step.
         If neither is available, logs a warning and does nothing.
         """
-        import shutil
 
         # Determine which step to copy
         target_step = None
@@ -529,6 +533,9 @@ class Manager:
         else:
             logger.warning("No best step or successful step found. Cannot create best_run copy.")
             return
+
+        if target_step == self.best_step_saved:
+            logger.info(f"Skipping the saving process as step {target_step} has already been saved as best run.")
 
         # Create paths
         source_folder = os.path.join(self.output_folder, f"generation_iter_{target_step}")
@@ -568,6 +575,9 @@ class Manager:
             # Copy the entire source folder to best_run folder
             shutil.copytree(source_folder, best_run_folder)
 
+            # Remove the env folder from source folder to save space
+            self.remove_env_folder(source_folder)
+
             logger.brief(
                 f"[bold green]Created best_run folder (copied from step {target_step} - {copy_reason})[/bold green]"
             )
@@ -590,9 +600,21 @@ class Manager:
                 content=summary_text, save_name="best_run_summary.txt", per_iteration=False, add_uuid=False
             )
 
+            self.best_step_saved = target_step
+
         except Exception as e:
             logger.error(f"Failed to copy folder: {e}")
             return
+
+    def remove_env_folder(self, iter_folder):
+        if not self.config.cleanup_unused_env:
+            return
+        try:
+            env_folder = os.path.join(iter_folder, ENV_FOLDER_NAME)
+            shutil.rmtree(env_folder)
+            logger.info(f"Removed unused env folder {env_folder}")
+        except Exception as e:
+            logger.error(f"Failed to remove env folder {env_folder}: {e}")
 
     def cleanup(self):
         """Clean up resources."""

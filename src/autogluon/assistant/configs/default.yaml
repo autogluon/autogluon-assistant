@@ -17,6 +17,7 @@ condense_tutorials: True
 use_tutorial_summary: True
 continuous_improvement: False
 optimize_system_resources: False
+cleanup_unused_env: True
 
 # Default LLM Configuration
 # For each agent (coder, etc.) you can use a different one
