@@ -20,20 +20,20 @@ def parse_mcp_response(response):
     if isinstance(response, list) and len(response) > 0:
         # FastMCP returns a list of content objects
         first_item = response[0]
-        if hasattr(first_item, 'text'):
+        if hasattr(first_item, "text"):
             text_content = first_item.text
-        elif hasattr(first_item, 'content'):
+        elif hasattr(first_item, "content"):
             text_content = first_item.content
         else:
             text_content = str(first_item)
-        
+
         # Try to parse as JSON
         try:
             return json.loads(text_content)
         except json.JSONDecodeError:
             # If not JSON, return as is
             return text_content
-    elif hasattr(response, 'text'):
+    elif hasattr(response, "text"):
         try:
             return json.loads(response.text)
         except json.JSONDecodeError:
@@ -48,6 +48,7 @@ def parse_mcp_response(response):
             except json.JSONDecodeError:
                 pass
         return response
+
 
 def log_output(process, service_name):
     """Helper function to log process output in real time"""
