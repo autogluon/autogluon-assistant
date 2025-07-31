@@ -1,0 +1,27 @@
+name: WebUI Tests
+on:
+  push:
+  pull_request:
+
+jobs:
+  webui_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: assistant_py3
+          environment-file: .github/workflows_env/unittest_env.yml
+          auto-update-conda: true
+          python-version: "3.10"
+          miniconda-version: "latest"
+      
+      - name: Run WebUI Tests
+        shell: bash -l {0}
+        run: |
+          source .github/workflow_scripts/env_setup.sh
+          install_all
+          setup_test_env
+          python -m pytest -n 2 -v --capture=tee-sys --log-cli-level=INFO tests/unittests/webui/

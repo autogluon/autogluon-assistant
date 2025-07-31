@@ -37,8 +37,6 @@ runs/
 .mcp.pid
 mcp_output/
 mcp/__pycache__/
-mcp/examples/credentials_template.txt
-mcp/examples/example_config.yaml
 mcp/*.pyc
 mcp/server_info.txt
 
