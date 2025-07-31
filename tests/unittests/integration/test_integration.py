@@ -45,22 +45,7 @@ def titanic_data_path(tmp_path):
     return str(data_dir)
 
 
-@pytest.fixture
-def light_config():
-    return OmegaConf.create(
-        {
-            "time_limit": 300,  # 5 minutes timeout
-            "llm": {"provider": "bedrock", "model": "anthropic.claude-3-5-haiku-20241022-v1:0"},
-            "autogluon": {
-                "predictor_fit_kwargs": {
-                    "presets": "medium_quality",  # lighter preset
-                }
-            },
-        }
-    )
-
-
-def test_titanic_prediction(titanic_data_path, light_config):
+def test_titanic_prediction(titanic_data_path):
     output_dir = os.path.join(titanic_data_path, "..", "titanic_data_output")
     run_agent(
         input_data_folder=titanic_data_path,
