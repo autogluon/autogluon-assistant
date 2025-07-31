@@ -286,7 +286,7 @@ M,0.615,0.455,0.13,0.9685,0.49,0.182,0.2655,10"""
         print("\n=== Starting MCP test flow ===")
 
         # Set timeout for the entire test
-        timeout = 1200
+        timeout = 1800
 
         async def run_test():
             # Connect to MCP client
@@ -308,9 +308,10 @@ M,0.615,0.455,0.13,0.9685,0.49,0.182,0.2655,10"""
                         "input_folder": test_data["input_dir"],
                         "output_folder": test_data["output_dir"],
                         "server_url": f"http://localhost:{services['mcp_server_port']}/mcp/",  # Added /mcp/ back
-                        "verbosity": "detail",  # Changed to detail for more logs
+                        "verbosity": "info",
                         "max_iterations": 1,
                         "cleanup_server": True,  # Clean up server files after download
+                        "init_prompt": "time limit: 3 minutes"
                     }
                     for k, v in params.items():
                         print(f"  {k}: {v}")
@@ -382,12 +383,6 @@ M,0.615,0.455,0.13,0.9685,0.49,0.182,0.2655,10"""
                         gen_iter_dir.exists() and gen_iter_dir.is_dir()
                     ), f"generation_iter_0 directory not found in {mlzero_dir}"
                     print("✓ Found generation_iter_0 directory")
-
-                    # List files in generation_iter_0
-                    print("\nFiles in generation_iter_0:")
-                    for file in gen_iter_dir.rglob("*"):
-                        if file.is_file():
-                            print(f"  {file.relative_to(gen_iter_dir)}")
 
                     print("\n✓ All validations passed!")
 

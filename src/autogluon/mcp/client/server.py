@@ -38,7 +38,6 @@ def load_credentials_from_file(file_path: str) -> str:
 async def run_autogluon_assistant(
     input_folder: str,
     output_folder: str,
-    rsync_server: str = "",
     server_url: str = "http://127.0.0.1:8000/mcp/",
     verbosity: str = "info",
     config_file: Optional[str] = None,
