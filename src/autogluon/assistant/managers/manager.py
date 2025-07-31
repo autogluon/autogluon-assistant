@@ -541,7 +541,7 @@ class Manager:
 
         # Check if source folder has an 'output' subdirectory
         source_output_folder = os.path.join(source_folder, "output")
-        if not os.path.exists(source_folder):
+        if not os.path.exists(source_output_folder):
             logger.warning(f"Source output folder does not exist: {source_output_folder}")
             return
 

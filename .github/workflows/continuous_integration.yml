@@ -71,6 +71,16 @@ jobs:
           python-version: ${{ matrix.python }}
           miniconda-version: "latest"
 
+      - name: Free disk space (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          echo "Before cleanup:"
+          df -h
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo apt-get clean
+          echo "After cleanup:"
+          df -h
+
       - name: Setup OMP for macOS
         if: matrix.os == 'macos-latest'
         shell: bash -l {0}
