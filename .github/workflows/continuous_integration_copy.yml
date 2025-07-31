@@ -1,4 +1,4 @@
-name: MCP Tests
+name: Continuous Integration
 on:
   push:
   pull_request_target:
@@ -39,7 +39,7 @@ jobs:
         uses: actions-ecosystem/action-remove-labels@v1.3.0
         with:
           labels: 'safe to test'
-  mcp_test:
+  integration_test:
     needs: permission_check
     runs-on: ${{ matrix.os }}
     defaults:
@@ -71,6 +71,17 @@ jobs:
           python-version: ${{ matrix.python }}
           miniconda-version: "latest"
 
+      - name: Setup OMP for macOS
+        if: matrix.os == 'macos-latest'
+        shell: bash -l {0}
+        run: |
+          wget https://raw.githubusercontent.com/Homebrew/homebrew-core/fb8323f2b170bd4ae97e1bac9bf3e2983af3fdb0/Formula/libomp.rb
+          if brew list | grep -q libomp; then
+            brew unlink libomp
+          fi
+          brew install libomp.rb
+          rm libomp.rb
+
       - name: Check if changes beside docs
         uses: dorny/paths-filter@v3
         id: changes
@@ -78,9 +89,9 @@ jobs:
           filters: |
             other_than_docs:
               - '!(docs/**)**'
-      - name: Run MCP Test
+      - name: Integration Test
         if: steps.changes.outputs.other_than_docs == 'true'
         uses: ./.github/actions/test-assistant
         with:
           aws-role-arn: ${{ secrets.AWS_CI_ROLE_ARN }}
-          submodule-to-test: mcp
+          submodule-to-test: integration
