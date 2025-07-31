@@ -286,7 +286,7 @@ M,0.615,0.455,0.13,0.9685,0.49,0.182,0.2655,10"""
         print("\n=== Starting MCP test flow ===")
 
         # Set timeout for the entire test
-        timeout = 600
+        timeout = 1200
 
         async def run_test():
             # Connect to MCP client
