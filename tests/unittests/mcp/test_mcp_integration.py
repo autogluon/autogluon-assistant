@@ -50,6 +50,41 @@ def parse_mcp_response(response):
         return response
 
 
+def parse_mcp_response(response):
+    """Parse FastMCP response format"""
+    if isinstance(response, list) and len(response) > 0:
+        # FastMCP returns a list of content objects
+        first_item = response[0]
+        if hasattr(first_item, "text"):
+            text_content = first_item.text
+        elif hasattr(first_item, "content"):
+            text_content = first_item.content
+        else:
+            text_content = str(first_item)
+
+        # Try to parse as JSON
+        try:
+            return json.loads(text_content)
+        except json.JSONDecodeError:
+            # If not JSON, return as is
+            return text_content
+    elif hasattr(response, "text"):
+        try:
+            return json.loads(response.text)
+        except json.JSONDecodeError:
+            return response.text
+    elif isinstance(response, dict):
+        return response
+    else:
+        # Try to parse string as JSON
+        if isinstance(response, str):
+            try:
+                return json.loads(response)
+            except json.JSONDecodeError:
+                pass
+        return response
+
+
 def log_output(process, service_name):
     """Helper function to log process output in real time"""
 
@@ -343,6 +378,7 @@ M,0.615,0.455,0.13,0.9685,0.49,0.182,0.2655,10"""
 
                     print(f"Final response: {response[:200]}...")
 
+                    data = parse_mcp_response(result)
                     data = parse_mcp_response(result)
 
                     # Give some time for logs to be printed
