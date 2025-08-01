@@ -53,10 +53,18 @@ class TestE2EQueueFlow:
     @patch("subprocess.Popen")
     def test_complete_task_flow(self, mock_popen, client):
         """Test complete flow from submission to completion"""
-        # Mock subprocess
         mock_process = Mock()
-        mock_process.stdout = iter(["BRIEF Starting task\n", "INFO Task completed\n"])
-        mock_process.poll.return_value = 0
+        mock_process.stdout = iter(
+            [
+                "BRIEF Starting task\n",
+                "INFO Initializing...\n",
+                "INFO Processing data...\n",
+                "INFO Running analysis...\n",
+                "INFO Generating results...\n",
+                "INFO Task completed\n",
+            ]
+        )
+        mock_process.poll.side_effect = [None, None, None, 0]
         mock_process.wait.return_value = 0
         mock_process.returncode = 0
         mock_process.stdin = Mock()
@@ -72,34 +80,41 @@ class TestE2EQueueFlow:
         assert response.status_code == 200
         data = response.json
         task_id = data["task_id"]
-        assert data["position"] == 0  # Should be 0 since database is empty
+        assert data["position"] == 0
 
-        # 2. Check queue status
+        # 2. Check initial queue status
         response = client.get(f"/api/queue/status/{task_id}")
         status = response.json
         assert status["status"] in ["queued", "running"]
         assert status["task_id"] == task_id
 
-        # 3. Wait for task to start (queue manager picks it up)
-        time.sleep(2)
+        # 3. Wait for task to start and run_id to be updated
+        run_id = None
+        for i in range(10):
+            time.sleep(1)
+            response = client.get(f"/api/queue/status/{task_id}")
+            status = response.json
 
-        # 4. Check status again - should have run_id now
-        response = client.get(f"/api/queue/status/{task_id}")
-        status = response.json
+            if status.get("run_id"):
+                run_id = status["run_id"]
+                break
 
-        # If task has started, it should have a run_id
-        if status["status"] == "running":
-            assert status["run_id"] is not None
-            run_id = status["run_id"]
+        # 4. Verify we got a run_id
+        assert run_id is not None, f"Task did not get run_id after 10 seconds. Status: {status}"
 
-            # 5. Get logs using run_id
-            response = client.get("/api/logs", query_string={"run_id": run_id})
-            logs = response.json["lines"]
-            assert len(logs) > 0
+        # 5. Get logs using run_id
+        response = client.get("/api/logs", query_string={"run_id": run_id})
+        logs = response.json["lines"]
+        assert len(logs) > 0
 
-            # 6. Check task completion status
+        # 6. Wait for task completion
+        for i in range(10):
             response = client.get("/api/status", query_string={"run_id": run_id})
-            assert response.json["finished"] is True
+            if response.json["finished"]:
+                break
+            time.sleep(1)
+
+        assert response.json["finished"] is True
 
         # 7. Verify queue is empty after completion
         response = client.get("/api/queue/info")
