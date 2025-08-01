@@ -44,6 +44,11 @@ def main(
         "--max-iterations",
         help="Max iteration count. If the task hasn’t succeeded after this many iterations, it will terminate.",
     ),
+    continuous_improvement: bool = typer.Option(
+        False,
+        "--continuous_improvement",
+        help="If enabled, the system will continue optimizing even after finding a valid solution. Instead of stopping at the first successful run, it will keep searching for better solutions until reaching the maximum number of iterations. This allows the system to potentially find higher quality solutions at the cost of additional computation time.",
+    ),
     need_user_input: bool = typer.Option(
         False,
         "--enable-per-iteration-instruction",
@@ -82,6 +87,7 @@ def main(
         output_folder=output_dir,
         config_path=str(config_path),
         max_iterations=max_iterations,
+        continuous_improvement=continuous_improvement,
         need_user_input=need_user_input,
         initial_user_input=initial_user_input,
         extract_archives_to=extract_archives_to,

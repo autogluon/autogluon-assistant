@@ -1,6 +1,7 @@
 import logging
 from typing import Dict, Optional, Tuple
 
+from ..constants import ENV_FOLDER_NAME
 from .base_prompt import BasePrompt
 from .utils import extract_code
 
@@ -81,7 +82,7 @@ Notes:
         selected_tool_env_file = self.manager.selected_tool_env_file
 
         env_prompt = f"""
-Create and configure a conda environment in "conda_env" folder under {iteration_folder}:
+Create and configure a conda environment in "{ENV_FOLDER_NAME}" folder under {iteration_folder}:
  - Python version: 3.11
  - Activate the environment
  - pip install uv

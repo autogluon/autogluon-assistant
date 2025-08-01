@@ -17,6 +17,7 @@ def run_agent(
     output_folder=None,
     config_path=None,
     max_iterations=5,
+    continuous_improvement=None,
     need_user_input=False,
     initial_user_input=None,
     extract_archives_to=None,
@@ -92,6 +93,9 @@ def run_agent(
         user_config = OmegaConf.load(config_path)
         config = OmegaConf.merge(config, user_config)
 
+    if continuous_improvement is not None:
+        config.continuous_improvement = continuous_improvement
+
     if manager is None:
         manager = Manager(
             input_data_folder=input_data_folder,
@@ -111,14 +115,16 @@ def run_agent(
         manager.update_bash_script()
 
         successful = manager.execute_code()
-        if successful:
+        if not config.continuous_improvement and successful:
             break
 
         if manager.time_step + 1 >= max_iterations:
-            logger.warning(
-                f"[bold red]Warning: Reached maximum iterations ({max_iterations}) without success[/bold red]"
-            )
+            logger.warning(f"[bold red]Warning: Reached maximum iterations ({max_iterations})[/bold red]")
+
+        manager.create_best_run_copy()
 
     manager.report_token_usage()
+    manager.get_validation_score_summary()
+    manager.create_best_run_copy()
     logger.brief(f"output saved in {output_dir}.")
     manager.cleanup()

@@ -3,6 +3,7 @@ import os
 from typing import Any, Dict, List
 
 import boto3
+from botocore.config import Config
 from langchain_aws import ChatBedrock
 
 from .base_chat import BaseAssistantChat
@@ -44,6 +45,9 @@ def create_bedrock_chat(config, session_name: str) -> AssistantChatBedrock:
     if "AWS_DEFAULT_REGION" not in os.environ:
         raise ValueError("AWS_DEFAULT_REGION key not found in environment")
 
+    # Configure read timeout to 300 seconds
+    boto_config = Config(read_timeout=300)
+
     return AssistantChatBedrock(
         model_id=model,
         model_kwargs={
@@ -53,4 +57,5 @@ def create_bedrock_chat(config, session_name: str) -> AssistantChatBedrock:
         region_name=os.environ["AWS_DEFAULT_REGION"],
         verbose=config.verbose,
         session_name=session_name,
+        config=boto_config,
     )

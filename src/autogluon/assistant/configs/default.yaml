@@ -6,7 +6,7 @@ per_execution_timeout: 86400
 max_file_group_size_to_show: 5
 num_example_files_to_show: 1
 
-max_chars_per_file: 1024
+max_chars_per_file: 768
 num_tutorial_retrievals: 30
 max_num_tutorials: 5
 max_user_input_length: 2048
@@ -15,6 +15,9 @@ max_tutorial_length: 32768
 create_venv: false
 condense_tutorials: True
 use_tutorial_summary: True
+continuous_improvement: False
+optimize_system_resources: False
+cleanup_unused_env: True
 
 # Default LLM Configuration
 # For each agent (coder, etc.) you can use a different one
@@ -27,7 +30,7 @@ llm: &default_llm
   #model: gpt-4o-2024-08-06
   #provider: anthropic
   # model: claude-3-7-sonnet-20250219
-  max_tokens: 32768
+  max_tokens: 65535
   proxy_url: null
   temperature: 0.1
   top_p: 0.9

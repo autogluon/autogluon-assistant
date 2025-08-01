@@ -6,7 +6,7 @@
   ],
   "requirements": [],
   "prompt_template": [
-    "tuning_data: only use validation if there is a validation dataset.",
+    "tuning_data: the validation split.",
     "AutoGluon Tabular requires converting multiple label columns into either a single combined label for mutually exclusive cases or training separate predictors for each label in non-exclusive scenarios."
   ]
 }
