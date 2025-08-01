@@ -34,9 +34,7 @@ def contains_image(cell):
     elif cell.cell_type == "code":
         # Check for image outputs
         for output in cell.outputs:
-            if "data" in output and any(
-                key.startswith("image/") for key in output.get("data", {})
-            ):
+            if "data" in output and any(key.startswith("image/") for key in output.get("data", {})):
                 return True
     return False
 
@@ -121,6 +119,12 @@ def batch_convert_notebooks(input_dir, output_dir):
 
 if __name__ == "__main__":
     # Replace with your directory paths
-    batch_convert_notebooks("/media/agent/autogluon/docs/tutorials/tabular", "/media/agent/autogluon-assistant/temp/agt")
-    batch_convert_notebooks("/media/agent/autogluon/docs/tutorials/timeseries", "/media/agent/autogluon-assistant/temp/agtime")
-    batch_convert_notebooks("/media/agent/autogluon/docs/tutorials/multimodal", "/media/agent/autogluon-assistant/temp/automm")
+    batch_convert_notebooks(
+        "/media/agent/autogluon/docs/tutorials/tabular", "/media/agent/autogluon-assistant/temp/agt"
+    )
+    batch_convert_notebooks(
+        "/media/agent/autogluon/docs/tutorials/timeseries", "/media/agent/autogluon-assistant/temp/agtime"
+    )
+    batch_convert_notebooks(
+        "/media/agent/autogluon/docs/tutorials/multimodal", "/media/agent/autogluon-assistant/temp/automm"
+    )

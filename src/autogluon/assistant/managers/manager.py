@@ -576,7 +576,9 @@ class Manager:
 
             if self.config.cleanup_unused_env:
                 # Move conda_env folder from source to best_run folder
-                shutil.move(os.path.join(source_folder, ENV_FOLDER_NAME), os.path.join(best_run_folder, ENV_FOLDER_NAME))
+                shutil.move(
+                    os.path.join(source_folder, ENV_FOLDER_NAME), os.path.join(best_run_folder, ENV_FOLDER_NAME)
+                )
             # Copy the entire source folder to best_run folder
             shutil.copytree(source_folder, best_run_folder, dirs_exist_ok=True)
 
