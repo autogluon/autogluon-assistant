@@ -1,23 +1,4 @@
-Summary: This tutorial demonstrates implementing zero-shot image classification using CLIP via AutoGluon's MultiModalPredictor. It shows how to perform image classification without training data by matching images against text descriptions. Key implementation knowledge includes the basic predictor initialization and prediction pattern, handling image-text pair inputs, and awareness of typographic attack limitations. The tutorial helps with tasks like building zero-shot classifiers, implementing CLIP-based image classification, and utilizing pre-trained models that achieve ResNet50-level performance. Core features covered include zero-shot classification without training data, flexible category definition through text descriptions, and batch prediction support, all implemented through a straightforward Python API.
-
-# Zero-Shot Image Classification with CLIP
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/image_prediction/clip_zeroshot.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/image_prediction/clip_zeroshot.ipynb)
-
-
-
-
-When you want to classify an image to different classes, it is standard to train an image classifier based on the class names. However, it is tedious to collect training data. And if the collected data is too few or too imbalanced, you may not get a decent image classifier. So you wonder, is there a strong enough model that can handle this situaton without the training efforts?
-
-Actually there is! OpenAI has introduced a model named [CLIP](https://openai.com/blog/clip/), which can be applied to any visual classification benchmark by simply providing the names of the visual categories to be recognized. And its accuracy is high, e.g., CLIP can achieve 76.2% top-1 accuracy on ImageNet without using any of the 1.28M training samples. This performance matches with original supervised ResNet50 on ImageNet, quite promising for a classification task with 1000 classes!
-
-So in this tutorial, let's dive deep into CLIP. We will show you how to use CLIP model to do zero-shot image classification in AutoGluon.
-
-## Simple Demo
-
-Here we provide a simple demo to classify what dog breed is in the picture below.
-
+Summary: This tutorial demonstrates zero-shot image classification using CLIP via AutoGluon's MultiModalPredictor. It covers implementation of image classification without prior training by comparing images against arbitrary text descriptions. Key functionalities include initializing the predictor, performing predictions with image-text pairs, and understanding CLIP's capabilities and limitations (particularly typographic attacks). The code shows how to classify dog breeds and uncommon objects, making it useful for developers implementing flexible image classification systems without labeled training data for specific categories.
 
 ```python
 !pip install autogluon.multimodal
@@ -27,7 +8,7 @@ Here we provide a simple demo to classify what dog breed is in the picture below
 
 ```python
 from IPython.display import Image, display
-from autogluon.multimodal import download
+from autogluon.multimodal.utils import download
 
 url = "https://farm4.staticflickr.com/3445/3262471985_ed886bf61a_z.jpg"
 dog_image = download(url)

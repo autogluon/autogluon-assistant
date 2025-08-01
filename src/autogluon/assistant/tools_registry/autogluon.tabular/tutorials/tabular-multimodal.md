@@ -1,25 +1,4 @@
-Summary: This tutorial demonstrates how to implement multimodal machine learning using AutoGluon, specifically combining tabular, text, and image data for prediction tasks. It provides implementation details for dataset preparation (including handling multiple images), feature metadata configuration, and model training with multimodal hyperparameter presets. The tutorial helps with tasks involving image path preprocessing, feature type specification, and unified model training across different data modalities. Key functionalities covered include handling multiple images per row (selecting first image), path expansion for image files, feature metadata customization, and training configuration using AutoGluon's multimodal preset that incorporates tabular models, BERT for text, and ResNet for images.
-
-# Multimodal Data Tables: Tabular, Text, and Image
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/tabular-multimodal.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/tabular-multimodal.ipynb)
-
-
-**Tip**: Prior to reading this tutorial, it is recommended to have a basic understanding of the TabularPredictor API covered in [Predicting Columns in a Table - Quick Start](tabular-quick-start.ipynb).
-
-In this tutorial, we will train a multi-modal ensemble using data that contains image, text, and tabular features.
-
-Note: A GPU is required for this tutorial in order to train the image and text models. Additionally, GPU installations are required for Torch with appropriate CUDA versions.
-
-## The PetFinder Dataset
-
-We will be using the [PetFinder dataset](https://www.kaggle.com/c/petfinder-adoption-prediction). The PetFinder dataset provides information about shelter animals that appear on their adoption profile with the goal to predict the adoption rate of the animal. The end goal is for rescue shelters to use the predicted adoption rate to identify animals whose profiles could be improved so that they can find a home.
-
-Each animal's adoption profile contains a variety of information, such as pictures of the animal, a text description of the animal, and various tabular features such as age, breed, name, color, and more.
-
-To get started, we first need to download the dataset. Datasets that contain images require more than a CSV file, so the dataset is packaged in a zip file in S3. We will first download it and unzip the contents:
-
+Summary: This tutorial demonstrates using AutoGluon Multimodal for multimodal classification on the PetFinder dataset. It covers: (1) implementing multimodal machine learning with images and tabular data, including proper image path handling and feature metadata configuration; (2) solving pet adoption prediction tasks by integrating different data types; and (3) key functionalities including data preparation for multimodal inputs, configuring feature metadata to identify image columns, creating appropriate hyperparameter configurations, and training a TabularPredictor that automatically handles mixed data types. The tutorial showcases how to process image paths, configure models for multimodal inputs, and evaluate performance on test data.
 
 ```python
 !pip install autogluon

@@ -1,21 +1,4 @@
-Summary: This tutorial demonstrates implementing document classification using AutoGluon's MultiModal Predictor, specifically focusing on scanned document processing. It covers techniques for handling document datasets, training layout-aware models (like LayoutLM variants), and performing predictions/feature extraction. The tutorial helps with tasks including document classification setup, model training configuration, and inference pipeline implementation. Key functionalities include automatic text recognition, layout information processing, support for multiple document/text models (LayoutLM, BERT, DeBERTa), and flexible model customization through hyperparameters. The implementation provides a streamlined approach to building document classification systems with minimal code while maintaining adaptability.
-
-# AutoMM for Scanned Document Classification
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/document_prediction/document_classification.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/document_prediction/document_classification.ipynb)
-
-
-
-Paper documents in an organization are a crucial source of information, regardless of industry. 
-Dealing with paper documents is a headache because they can occupy a significant amount of space, can easily wear or fade with time, and are difficult to keep track of. 
-As such, there is a growing trend to digitizing paper documents via scanners, cameras, etc. 
-However, digitization does not necessarily bring automation, and identifying, categorizing, and analyzing digital documents can still be a labor-intensive process. 
-For example, classifying digital books into different genres, and categorizing scanned receipts into *utilities*, *transportation*, *insurance*, *rent*, *supplies*, etc. are time-consuming and tiresome if done manually. 
-With newer AI technologies, automating digital document processing becomes easier and more effective. 
-It’s fair to say that AI has been the bedrock of modern digital document processing systems.
-
-In this tutorial, we show how you can build a scanned document classifier with Autogluon Multimodal using a few lines of code. Let’s get started!
+Summary: This tutorial demonstrates document classification using AutoGluon MultiModal, showing how to implement a document classifier that recognizes text, layout, and visual features in documents. It covers loading document data, training a model using LayoutLM architecture, evaluating performance, and extracting embeddings. The tutorial shows how to leverage pre-trained document foundation models for classification tasks without requiring extensive feature engineering. Key functionalities include automatic feature recognition, support for various document models, and the ability to extract embeddings for downstream tasks. The implementation uses MultiModalPredictor to simplify the document classification workflow with minimal code.
 
 ## Get a Document Dataset
 Now let's download a scanned document dataset. 
@@ -96,7 +79,7 @@ predictor = MultiModalPredictor(label="label")
 predictor.fit(
     train_data=train_data,
     hyperparameters={"model.document_transformer.checkpoint_name":"microsoft/layoutlm-base-uncased",
-    "optimization.top_k_average_method":"best",
+    "optim.top_k_average_method":"best",
     },
     time_limit=120,
 )

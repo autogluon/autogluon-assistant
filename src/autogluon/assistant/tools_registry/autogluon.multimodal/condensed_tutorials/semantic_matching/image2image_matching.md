@@ -1,87 +1,101 @@
-# Condensed: Image-to-Image Semantic Matching with AutoMM
+# Condensed: ```python
 
-Summary: This tutorial demonstrates implementing image-to-image semantic matching using AutoGluon's MultiModalPredictor. It covers essential techniques for training a model that determines if two images are semantically similar, using the Stanford Online Products dataset. Key implementations include data preparation with path handling, model configuration for image similarity tasks, training with customizable parameters, and various prediction methods (binary classification, probability scores, and embedding extraction). The tutorial showcases how to leverage Swin Transformer for feature vector generation and cosine similarity computation, making it valuable for tasks involving image pair matching, product similarity detection, and feature extraction for downstream applications.
+Summary: This tutorial demonstrates image-to-image semantic matching using AutoGluon's MultiModalPredictor. It covers implementing similarity-based image matching with Swin Transformer embeddings and cosine similarity calculations. Key functionalities include: data preparation with image path handling, model training with the "image_similarity" problem type, evaluation using AUC metrics, prediction with probability outputs for custom thresholding, and feature extraction to obtain image embeddings. The tutorial helps with tasks like determining if two product images represent the same item, building image retrieval systems, and creating custom similarity thresholds for matching applications.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on essential implementation details:
-
 # Image-to-Image Semantic Matching with AutoMM
 
-## Key Implementation Details
+## Setup
 
-### Setup
 ```python
 !pip install autogluon.multimodal
+
+import os
 import pandas as pd
-from autogluon.multimodal import MultiModalPredictor
+import warnings
+from IPython.display import Image, display
+warnings.filterwarnings('ignore')
 ```
 
-### Data Preparation
-1. Dataset structure:
-   - Two image columns (Image1, Image2)
-   - Label column (1 = matching pair, 0 = non-matching pair)
-   - Uses Stanford Online Products dataset with 12 product categories
+## Data Preparation
 
-2. Path handling:
+This tutorial uses the simplified Stanford Online Products dataset (SOP) for image-to-image semantic matching:
+
 ```python
+# Download dataset
+download_dir = './ag_automm_tutorial_img2img'
+zip_file = 'https://automl-mm-bench.s3.amazonaws.com/Stanford_Online_Products.zip'
+from autogluon.core.utils.loaders import load_zip
+load_zip.unzip(zip_file, unzip_dir=download_dir)
+
+# Load annotations
+dataset_path = os.path.join(download_dir, 'Stanford_Online_Products')
+train_data = pd.read_csv(f'{dataset_path}/train.csv', index_col=0)
+test_data = pd.read_csv(f'{dataset_path}/test.csv', index_col=0)
+image_col_1 = "Image1"
+image_col_2 = "Image2"
+label_col = "Label"
+match_label = 1  # Label class representing a semantic match
+
+# Expand image paths
 def path_expander(path, base_folder):
     path_l = path.split(';')
     return ';'.join([os.path.abspath(os.path.join(base_folder, path)) for path in path_l])
 
-# Apply to both image columns
 for image_col in [image_col_1, image_col_2]:
     train_data[image_col] = train_data[image_col].apply(lambda ele: path_expander(ele, base_folder=dataset_path))
+    test_data[image_col] = test_data[image_col].apply(lambda ele: path_expander(ele, base_folder=dataset_path))
 ```
 
-### Model Training
+## Model Training
+
+AutoMM uses Swin Transformer to project images into high-dimensional vectors and computes cosine similarity:
+
 ```python
+from autogluon.multimodal import MultiModalPredictor
 predictor = MultiModalPredictor(
     problem_type="image_similarity",
-    query=image_col_1,          # first image column
-    response=image_col_2,       # second image column
+    query=image_col_1,         # first image column
+    response=image_col_2,      # second image column
     label=label_col,           # label column
-    match_label=match_label,   # label value indicating matching pairs (e.g., 1)
-    eval_metric='auc'          # evaluation metric
+    match_label=match_label,   # label indicating semantic match
+    eval_metric='auc',         # evaluation metric
 )
-
+    
+# Fit the model
 predictor.fit(
     train_data=train_data,
-    time_limit=180
+    time_limit=180,
 )
 ```
 
-### Model Usage
+## Evaluation and Prediction
 
-1. Evaluation:
 ```python
+# Evaluate on test data
 score = predictor.evaluate(test_data)
+print("evaluation score: ", score)
+
+# Predict on image pairs (using 0.5 threshold)
+pred = predictor.predict(test_data.head(3))
+print(pred)
+
+# Get probabilities for custom thresholding
+proba = predictor.predict_proba(test_data.head(3))
+print(proba)
 ```
 
-2. Prediction:
-```python
-# Binary predictions (threshold = 0.5)
-predictions = predictor.predict(test_data)
+## Feature Extraction
 
-# Probability scores
-probabilities = predictor.predict_proba(test_data)
-```
+Extract embeddings for each image:
 
-3. Feature Extraction:
 ```python
-# Extract embeddings for images
 embeddings_1 = predictor.extract_embedding({image_col_1: test_data[image_col_1][:5].tolist()})
+print(embeddings_1.shape)
 embeddings_2 = predictor.extract_embedding({image_col_2: test_data[image_col_2][:5].tolist()})
+print(embeddings_2.shape)
 ```
 
-## Important Notes
-- Model uses Swin Transformer to project images into feature vectors
-- Similarity is computed using cosine similarity between feature vectors
-- Default prediction threshold is 0.5 for binary classification
-- Embeddings can be extracted separately for each image
-
-## Best Practices
-1. Ensure image paths are properly formatted and accessible
-2. Consider task context when specifying `match_label`
-3. Adjust time_limit based on dataset size and computational resources
-4. Use predict_proba() for custom thresholding if needed
+For more examples, see [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm).
+For customization options, refer to [Customize AutoMM](../advanced_topics/customization.ipynb).

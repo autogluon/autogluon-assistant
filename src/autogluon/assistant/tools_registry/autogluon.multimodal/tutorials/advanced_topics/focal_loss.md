@@ -1,14 +1,4 @@
-Summary: This tutorial demonstrates implementing Focal Loss in AutoGluon's MultiModalPredictor to handle class imbalance problems. It provides specific code for configuring Focal Loss parameters (alpha, gamma, reduction) and calculating class weights from imbalanced data distributions. The tutorial helps with tasks involving imbalanced classification, particularly multiclass problems, by showing how to properly weight classes and focus on hard samples. Key features covered include custom loss function configuration, class weight calculation, and integration with AutoGluon's MultiModalPredictor, making it valuable for developers working on imbalanced dataset challenges.
-
-# Handling Class Imbalance with AutoMM - Focal Loss
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/focal_loss.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/focal_loss.ipynb)
-
-
-In this tutorial, we introduce how to use focal loss with the AutoMM package for balanced training.
-Focal loss is first introduced in this [Paper](https://arxiv.org/abs/1708.02002)
-and can be used for balancing hard/easy samples as well as un-even sample distribution among classes. This tutorial demonstrates how to use focal loss.
+Summary: This tutorial demonstrates implementing focal loss in AutoGluon for handling imbalanced image classification datasets. It covers techniques for calculating class weights, configuring focal loss parameters (alpha, gamma, reduction), and integrating them into MultiModalPredictor. The tutorial helps with training computer vision models on skewed data distributions by showing how to properly weight underrepresented classes. Key functionalities include creating imbalanced datasets, configuring focal loss hyperparameters, comparing models with and without focal loss, and using Swin Transformer architecture for image classification tasks.
 
 ## Create Dataset
 We use the shopee dataset for demonstration in this tutorial. Shopee dataset contains 4 classes and has 200 samples each in the training set.
@@ -58,15 +48,15 @@ print(weights)
 ## Create and train `MultiModalPredictor`
 
 ### Train with Focal Loss
-We specify the model to use focal loss by setting the `"optimization.loss_function"` to `"focal_loss"`.
+We specify the model to use focal loss by setting the `"optim.loss_func"` to `"focal_loss"`.
 There are also three other optional parameters you can set.
 
-`optimization.focal_loss.alpha` - a list of floats which is the per-class loss weight that can be used to balance un-even sample distribution across classes.
+`optim.focal_loss.alpha` - a list of floats which is the per-class loss weight that can be used to balance un-even sample distribution across classes.
 Note that the `len` of the list ***must*** match the total number of classes in the training dataset. A good way to compute `alpha` for each class is to use the inverse of its percentage number of samples.
 
-`optimization.focal_loss.gamma` - float which controls how much to focus on the hard samples. Larger value means more focus on the hard samples.
+`optim.focal_loss.gamma` - float which controls how much to focus on the hard samples. Larger value means more focus on the hard samples.
 
-`optimization.focal_loss.reduction` - how to aggregate the loss value. Can only take `"mean"` or `"sum"` for now.
+`optim.focal_loss.reduction` - how to aggregate the loss value. Can only take `"mean"` or `"sum"` for now.
 
 
 ```python
@@ -81,11 +71,11 @@ predictor.fit(
     hyperparameters={
         "model.mmdet_image.checkpoint_name": "swin_tiny_patch4_window7_224",
         "env.num_gpus": 1,
-        "optimization.loss_function": "focal_loss",
-        "optimization.focal_loss.alpha": weights,  # shopee dataset has 4 classes.
-        "optimization.focal_loss.gamma": 1.0,
-        "optimization.focal_loss.reduction": "sum",
-        "optimization.max_epochs": 10,
+        "optim.loss_func": "focal_loss",
+        "optim.focal_loss.alpha": weights,  # shopee dataset has 4 classes.
+        "optim.focal_loss.gamma": 1.0,
+        "optim.focal_loss.reduction": "sum",
+        "optim.max_epochs": 10,
     },
     train_data=imbalanced_train_data,
 ) 
@@ -108,7 +98,7 @@ predictor2.fit(
     hyperparameters={
         "model.mmdet_image.checkpoint_name": "swin_tiny_patch4_window7_224",
         "env.num_gpus": 1,
-        "optimization.max_epochs": 10,
+        "optim.max_epochs": 10,
     },
     train_data=imbalanced_train_data,
 )

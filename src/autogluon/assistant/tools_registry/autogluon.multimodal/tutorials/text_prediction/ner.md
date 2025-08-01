@@ -1,21 +1,96 @@
-Summary: This tutorial demonstrates implementing Named Entity Recognition (NER) using AutoGluon's MultiModalPredictor. It covers essential techniques for data preparation with specific JSON annotation formats, model training configuration using BERT-based or ELECTRA models, and prediction workflows. The tutorial helps with tasks like setting up NER training pipelines, model evaluation using seqeval metrics, and making predictions with probability scores. Key features include flexible model selection, customizable training parameters, support for continuous training, built-in visualization tools, and comprehensive evaluation metrics including entity-specific measurements. The implementation focuses on practical aspects like proper data formatting, model persistence, and best practices for production deployment.
+Summary: "Summary: 
+Summary: 
+Summary: 
 
-# AutoMM for Named Entity Recognition - Quick Start
+Summary: 
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/text_prediction/ner.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/text_prediction/ner.ipynb)
+Summary: 
 
-Named entity recognition (NER) refers to identifying and categorizing key information (entities) from unstructured text. An entity can be a word or a series of words which correspond to categories such as cities, time expressions, monetary values, facilities, person, organization, etc. An NER model usually takes as input an unannotated block of text and output an annotated block of text that highlights the named entities with predefined categories. For example, given the following sentences, 
+Summary: 
 
-- Albert Einstein was born in Germany and is widely acknowledged to be one of the greatest physicists.
+Summary: 
 
-The model will tell you that "Albert Einstein" is a PERSON and "Germany" is a LOCATION. In the following, we will introduce how to use AutoMM for the NER task, including how to prepare your data, how to train your model, and what you can expect from the model outputs.
+Summary: 
 
- 
-## Prepare Your Data
-Like other tasks in AutoMM, all you need to do is to prepare your data as data tables (i.e., dataframes) which contain a text column and an annotation column. The text column stores the raw textual data which contains the entities you want to identify. Correspondingly, the annotation column stores the label information (e.g., the *category* and the *start/end* offset in character level) for the entities. AutoMM requires the *annotation column* to 
-have the following json format (Note: do not forget to call json.dumps() to convert python objects into a json string before creating your dataframe).
+Summary: 
 
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: This tutorial demonstrates implementing Named Entity Recognition (NER) with AutoGluon MultiModal. It covers the JSON annotation format required for NER tasks (with entity_group, start, and end positions), model training using MultiModalPredictor, evaluation with metrics like F1 score, and prediction visualization. The tutorial shows how to train NER models with pre-trained checkpoints like ELECTRA, make predictions on new text, extract prediction probabilities, and reload/continue training models. It provides practical code examples for implementing complete NER workflows with AutoGluon's simplified API.
 
 ```python
 !pip install autogluon.multimodal

@@ -1,85 +1,121 @@
-# Condensed: Single GPU Billion-scale Model Training via Parameter-Efficient Finetuning
+# Condensed: ```python
 
-Summary: This tutorial demonstrates parameter-efficient finetuning techniques for large language models using IA3 and BitFit, enabling billion-scale model training on limited hardware like single GPUs. It provides implementation code for configuring AutoGluon's MultiModalPredictor with memory optimization strategies including gradient checkpointing and efficient finetuning. Key functionalities covered include memory-efficient training configurations, learning rate optimization, and batch size management. The tutorial specifically helps with tasks like setting up FLAN-T5-XL training on single GPUs, implementing memory optimization techniques, and configuring parameter-efficient finetuning that uses only ~0.5% of total parameters while maintaining model performance.
+Summary: This tutorial demonstrates parameter-efficient multilingual model fine-tuning using AutoGluon's MultiModalPredictor. It covers implementing IA3+BitFit techniques that require only ~0.5% of parameters while maintaining cross-lingual performance across English, German, and Japanese sentiment analysis. The tutorial shows how to train large language models (like FLAN-T5-XL) on limited hardware using gradient checkpointing, and provides code for data preparation, model configuration, and evaluation. Key functionalities include PEFT implementation, multilingual transfer learning, memory optimization techniques, and hyperparameter configuration for efficient fine-tuning of transformer models.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on key implementation details and concepts:
+# Efficient Multilingual Model Fine-tuning with AutoGluon
 
-# Parameter-Efficient Finetuning for Billion-scale Models
+## Setup and Data Preparation
 
-## Key Concepts
-- Uses parameter-efficient finetuning to handle large foundation models
-- Combines gradient checkpointing with efficient finetuning for single GPU training
-- Enables finetuning of billion-parameter models on limited hardware
-
-## Implementation Details
-
-### Basic Setup
 ```python
+!pip install autogluon.multimodal
+!wget --quiet https://automl-mm-bench.s3.amazonaws.com/multilingual-datasets/amazon_review_sentiment_cross_lingual.zip
+!unzip -q -o amazon_review_sentiment_cross_lingual.zip -d .
+
+import os
+import shutil
 import pandas as pd
-from autogluon.multimodal import MultiModalPredictor
+import warnings
+warnings.filterwarnings("ignore")
+
+# Set cache directory and clear it
+os.environ["TRANSFORMERS_CACHE"] = "cache"
+def clear_cache():
+    if os.path.exists("cache"):
+        shutil.rmtree("cache")
+clear_cache()
+
+# Load and sample data
+train_en_df = pd.read_csv("amazon_review_sentiment_cross_lingual/en_train.tsv",
+                          sep="\t", header=None, names=["label", "text"]) \
+                .sample(1000, random_state=123).reset_index(drop=True)
+
+test_en_df = pd.read_csv("amazon_review_sentiment_cross_lingual/en_test.tsv",
+                          sep="\t", header=None, names=["label", "text"]) \
+               .sample(200, random_state=123).reset_index(drop=True)
+               
+test_de_df = pd.read_csv("amazon_review_sentiment_cross_lingual/de_test.tsv",
+                          sep="\t", header=None, names=["label", "text"]) \
+               .sample(200, random_state=123).reset_index(drop=True)
+               
+test_jp_df = pd.read_csv('amazon_review_sentiment_cross_lingual/jp_test.tsv',
+                          sep='\t', header=None, names=['label', 'text']) \
+               .sample(200, random_state=123).reset_index(drop=True)
 ```
 
-### Core Configuration for Efficient Finetuning
+## Finetuning Multilingual Model with IA3 + BitFit
 
-1. Basic IA3 + BitFit Implementation:
+Parameter-efficient fine-tuning using IA3 + BitFit requires only ~0.5% of parameters:
+
 ```python
-predictor = MultiModalPredictor(label="label")
+from autogluon.multimodal import MultiModalPredictor
+import uuid
+
+model_path = f"./tmp/{uuid.uuid4().hex}-multilingual_ia3"
+predictor = MultiModalPredictor(label="label", path=model_path)
 predictor.fit(
-    train_df,
+    train_en_df,
     presets="multilingual",
     hyperparameters={
-        "optimization.efficient_finetune": "ia3_bias",  # Enable efficient finetuning
-        "optimization.lr_decay": 0.9,
-        "optimization.learning_rate": 3e-03,
-        "optimization.end_lr": 3e-03,
-        "optimization.max_epochs": 2,
+        "optim.peft": "ia3_bias",  # Enable IA3 + BitFit
+        "optim.lr_decay": 0.9,
+        "optim.lr": 3e-03,
+        "optim.end_lr": 3e-03,
+        "optim.max_epochs": 2,
+        "optim.warmup_steps": 0,
         "env.batch_size": 32,
     }
 )
+
+# Evaluate on multiple languages
+score_in_en = predictor.evaluate(test_en_df)
+score_in_de = predictor.evaluate(test_de_df)
+score_in_jp = predictor.evaluate(test_jp_df)
+print('Score in the English Testset:', score_in_en)
+print('Score in the German Testset:', score_in_de)
+print('Score in the Japanese Testset:', score_in_jp)
 ```
 
-2. FLAN-T5-XL Single GPU Configuration:
+## Training FLAN-T5-XL on Single GPU
+
+Combining gradient checkpointing with parameter-efficient fine-tuning enables training large models on limited hardware:
+
 ```python
+clear_cache()
+shutil.rmtree(model_path)
+
+train_en_df_downsample = train_en_df.sample(200, random_state=123)
+
+new_model_path = f"./tmp/{uuid.uuid4().hex}-multilingual_ia3_gradient_checkpoint"
+predictor = MultiModalPredictor(label="label", path=new_model_path)
 predictor.fit(
-    train_df,
+    train_en_df_downsample,
     presets="multilingual",
     hyperparameters={
         "model.hf_text.checkpoint_name": "google/flan-t5-xl",
         "model.hf_text.gradient_checkpointing": True,  # Enable gradient checkpointing
         "model.hf_text.low_cpu_mem_usage": True,
-        "optimization.efficient_finetune": "ia3_bias",
-        "optimization.lr_decay": 0.9,
-        "optimization.learning_rate": 3e-03,
-        "optimization.end_lr": 3e-03,
-        "optimization.max_epochs": 1,
+        "optim.peft": "ia3_bias",
+        "optim.lr_decay": 0.9,
+        "optim.lr": 3e-03,
+        "optim.end_lr": 3e-03,
+        "optim.max_epochs": 1,
+        "optim.warmup_steps": 0,
         "env.batch_size": 1,
-        "env.eval_batch_size_ratio": 1
+        "env.inference_batch_size_ratio": 1
     }
 )
+
+score_in_en = predictor.evaluate(test_en_df)
+print('Score in the English Testset:', score_in_en)
 ```
 
-## Important Notes & Best Practices
+## Key Takeaways
 
-1. Memory Optimization:
-- Use gradient checkpointing for large models
-- Enable `low_cpu_mem_usage` for better memory management
-- Adjust batch size based on available GPU memory
+1. Parameter-efficient fine-tuning with `optim.peft="ia3_bias"` requires only ~0.5% of parameters while maintaining performance
+2. Models trained on English data can perform well on other languages (German, Japanese)
+3. Gradient checkpointing (`model.hf_text.gradient_checkpointing=True`) enables training large models like FLAN-T5-XL (2B parameters) on a single GPU
+4. For large models, use smaller batch sizes and enable `low_cpu_mem_usage`
 
-2. Performance:
-- IA3 + BitFit typically uses only ~0.5% of total parameters
-- Can achieve comparable results to full finetuning
-- Works well for cross-lingual tasks
-
-3. Hardware Requirements:
-- Can run billion-parameter models (e.g., FLAN-T5-XL) on single T4 GPU
-- Suitable for AWS G4 instances
-
-## Critical Parameters
-- `optimization.efficient_finetune`: Set to "ia3_bias" for parameter-efficient training
-- `model.hf_text.gradient_checkpointing`: Enable for large models
-- `env.batch_size`: Adjust based on available memory
-- `optimization.learning_rate`: Typically 3e-03 for efficient finetuning
-
-This implementation enables training of large language models on limited hardware while maintaining model performance.
+For more examples, see [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm) and [Customize AutoMM](customization.ipynb).

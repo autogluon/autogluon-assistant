@@ -1,14 +1,6 @@
-Summary: This tutorial demonstrates AutoGluon's tabular machine learning implementation, focusing on automated model training and prediction workflows. It covers essential techniques for loading tabular data, training models with customizable time limits, and evaluating model performance using TabularPredictor. The tutorial helps with tasks like automated feature engineering, model selection, and ensemble creation for both classification and regression problems. Key features include built-in data type handling, automatic model selection, hyperparameter tuning, and performance evaluation through leaderboards, all achievable with minimal code requirements. The implementation emphasizes AutoGluon's ability to handle complex ML pipelines with simple API calls while supporting advanced customization options for features, models, and metrics.
+Summary: "Summary: "Tabular: "Tabular: "Tabular Hypersc 'Hypersc 'Hypertuning 1.Hat 'Hypertuning 'Hypertuning 'Hyperturf: "Hypertuning 'Hyperparred 'Hyperparcel: "Hypertuner: "Hyperturf: "Hypertuner: "Hypertuner: "Hyperturf: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hyperparameter Tuning"
 
-# AutoGluon Tabular - Quick Start
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/tabular-quick-start.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/tabular-quick-start.ipynb)
-
-In this tutorial, we will see how to use AutoGluon's `TabularPredictor` to predict the values of a target column based on the other columns in a tabular dataset.
-
-Begin by making sure AutoGluon is installed, and then import AutoGluon's `TabularDataset` and `TabularPredictor`. We will use the former to load data and the latter to train models and make predictions. 
-
+Summary: This tutorial demonstrates AutoGluon for automated machine learning with tabular data. It covers: (1) implementing quick ML pipelines with TabularPredictor for automatic feature engineering and model selection; (2) solving classification/regression tasks without manual hyperparameter tuning; and (3) key functionalities including data loading, model training with time constraints, prediction, and performance evaluation through leaderboards. AutoGluon automatically handles the entire ML workflow, recognizing task types and selecting appropriate models, making it ideal for rapid prototyping and building high-performance tabular data models with minimal code.
 
 ```python
 !python -m pip install --upgrade pip

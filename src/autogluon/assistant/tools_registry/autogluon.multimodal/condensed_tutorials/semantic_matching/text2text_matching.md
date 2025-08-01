@@ -1,80 +1,80 @@
-# Condensed: Text-to-Text Semantic Matching with AutoMM
+# Condensed: ```python
 
-Summary: This tutorial demonstrates implementing text-to-text semantic matching using AutoGluon's MultiModalPredictor. It covers techniques for computing similarity between text pairs using BERT embeddings, specifically useful for tasks like web search, QA, and document deduplication. Key functionalities include data preparation with SNLI dataset, model training configuration with text similarity settings, making predictions on text pairs, and extracting embeddings. The tutorial shows how to set up binary classification for semantic matching, configure match labels, and evaluate model performance using AUC metrics, all through AutoMM's streamlined interface.
+Summary: This tutorial demonstrates implementing text similarity models with AutoGluon MultiModal, teaching how to leverage BERT-based sentence embeddings for semantic matching tasks. It covers loading text pair datasets, configuring and training a text similarity predictor with customizable parameters (query/response columns, match labels), evaluating model performance, making predictions on new sentence pairs, and extracting embeddings from individual sentences. Key functionalities include binary classification for semantic similarity, probability score generation, and embedding extraction—valuable for applications like duplicate detection, paraphrase identification, and semantic search implementations.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on essential implementation details:
+# Text Similarity with AutoGluon MultiModal
 
-# Text-to-Text Semantic Matching with AutoMM
+## Setup and Data Loading
 
-## Key Concepts
-- Computes similarity between text pairs using semantic matching
-- Uses BERT to project sentences into vectors for classification
-- Suitable for tasks like web search, QA, document deduplication, etc.
-
-## Implementation
-
-### 1. Data Preparation
 ```python
-from autogluon.core.utils.loaders import load_pd
+!pip install autogluon.multimodal
 
-# Load SNLI dataset
+from autogluon.core.utils.loaders import load_pd
+import pandas as pd
+
 snli_train = load_pd.load('https://automl-mm-bench.s3.amazonaws.com/snli/snli_train.csv', delimiter="|")
 snli_test = load_pd.load('https://automl-mm-bench.s3.amazonaws.com/snli/snli_test.csv', delimiter="|")
 ```
 
-### 2. Model Training
+## Training the Model
+
+AutoGluon MultiModal uses BERT to project sentences into high-dimensional vectors and treats matching as a classification problem following the sentence transformers approach.
+
 ```python
 from autogluon.multimodal import MultiModalPredictor
 
 predictor = MultiModalPredictor(
     problem_type="text_similarity",
-    query="premise",          # first sentence column
-    response="hypothesis",    # second sentence column
-    label="label",           # label column
-    match_label=1,           # label indicating semantic match
-    eval_metric='auc'
+    query="premise",           # first sentence column
+    response="hypothesis",     # second sentence column
+    label="label",             # label column
+    match_label=1,             # label indicating semantic match
+    eval_metric='auc',
 )
 
 predictor.fit(
     train_data=snli_train,
-    time_limit=180
+    time_limit=180,
 )
 ```
 
-### 3. Making Predictions
+## Evaluation and Prediction
 
 ```python
-# Single prediction
-pred_data = pd.DataFrame({
+# Evaluate on test data
+score = predictor.evaluate(snli_test)
+print("evaluation score: ", score)
+
+# Predict on new sentence pair
+pred_data = pd.DataFrame.from_dict({
     "premise": ["The teacher gave his speech to an empty room."], 
     "hypothesis": ["There was almost nobody when the professor was talking."]
 })
 
 # Get predictions
 predictions = predictor.predict(pred_data)
+print('Predicted entities:', predictions[0])
+
+# Get matching probabilities
 probabilities = predictor.predict_proba(pred_data)
-
-# Extract embeddings
-embeddings_1 = predictor.extract_embedding({"premise": ["The teacher gave his speech to an empty room."]})
-embeddings_2 = predictor.extract_embedding({"hypothesis": ["There was almost nobody when the professor was talking."]})
+print(probabilities)
 ```
 
-## Important Configurations
-- `problem_type`: Set to "text_similarity"
-- `match_label`: Specify which label represents semantic matching (typically 1)
-- `eval_metric`: Uses 'auc' for evaluation
+## Extracting Embeddings
 
-## Best Practices
-1. Labels should be binary
-2. Define `match_label` based on specific task context
-3. Use appropriate column names for query and response
-4. Consider task-specific requirements when setting evaluation metrics
-
-## Evaluation
 ```python
-score = predictor.evaluate(snli_test)
+# Extract embeddings for individual sentences
+embeddings_1 = predictor.extract_embedding({"premise": ["The teacher gave his speech to an empty room."]})
+print(embeddings_1.shape)
+
+embeddings_2 = predictor.extract_embedding({"hypothesis": ["There was almost nobody when the professor was talking."]})
+print(embeddings_2.shape)
 ```
 
-This implementation provides semantic matching capabilities using BERT-based embeddings through AutoMM's simplified interface.
+**Key Implementation Notes:**
+- Labels must be binary with `match_label` specifying which value indicates semantic similarity
+- The model uses BERT to create sentence embeddings for semantic matching
+- For custom tasks, define `match_label` based on your specific context (e.g., duplicate/not duplicate)
+- For customization options, refer to "Customize AutoMM" documentation

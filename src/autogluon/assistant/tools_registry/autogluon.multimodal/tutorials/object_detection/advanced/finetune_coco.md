@@ -1,33 +1,4 @@
-Summary: This tutorial demonstrates implementing object detection using AutoGluon's MultiModalPredictor with COCO-format datasets. It covers essential techniques for model initialization, training configuration, and evaluation using YOLOX architectures. Key implementations include two-stage learning rate setup, batch size optimization, validation scheduling, and early stopping mechanisms. The tutorial helps with tasks like configuring object detection models, fine-tuning hyperparameters, and visualizing predictions. Notable features include preset configurations (medium/high/best quality), GPU memory management, CUDA/PyTorch compatibility setup, and performance optimization techniques through learning rate adjustments and validation strategies.
-
-# AutoMM Detection - Finetune on COCO Format Dataset with Customized Settings
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/object_detection/finetune_coco.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/object_detection/finetune_coco.ipynb)
-
-
-
-![Pothole Dataset](https://automl-mm-bench.s3.amazonaws.com/object_detection/example_image/pothole144_gt.jpg)
-
-
-In this section, our goal is to fast finetune and evaluate a pretrained model 
-on [Pothole dataset](https://www.kaggle.com/datasets/andrewmvd/pothole-detection) in COCO format with customized setting.
-Pothole is a single object, i.e. `pothole`, detection dataset, containing 665 images with bounding box annotations
-for the creation of detection models and can work as POC/POV for the maintenance of roads.
-See [AutoMM Detection - Prepare Pothole Dataset](../data_preparation/prepare_pothole.ipynb) for how to prepare Pothole dataset.
-
-To start, make sure `mmcv` and `mmdet` are installed.
-**Note:** MMDet is no longer actively maintained and is only compatible with MMCV version 2.1.0. Installation can be problematic due to CUDA version compatibility issues. For best results:
-1. Use CUDA 12.4 with PyTorch 2.5
-2. Before installation, run:
-   ```bash
-   pip install -U pip setuptools wheel
-   sudo apt-get install -y ninja-build gcc g++
-   ```
-   This will help prevent MMCV installation from hanging during wheel building.
-3. After installation in Jupyter notebook, restart the kernel for changes to take effect.
-
-
+Summary: This tutorial demonstrates object detection using AutoGluon MultiModal, focusing on fine-tuning YOLOX models on custom datasets in COCO format. It covers installation of required packages, dataset preparation, model configuration with two-stage learning rates, training with early stopping, evaluation using mAP metrics, and result visualization. Key functionalities include configuring GPU usage, batch size optimization, using quality presets for simplified workflows, and performance tuning options. The tutorial helps with implementing custom object detection systems, visualizing detection results, and optimizing model performance through hyperparameter adjustments.
 
 ```python
 !pip install autogluon.multimodal
@@ -87,7 +58,7 @@ And `usersplit_test_cocoformat.json` is the annotation file of the test split.
 
 We select the YOLOX-small model pretrained on COCO dataset. With this setting, it is fast to finetune or inference,
 and easy to deploy. Note that you can use a larger model by setting the `checkpoint_name` to corresponding checkpoint name for better performance (but usually with slower speed).
-And you may need to change the learning_rate and per_gpu_batch_size for a different model.
+And you may need to change the lr and per_gpu_batch_size for a different model.
 An easier way is to use our predefined presets `"medium_quality"`, `"high_quality"`, or `"best_quality"`.
 For more about using presets, see [Quick Start Coco](../quick_start/quick_start_coco).
 
@@ -132,12 +103,12 @@ predictor.fit(
     train_path,
     tuning_data=val_path,
     hyperparameters={
-        "optimization.learning_rate": 1e-4,  # we use two stage and detection head has 100x lr
+        "optim.lr": 1e-4,  # we use two stage and detection head has 100x lr
         "env.per_gpu_batch_size": 16,  # decrease it when model is large or GPU memory is small
-        "optimization.max_epochs": 30,  # max number of training epochs, note that we may early stop before this based on validation setting
-        "optimization.val_check_interval": 1.0,  # Do 1 validation each epoch
-        "optimization.check_val_every_n_epoch": 3,  # Do 1 validation each 3 epochs
-        "optimization.patience": 3,  # Early stop after 3 consective validations are not the best
+        "optim.max_epochs": 30,  # max number of training epochs, note that we may early stop before this based on validation setting
+        "optim.val_check_interval": 1.0,  # Do 1 validation each epoch
+        "optim.check_val_every_n_epoch": 3,  # Do 1 validation each 3 epochs
+        "optim.patience": 3,  # Early stop after 3 consective validations are not the best
     },
 )
 ```

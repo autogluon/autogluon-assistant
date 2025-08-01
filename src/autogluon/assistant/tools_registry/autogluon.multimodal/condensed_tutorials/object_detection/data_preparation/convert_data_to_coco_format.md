@@ -1,69 +1,70 @@
-# Condensed: Converting Data to COCO Format for Object Detection
+# Condensed: ```
 
-Summary: This tutorial provides implementation details for converting object detection datasets to COCO format, essential for training deep learning models. It covers the specific JSON structure requirements for COCO format, including mandatory fields (images, annotations, categories) and their detailed specifications. The tutorial demonstrates how to organize directory structures, handle VOC to COCO conversion using AutoGluon's CLI tools, and mentions alternative conversion options using FiftyOne for CVAT, YOLO, and KITTI formats. Key features include bounding box coordinate formatting, image metadata specifications, and annotation requirements, making it valuable for data preprocessing in object detection tasks.
+Summary: This tutorial explains the COCO dataset format for object detection, detailing the required directory structure and JSON schema with specific fields for images, categories, and annotations (including bounding boxes). It covers how to convert VOC format datasets to COCO using AutoGluon's CLI tool, with both custom and predefined dataset splits. The tutorial also mentions conversion options for other formats using tools like FiftyOne. This knowledge is essential for preparing object detection datasets, handling annotation formats, and implementing data conversion pipelines for training and evaluation of object detection models.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on essential implementation details:
+# Dataset Format for Object Detection
 
-# Converting Data to COCO Format for Object Detection
-
-## Required Directory Structure
+## Directory Structure
 ```
 <dataset_dir>/
     images/
         <imagename0>.<ext>
         <imagename1>.<ext>
+        ...
     annotations/
         train_labels.json
         val_labels.json
         test_labels.json
+        ...
 ```
 
-## COCO JSON Format Requirements
+## COCO Format JSON Structure
+Required JSON structure for `*_labels.json`:
 
-### Required Components
 ```javascript
 {
-    "images": [image],              // List of image metadata
-    "annotations": [annotation],     // List of object annotations
-    "categories": [category]         // List of object categories
+    "info": info,  // optional
+    "licenses": [license],  // optional
+    "images": [image],  // required - list of all images
+    "annotations": [annotation],  // required for training/evaluation
+    "categories": [category]  // required for training/evaluation
 }
 ```
 
-### Key Object Structures
+### Key Components
+
 ```javascript
 image = {
-    "id": int,                      // Unique image identifier
-    "width": int,                   // Image width in pixels
-    "height": int,                  // Image height in pixels
-    "file_name": str                // Image file name
+    "id": int, 
+    "width": int, 
+    "height": int, 
+    "file_name": str, 
+    "license": int,  // license id
+    "date_captured": datetime,
 }
 
 category = {
-    "id": int,                      // Unique category identifier
-    "name": str,                    // Category name
-    "supercategory": str           // Parent category name
+    "id": int, 
+    "name": str, 
+    "supercategory": str,
 }
 
 annotation = {
-    "id": int,                      // Unique annotation identifier
-    "image_id": int,                // Reference to image
-    "category_id": int,             // Reference to category
-    "bbox": [x,y,width,height],     // Bounding box coordinates
-    "area": float,                  // Object area in pixels
-    "iscrowd": int                  // Instance vs group flag (0 or 1)
+    "id": int, 
+    "image_id": int,  // image id this annotation belongs to
+    "category_id": int,  // category id this annotation belongs to
+    "segmentation": RLE or [polygon], 
+    "area": float, 
+    "bbox": [x,y,width,height], 
+    "iscrowd": int,  // 0 or 1
 }
 ```
 
-## Important Notes
-- Only "images", "categories", and "annotations" fields are mandatory
-- For prediction, only the "images" field is required
-- Bounding box format: [x, y, width, height]
+## Converting VOC Format to COCO Format
 
-## VOC to COCO Conversion
-
-### Required VOC Structure
+### VOC Directory Structure
 ```
 <path_to_VOCdevkit>/
     VOC2007/
@@ -71,20 +72,20 @@ annotation = {
         ImageSets/
         JPEGImages/
         labels.txt
+    VOC2012/
+        ...
 ```
 
-### Conversion Commands
+### Conversion Command
 ```python
-# Custom splits
+# Custom train/val/test split:
 python3 -m autogluon.multimodal.cli.voc2coco --root_dir <root_dir> --train_ratio <train_ratio> --val_ratio <val_ratio>
 
-# Predefined splits
+# Use dataset's provided splits:
 python3 -m autogluon.multimodal.cli.voc2coco --root_dir <root_dir>
 ```
 
+For more details, see tutorial: [AutoMM Detection - Convert VOC Format Dataset to COCO Format](voc_to_coco.ipynb).
+
 ## Converting Other Formats
-1. Create custom conversion scripts following COCO specification
-2. Use FiftyOne for converting from:
-   - CVAT
-   - YOLO
-   - KITTI
+You can write custom code to convert your data to COCO format or use third-party tools like [FiftyOne](https://github.com/voxel51/fiftyone) which supports converting formats such as CVAT, YOLO, and KITTI to COCO format.

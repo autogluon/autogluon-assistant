@@ -1,46 +1,4 @@
-Summary: This tutorial demonstrates how to use AutoGluon for Kaggle competitions, focusing on automated machine learning workflows. It covers implementation techniques for data preparation, model training with TabularPredictor, and submission generation. Key functionalities include merging multiple datasets, configuring competition-specific metrics, optimizing model performance through presets and advanced parameters, and handling predictions for competition submissions. The tutorial helps with tasks like automated model training, probability-based predictions, and proper submission formatting for Kaggle competitions, while emphasizing best practices for competition-specific requirements and model optimization strategies.
-
-# How to use AutoGluon for Kaggle competitions
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/advanced/tabular-kaggle.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/advanced/tabular-kaggle.ipynb)
-
-
-
-This tutorial will teach you how to use AutoGluon to become a serious Kaggle competitor without writing lots of code.
-We first outline the general steps to use AutoGluon in Kaggle contests. Here, we assume the competition involves tabular data which are stored in one (or more) CSV files.
-
-1) Run Bash command: pip install kaggle
-
-2) Navigate to: https://www.kaggle.com/account and create an account (if necessary).
-Then , click on "Create New API Token" and move downloaded file to this location on your machine: `~/.kaggle/kaggle.json`. For troubleshooting, see [Kaggle API instructions](https://www.kaggle.com/docs/api).
-
-3) To download data programmatically: Execute this Bash command in your terminal:
-
-`kaggle competitions download -c [COMPETITION]`
-
-Here, [COMPETITION] should be replaced by the name of the competition you wish to enter.
-Alternatively, you can download data manually: Just navigate to website of the Kaggle competition you wish to enter, click "Download All", and accept the competition's terms.
-
-4) If the competition's training data is comprised of multiple CSV files, use [pandas](https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html) to properly merge/join them into a single data table where rows = training examples, columns = features.
-
-5) Run autogluon `fit()` on the resulting data table.
-
-6) Load the test dataset from competition (again making the necessary merges/joins to ensure it is in the exact same format as the training data table), and then call autogluon `predict()`.  Subsequently use [pandas.read_csv](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html) to load the competition's `sample_submission.csv` file into a DataFrame, put the AutoGluon predictions in the right column of this DataFrame, and finally save it as a CSV file via [pandas.to_csv](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_csv.html). If the competition does not offer a sample submission file, you will need to create the submission file yourself by appropriately reformatting AutoGluon's test predictions.
-
-7) Submit your predictions via Bash command:
-
-`kaggle competitions submit -c [COMPETITION] -f [FILE] -m ["MESSAGE"]`
-
-Here, [COMPETITION] again is the competition's name, [FILE] is the name of the CSV file you created with your predictions, and ["MESSAGE"] is a string message you want to record with this submitted entry. Alternatively, you can  manually upload your file of predictions on the competition website.
-
-8) Finally, navigate to competition leaderboard website to see how well your submission performed!
-It may take time for your submission to appear.
-
-
-
-Below, we demonstrate how to do steps (4)-(6) in Python for a specific Kaggle competition: [ieee-fraud-detection](https://www.kaggle.com/c/ieee-fraud-detection/).
-This means you'll need to run the above steps with `[COMPETITION]` replaced by `ieee-fraud-detection` in each command.  Here, we assume you've already completed steps (1)-(3) and the data CSV files are available on your computer. To begin step (4), we first load the competition's training data into Python:
+Summary: This tutorial demonstrates how to use AutoGluon for fraud detection in the IEEE Fraud detection competition. AutoGluon's TabularPredictor can be used to train a model for binary classification with minimal code. It shows how to use TabularPredictor for binary classification with TabularPredictor for binary classification with TabularPredictor for binary classification.
 
 ```
 import pandas as pd

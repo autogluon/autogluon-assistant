@@ -1,9 +1,4 @@
-Summary: This tutorial demonstrates how to optimize AutoGluon models using TensorRT for faster inference while maintaining accuracy. It covers implementation techniques for model optimization using optimize_for_inference(), including proper setup with CUDA providers, batch size considerations, and precision settings (FP16). The tutorial helps with tasks like converting trained MultiModalPredictor models to TensorRT-optimized versions, validating optimization results, and handling post-optimization workflows. Key features include seamless TensorRT integration, performance validation methods, mixed precision support, and important warnings about model modification constraints and retraining procedures.
-
-# Faster Prediction with TensorRT
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/tensorrt.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/tensorrt.ipynb)
+Summary: This tutorial demonstrates integrating TensorRT with AutoGluon-MultiModal to optimize inference speed. It covers: (1) implementing TensorRT optimization for multimodal models through the optimize_for_inference() method, (2) accelerating prediction tasks for multimodal classification with image and text data, and (3) key functionalities including model training with MultiModalPredictor, converting PyTorch models to TensorRT, benchmarking inference performance, and configuring execution providers. The tutorial shows how to verify prediction consistency while achieving significant speedups, with warnings about post-optimization limitations.
 
 [TensorRT](https://developer.nvidia.com/tensorrt), built on the NVIDIA CUDA® parallel programming model, enables us to optimize inference by leveraging libraries, development tools, and technologies in NVIDIA AI, autonomous machines, high-performance computing, and graphics. AutoGluon-MultiModal is now integrated with TensorRT via `predictor.optimize_for_inference()` interface. This tutorial demonstates how to leverage TensorRT in boosting inference speed, which would be helpful in increasing efficiency at deployment environment.
 
@@ -82,7 +77,7 @@ Now let's fit the predictor with the training data. Here we set a tight time bud
 ```python
 from autogluon.multimodal import MultiModalPredictor
 hyperparameters = {
-    "optimization.max_epochs": 2,
+    "optim.max_epochs": 2,
     "model.names": ["numerical_mlp", "categorical_mlp", "timm_image", "hf_text", "fusion_mlp"],
     "model.timm_image.checkpoint_name": "mobilenetv3_small_100",
     "model.hf_text.checkpoint_name": "google/electra-small-discriminator",

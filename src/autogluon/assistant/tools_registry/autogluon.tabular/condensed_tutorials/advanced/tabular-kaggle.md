@@ -1,101 +1,79 @@
-# Condensed: How to use AutoGluon for Kaggle competitions
+# Condensed: ```
 
-Summary: This tutorial demonstrates how to use AutoGluon for Kaggle competitions, focusing on automated machine learning workflows. It covers implementation techniques for data preparation, model training with TabularPredictor, and submission generation. Key functionalities include merging multiple datasets, configuring competition-specific metrics, optimizing model performance through presets and advanced parameters, and handling predictions for competition submissions. The tutorial helps with tasks like automated model training, probability-based predictions, and proper submission formatting for Kaggle competitions, while emphasizing best practices for competition-specific requirements and model optimization strategies.
+Summary: This tutorial demonstrates how to use AutoGluon for fraud detection in the IEEE Fraud detection competition. AutoGluon's TabularPredictor can be used to train a model for binary classification with minimal code. It shows how to use TabularPredictor for binary classification with TabularPredictor for binary classification with TabularPredictor for binary classification.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on essential implementation details:
+# AutoGluon for Kaggle Competitions: IEEE Fraud Detection
 
-# Using AutoGluon for Kaggle Competitions
+## Data Setup and Preparation
 
-## Setup and Data Preparation
-1. Install requirements:
-```bash
-pip install kaggle
-```
-
-2. Configure Kaggle API:
-- Get API token from https://www.kaggle.com/account
-- Place `kaggle.json` in `~/.kaggle/`
-
-3. Download competition data:
-```bash
-kaggle competitions download -c [COMPETITION]
-```
-
-## Implementation Steps
-
-### 1. Data Loading and Merging
 ```python
 import pandas as pd
+import numpy as np
 from autogluon.tabular import TabularPredictor
 
-# Load data
-train_identity = pd.read_csv('train_identity.csv')
-train_transaction = pd.read_csv('train_transaction.csv')
+directory = '~/IEEEfraud/'
+label = 'isFraud'
+eval_metric = 'roc_auc'
+save_path = directory + 'AutoGluonModels/'
 
-# Merge if multiple files
-train_data = pd.merge(train_transaction, train_identity, 
-                     on='TransactionID', how='left')
+# Load and merge data
+train_identity = pd.read_csv(directory+'train_identity.csv')
+train_transaction = pd.read_csv(directory+'train_transaction.csv')
+train_data = pd.merge(train_transaction, train_identity, on='TransactionID', how='left')
 ```
 
-### 2. Model Training
+## Training the Model
+
 ```python
-predictor = TabularPredictor(
-    label='isFraud',  # target variable
-    eval_metric='roc_auc',  # competition metric
-    path='AutoGluonModels/',
-    verbosity=3
-).fit(
-    train_data,
-    presets='best_quality',
-    time_limit=3600  # adjust based on needs
+# Train with best quality preset
+predictor = TabularPredictor(label=label, eval_metric=eval_metric, path=save_path, verbosity=3).fit(
+    train_data, presets='best_quality', time_limit=3600
 )
+
+results = predictor.fit_summary()
 ```
 
-### 3. Prediction and Submission
-```python
-# Prepare test data
-test_data = pd.merge(test_transaction, test_identity, 
-                     on='TransactionID', how='left')
+## Making Predictions
 
-# Get predictions
+```python
+# Load and merge test data
+test_identity = pd.read_csv(directory+'test_identity.csv')
+test_transaction = pd.read_csv(directory+'test_transaction.csv')
+test_data = pd.merge(test_transaction, test_identity, on='TransactionID', how='left')
+
+# Get prediction probabilities for positive class
 y_predproba = predictor.predict_proba(test_data, as_multiclass=False)
-
-# Create submission
-submission = pd.read_csv('sample_submission.csv')
-submission['target_column'] = y_predproba
-submission.to_csv('my_submission.csv', index=False)
 ```
 
-### 4. Submit Results
-```bash
-kaggle competitions submit -c [COMPETITION] -f my_submission.csv -m "submission message"
-```
+## Important: Verify Prediction Class Labels
 
-## Key Best Practices
-
-1. **Competition Metrics**:
-- Always specify the competition's evaluation metric in `TabularPredictor`
-- Verify correct probability class for `predict_proba` using `predictor.positive_class`
-
-2. **Model Optimization**:
-- Use `presets='best_quality'` for maximum accuracy
-- Consider time-based validation for temporal data
-- Focus on feature engineering over hyperparameter tuning
-
-3. **Advanced Parameters**:
 ```python
-predictor.fit(
-    train_data,
-    num_bag_folds=5,
-    num_stack_levels=2,
-    num_bag_sets=1
-)
+# For binary classification
+predictor.positive_class
+
+# For multiclass classification
+predictor.class_labels  # classes correspond to columns of predict_proba() output
 ```
 
-## Important Warnings
-- Ensure consistent data merging strategy between train and test
-- Verify prediction format matches competition requirements
-- Check class labels match competition expectations for classification tasks
-- Allow sufficient training time when using `best_quality` preset
+## Creating Submission File
+
+```python
+submission = pd.read_csv(directory+'sample_submission.csv')
+submission['isFraud'] = y_predproba
+submission.to_csv(directory+'my_submission.csv', index=False)
+```
+
+## Performance Optimization Tips
+
+- Specify the appropriate evaluation metric from the competition
+- For time-based data, reserve recent examples as validation data
+- Use `presets='best_quality'` and focus on feature engineering
+- Advanced options: `num_bag_folds`, `num_stack_levels`, `num_bag_sets`, `hyperparameter_tune_kwargs`, `hyperparameters`, `refit_full`
+
+## Submission Command
+
+```
+kaggle competitions submit -c ieee-fraud-detection -f sample_submission.csv -m "my first submission"
+```

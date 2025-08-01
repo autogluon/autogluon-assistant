@@ -1,24 +1,37 @@
-# Condensed: AutoGluon Time Series - Forecasting Quick Start
+# Condensed: ```python
 
-Summary: This tutorial demonstrates implementing time series forecasting using AutoGluon's TimeSeriesPredictor framework. It covers essential techniques for loading time series data in long format, configuring and training forecasting models with different quality presets, and generating probabilistic predictions. The tutorial helps with tasks like converting data to TimeSeriesDataFrame format, setting up model training with various presets (fast_training to best_quality), and evaluating model performance. Key features include handling multiple time series, configurable prediction horizons, support for various models (from simple baselines to deep learning), probabilistic forecasting with quantiles, and model evaluation through leaderboards. The implementation knowledge spans data formatting requirements, model configuration options, and best practices for forecast generation.
+Summary: This tutorial demonstrates AutoGluon's time series forecasting capabilities, teaching LLMs how to implement probabilistic time series forecasting with minimal code. It covers TimeSeriesDataFrame for data preparation in long format (requiring item_id, timestamp, and target columns), TimeSeriesPredictor for model training with various quality presets, and generating probabilistic forecasts with quantiles. Key functionalities include handling multiple time series simultaneously, automatic model selection (including statistical, tree-based, and deep learning approaches), customizable forecast horizons, and model evaluation using metrics like MASE. This knowledge helps with implementing production-ready time series forecasting systems.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on essential implementation details:
+# AutoGluon Time Series Forecasting Tutorial
 
-# AutoGluon Time Series - Forecasting Quick Start
+## Setup and Installation
+
+```python
+!pip install uv
+!uv pip install -q autogluon.timeseries --system
+!uv pip uninstall -q torchaudio torchvision torchtext --system # fix incompatible package versions on Colab
+
+import pandas as pd
+from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
+```
 
 ## Key Components
-- `TimeSeriesDataFrame`: Stores multiple time series datasets
-- `TimeSeriesPredictor`: Handles model fitting, tuning, and forecasting
 
-## Implementation Details
+- **TimeSeriesDataFrame**: Stores multiple time series datasets
+- **TimeSeriesPredictor**: Handles model fitting, tuning, selection, and forecasting
 
-### 1. Setup and Data Loading
+## Data Preparation
+
+AutoGluon requires time series data in **long format** with three essential columns:
+- Unique ID for each time series (`item_id`)
+- Timestamp of observation (`timestamp`)
+- Target value (`target`)
+
 ```python
-from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
+df = pd.read_csv("https://autogluon.s3.amazonaws.com/datasets/timeseries/m4_hourly_subset/train.csv")
 
-# Load data and convert to TimeSeriesDataFrame
 train_data = TimeSeriesDataFrame.from_data_frame(
     df,
     id_column="item_id",
@@ -26,66 +39,50 @@ train_data = TimeSeriesDataFrame.from_data_frame(
 )
 ```
 
-**Required Data Format:**
-- Long format with columns for:
-  - Unique ID (`item_id`)
-  - Timestamp (`timestamp`)
-  - Target value (`target`)
+## Training Models
 
-### 2. Model Training
 ```python
 predictor = TimeSeriesPredictor(
-    prediction_length=48,  # Forecast horizon
+    prediction_length=48,  # Forecast horizon (48 hours)
     path="autogluon-m4-hourly",
     target="target",
-    eval_metric="MASE"
+    eval_metric="MASE",
 )
 
 predictor.fit(
     train_data,
     presets="medium_quality",
-    time_limit=600
+    time_limit=600,  # 10 minutes
 )
 ```
 
-**Important Configurations:**
-- `prediction_length`: Number of future timesteps to forecast
-- `presets`: Available options:
-  - `"fast_training"`
-  - `"medium_quality"` (includes baselines, statistical models, tree-based models, deep learning)
-  - `"high_quality"`
-  - `"best_quality"`
+**Preset Options**:
+- `medium_quality`: Includes baselines (`Naive`, `SeasonalNaive`), statistical models (`ETS`, `Theta`), tree-based models (`RecursiveTabular`, `DirectTabular`), deep learning (`TemporalFusionTransformer`), and weighted ensemble
+- Other options: `fast_training`, `high_quality`, `best_quality`
 
-### 3. Generating Forecasts
+## Generating Forecasts
+
 ```python
 predictions = predictor.predict(train_data)
 ```
 
-**Output Features:**
-- Produces probabilistic forecasts
-- Includes mean predictions and quantiles
-- Forecasts `prediction_length` timesteps ahead
+AutoGluon produces **probabilistic forecasts** with both mean predictions and quantiles of the forecast distribution.
 
-### 4. Model Evaluation
+## Visualization
+
 ```python
+import matplotlib.pyplot as plt
+
+test_data = TimeSeriesDataFrame.from_path("https://autogluon.s3.amazonaws.com/datasets/timeseries/m4_hourly_subset/test.csv")
+
+predictor.plot(test_data, predictions, quantile_levels=[0.1, 0.9], max_history_length=200, max_num_item_ids=4)
+```
+
+## Model Evaluation
+
+```python
+# Evaluates models on test data
 predictor.leaderboard(test_data)
 ```
 
-## Best Practices
-1. Ensure data is in correct long format
-2. Choose appropriate prediction length based on data frequency
-3. Select presets based on accuracy vs. training time requirements
-4. Use quantile forecasts to understand prediction uncertainty
-
-## Supported Models
-- Simple baselines (Naive, SeasonalNaive)
-- Statistical models (ETS, Theta)
-- Tree-based models (RecursiveTabular, DirectTabular)
-- Deep learning (TemporalFusionTransformer)
-- Weighted ensemble combinations
-
-## Important Notes
-- AutoGluon generates individual forecasts for each time series without modeling inter-series interactions
-- Higher quality presets typically produce better forecasts but require longer training times
-- Models are ranked based on performance on internal validation set
-- Leaderboard scores are multiplied by -1 (higher scores = better performance)
+Note: MASE scores are multiplied by `-1` in the leaderboard, so higher "negative MASE" values indicate better forecasts.

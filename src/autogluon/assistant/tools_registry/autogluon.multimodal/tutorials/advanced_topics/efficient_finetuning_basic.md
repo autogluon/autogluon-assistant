@@ -1,39 +1,4 @@
-Summary: This tutorial demonstrates parameter-efficient finetuning techniques for large language models using IA3 and BitFit, enabling billion-scale model training on limited hardware like single GPUs. It provides implementation code for configuring AutoGluon's MultiModalPredictor with memory optimization strategies including gradient checkpointing and efficient finetuning. Key functionalities covered include memory-efficient training configurations, learning rate optimization, and batch size management. The tutorial specifically helps with tasks like setting up FLAN-T5-XL training on single GPUs, implementing memory optimization techniques, and configuring parameter-efficient finetuning that uses only ~0.5% of total parameters while maintaining model performance.
-
-# Single GPU Billion-scale Model Training via Parameter-Efficient Finetuning
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/efficient_finetuning_basic.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/efficient_finetuning_basic.ipynb)
-
-
-
-As pointed out by [a recent paper from Stanford Institute for Human-Centered Artificial Intelligence](https://arxiv.org/pdf/2108.07258.pdf), 
-AI is undergoing a paradigm shift with the rise of "foundation models", i.e., giant models that are trained on a diverse collection of datasets generally in a self-supervised way. 
-These foundation models, which are the key of AutoMM, can be easily adapted to down-stream applications. However, as the size of these foundation models grows, finetuning these models becomes increasingly difficult. 
-Following is a figure from the [Microsoft research blog](https://www.microsoft.com/en-us/research/blog/using-deepspeed-and-megatron-to-train-megatron-turing-nlg-530b-the-worlds-largest-and-most-powerful-generative-language-model/) that demonstrates the trend:
-
-![Scaling of foundation models](https://www.microsoft.com/en-us/research/uploads/prod/2021/10/model-size-graph.jpg)
-
-
-The goal of AutoMM is to help anyone solve machine learning problems via open source foundation models, including these giant models. 
-To finetune these large-scale models, we adopt the recently popularized **parameter-efficient finetuning** technique. 
-The idea is to either finetune a small subset of the weights in the foundation model (e.g., [BitFit](https://aclanthology.org/2022.acl-short.1.pdf)), 
-or adding a tiny tunable structure on top of the fixed backbone (e.g., [Prompt Tuning](https://aclanthology.org/2021.emnlp-main.243.pdf),
-[LoRA](https://arxiv.org/pdf/2106.09685.pdf), [Adapter](https://arxiv.org/abs/1902.00751), [MAM Adapter](https://arxiv.org/pdf/2110.04366.pdf), [IA^3](https://arxiv.org/abs/2205.05638)). 
-These techniques can effectively reduce the peak memory usage and model training time, while maintaining the performance.
-
-In this tutorial, we introduce how to apply parameter-efficient finetuning in MultiModalPredictor. 
-We first introduce how to adopt the `"ia3_bias"` algorithm for parameter-efficient finetuning. Afterwards, we show how you can simply combine `"ia3_bias"` 
-and gradient checkpointing to finetune the XL-variant of Google's [FLAN-T5](https://arxiv.org/abs/2210.11416) via a single NVIDIA T4 GPU. 
-
-
-## Prepare Dataset
-
-The [Cross-Lingual Amazon Product Review Sentiment](https://webis.de/data/webis-cls-10.html) dataset contains Amazon product reviews in four languages. 
-Here, we load the English and German fold of the dataset. In the label column, `0` means negative sentiment and `1` means positive sentiment. 
-For the purpose of demonstration, we downsampled the training data to 1000 samples. We will train the model on the English dataset and 
-directly evaluate its performance on the German and Japanese test set.
-
+Summary: This tutorial demonstrates parameter-efficient multilingual model fine-tuning using AutoGluon's MultiModalPredictor. It covers implementing IA3+BitFit techniques that require only ~0.5% of parameters while maintaining cross-lingual performance across English, German, and Japanese sentiment analysis. The tutorial shows how to train large language models (like FLAN-T5-XL) on limited hardware using gradient checkpointing, and provides code for data preparation, model configuration, and evaluation. Key functionalities include PEFT implementation, multilingual transfer learning, memory optimization techniques, and hyperparameter configuration for efficient fine-tuning of transformer models.
 
 ```python
 !pip install autogluon.multimodal
@@ -93,7 +58,7 @@ test_jp_df.head(5)
 
 ## Finetuning Multilingual Model with IA3 + BitFit
 
-In AutoMM, to enable efficient finetuning, just specify the `optimization.efficient_finetune` to be `"ia3_bias"`.
+In AutoMM, to enable efficient finetuning, just specify the `optim.peft` to be `"ia3_bias"`.
 
 
 ```python
@@ -106,12 +71,12 @@ predictor = MultiModalPredictor(label="label",
 predictor.fit(train_en_df,
               presets="multilingual",
               hyperparameters={
-                  "optimization.efficient_finetune": "ia3_bias",
-                  "optimization.lr_decay": 0.9,
-                  "optimization.learning_rate": 3e-03,
-                  "optimization.end_lr": 3e-03,
-                  "optimization.max_epochs": 2,
-                  "optimization.warmup_steps": 0,
+                  "optim.peft": "ia3_bias",
+                  "optim.lr_decay": 0.9,
+                  "optim.lr": 3e-03,
+                  "optim.end_lr": 3e-03,
+                  "optim.max_epochs": 2,
+                  "optim.warmup_steps": 0,
                   "env.batch_size": 32,
               })
 ```
@@ -158,14 +123,14 @@ predictor.fit(train_en_df_downsample,
                   "model.hf_text.checkpoint_name": "google/flan-t5-xl",
                   "model.hf_text.gradient_checkpointing": True,
                   "model.hf_text.low_cpu_mem_usage": True,
-                  "optimization.efficient_finetune": "ia3_bias",
-                  "optimization.lr_decay": 0.9,
-                  "optimization.learning_rate": 3e-03,
-                  "optimization.end_lr": 3e-03,
-                  "optimization.max_epochs": 1,
-                  "optimization.warmup_steps": 0,
+                  "optim.peft": "ia3_bias",
+                  "optim.lr_decay": 0.9,
+                  "optim.lr": 3e-03,
+                  "optim.end_lr": 3e-03,
+                  "optim.max_epochs": 1,
+                  "optim.warmup_steps": 0,
                   "env.batch_size": 1,
-                  "env.eval_batch_size_ratio": 1
+                  "env.inference_batch_size_ratio": 1
               })
 
 ```

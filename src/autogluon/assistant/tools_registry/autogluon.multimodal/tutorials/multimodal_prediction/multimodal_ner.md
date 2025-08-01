@@ -1,17 +1,4 @@
-Summary: This tutorial demonstrates implementing multimodal entity extraction using AutoGluon's MultiModalPredictor, specifically focusing on processing combined text and image data. It covers essential techniques for dataset preparation (including image path handling), model configuration for NER tasks, and automated modality fusion. Key functionalities include proper column type specification for NER, model training with time limits, evaluation using standard metrics (recall, precision, F1), prediction capabilities, and model persistence. The tutorial helps with tasks involving entity extraction from multimodal sources, model saving/loading, and continuous training workflows. It emphasizes best practices for NER configuration and handling multiple text columns while showcasing AutoMM's automatic modality detection and fusion features.
-
-# AutoMM for Entity Extraction with Text and Image - Quick Start
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/multimodal_prediction/multimodal_ner.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/multimodal_prediction/multimodal_ner.ipynb)
-
-We have introduced how to train an entity extraction model with text data.
-Here, we move a step further by integrating data of other modalities.
-In many real-world applications, textual data usually comes with data of other modalities.
-For example, Twitter allows you to compose tweets with text, photos, videos, and GIFs. Amazon.com uses text, images, and videos to describe their products.
-These auxiliary modalities can be leveraged as additional context resolution of entities.
-Now, with AutoMM, you can easily exploit multimodal data to enhance entity extraction without worrying about the details.
-
+Summary: This tutorial demonstrates implementing multimodal named entity recognition using AutoGluon, showing how to process text and image data together for NER tasks. It covers dataset preparation with image path handling, model training with the MultiModalPredictor (specifying "ner" problem type and "text_ner" column type), evaluation using precision/recall/F1 metrics, entity prediction with detailed output parsing, and model persistence. Key features include automatic modality detection, late fusion of multimodal data, and support for continuous training. This implementation helps with building NER systems that leverage both textual and visual information to identify and classify named entities.
 
 ```python
 !pip install autogluon.multimodal

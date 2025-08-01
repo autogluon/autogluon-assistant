@@ -1,15 +1,4 @@
-Summary: This tutorial demonstrates the implementation of AutoGluon's MultiModalPredictor for handling combined image, text, and tabular data processing tasks. It provides code for essential operations including data preparation (path expansion for images), model training, prediction (standard and probability-based), evaluation, feature extraction, and model persistence. The tutorial showcases AutoGluon's automatic features like problem type detection, data modality recognition, and model selection. Key functionalities covered include multi-modal fusion, automated model training, embedding extraction, and handling various data formats. It's particularly useful for developers working on projects requiring unified processing of mixed data types with minimal manual configuration.
-
-# AutoMM for Image + Text + Tabular - Quick Start
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/multimodal_prediction/beginner_multimodal.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/multimodal_prediction/beginner_multimodal.ipynb)
-
-
-
-AutoMM is a deep learning "model zoo" of model zoos. It can automatically build deep learning models that are suitable for multimodal datasets. You will only need to convert the data into the multimodal dataframe format
-and AutoMM can predict the values of one column conditioned on the features from the other columns including images, text, and tabular data.
-
+Summary: This tutorial demonstrates AutoGluon MultiModal, a framework for multimodal machine learning that handles mixed data types. It covers implementing a pet adoption speed predictor using images and tabular data, showcasing automatic modality detection, model selection, and late-fusion techniques. Key functionalities include training a multimodal predictor with minimal code, evaluating model performance, making predictions, extracting embeddings for downstream tasks, and saving/loading models. The tutorial is valuable for developers implementing classification tasks with mixed data types (images and tabular data) who need automated machine learning capabilities without extensive manual configuration.
 
 ```python
 !pip install autogluon.multimodal

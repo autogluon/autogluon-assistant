@@ -1,26 +1,4 @@
-Summary: This tutorial demonstrates implementing time series forecasting using AutoGluon's TimeSeriesPredictor framework. It covers essential techniques for loading time series data in long format, configuring and training forecasting models with different quality presets, and generating probabilistic predictions. The tutorial helps with tasks like converting data to TimeSeriesDataFrame format, setting up model training with various presets (fast_training to best_quality), and evaluating model performance. Key features include handling multiple time series, configurable prediction horizons, support for various models (from simple baselines to deep learning), probabilistic forecasting with quantiles, and model evaluation through leaderboards. The implementation knowledge spans data formatting requirements, model configuration options, and best practices for forecast generation.
-
-# AutoGluon Time Series - Forecasting Quick Start
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/timeseries/forecasting-quick-start.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/timeseries/forecasting-quick-start.ipynb)
-
-
-Via a simple `fit()` call, AutoGluon can train and tune
-
-- simple forecasting models (e.g., ARIMA, ETS, Theta),
-- powerful deep learning models (e.g., DeepAR, Temporal Fusion Transformer),
-- tree-based models (e.g., LightGBM),
-- an ensemble that combines predictions of other models
-
-to produce multi-step ahead _probabilistic_ forecasts for univariate time series data.
-
-This tutorial demonstrates how to quickly start using AutoGluon to generate hourly forecasts for the [M4 forecasting competition](https://www.sciencedirect.com/science/article/pii/S0169207019301128) dataset.
-
-## Loading time series data as a `TimeSeriesDataFrame`
-
-First, we import some required modules
-
+Summary: This tutorial demonstrates AutoGluon's time series forecasting capabilities, teaching LLMs how to implement probabilistic time series forecasting with minimal code. It covers TimeSeriesDataFrame for data preparation in long format (requiring item_id, timestamp, and target columns), TimeSeriesPredictor for model training with various quality presets, and generating probabilistic forecasts with quantiles. Key functionalities include handling multiple time series simultaneously, automatic model selection (including statistical, tree-based, and deep learning approaches), customizable forecast horizons, and model evaluation using metrics like MASE. This knowledge helps with implementing production-ready time series forecasting systems.
 
 ```python
 # We use uv for faster installation
@@ -52,7 +30,7 @@ df.head()
 ```
 
 AutoGluon expects time series data in [long format](https://doc.dataiku.com/dss/latest/time-series/data-formatting.html#long-format).
-Each row of the data frame contains a single observation (timestep) of a single time series represented by
+Each row of the dataframe contains a single observation (timestep) of a single time series represented by
 
 - unique ID of the time series (`"item_id"`) as int or str
 - timestamp of the observation (`"timestamp"`) as a `pandas.Timestamp` or compatible format
@@ -162,7 +140,7 @@ We can view the performance of each model AutoGluon has trained via the `leaderb
 We provide the test data set to the leaderboard function to see how well our fitted models are doing on the unseen test data.
 The leaderboard also includes the validation scores computed on the internal validation dataset.
 
-Note the test data includes both the forecast horizon (last `prediction_length` values of each time series) as well as the historic data (all except the last `prediction_last` values).
+Note the test data includes both the forecast horizon (last `prediction_length` values of each time series) as well as the historical data (all except the last `prediction_last` values).
 
 In AutoGluon leaderboards, higher scores always correspond to better predictive performance.
 Therefore our MASE scores are multiplied by `-1`, such that higher "negative MASE"s correspond to more accurate forecasts.

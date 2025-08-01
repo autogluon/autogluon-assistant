@@ -1,20 +1,4 @@
-Summary: This tutorial demonstrates implementing Chinese Named Entity Recognition using AutoGluon's MultiModalPredictor. It covers essential techniques for setting up NER models with Chinese pretrained transformers (specifically 'hfl/chinese-lert-small'), loading preprocessed datasets, and configuring model training with specific entity labels (brand, product, pattern, misc). The tutorial helps with tasks like training NER models, making predictions, and visualizing results using AutoGluon's built-in functions. Key features include simplified model configuration, integration with Chinese language models, evaluation methods, and visualization tools for NER results, making it valuable for implementing Chinese text entity extraction systems.
-
-# AutoMM for Named Entity Recognition in Chinese - Quick Start
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/text_prediction/chinese_ner.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/text_prediction/chinese_ner.ipynb)
-
-In this tutorial, we will demonstrate how to use AutoMM for Chinese Named Entity Recognition using an e-commerce dataset extracted from one of the most popular online marketplaces, [TaoBao.com](https://taobao.com). 
-The dataset is collected and labelled by [Jie et al.](https://aclanthology.org/N19-1079.pdf) and the text column mainly consists of product descriptions. 
-The following figure shows an example of Taobao product description.
-
-![Taobao product description. A rabbit toy for lunar new year decoration.](https://automl-mm-bench.s3.amazonaws.com/ner/images_for_tutorial/chinese_ner.png)
-
-
-## Load the Data 
-We have preprocessed the dataset to make it ready-to-use with AutoMM.
-
+Summary: This tutorial demonstrates Chinese Named Entity Recognition (NER) using AutoGluon MultiModal, covering implementation of NER models specifically for Chinese text. It shows how to load Chinese NER datasets, train a model using a Chinese pretrained checkpoint (hfl/chinese-lert-small), evaluate performance, and visualize predictions. Key functionalities include customizing the model for Chinese language processing, handling entity types like brand, product, pattern, and specifications, and applying NER to e-commerce product descriptions. The workflow demonstrates the complete pipeline from data loading to visualization with minimal code.
 
 ```python
 !pip install autogluon.multimodal

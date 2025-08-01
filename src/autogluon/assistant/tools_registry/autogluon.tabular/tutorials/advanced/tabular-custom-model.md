@@ -1,46 +1,4 @@
-Summary: This tutorial provides implementation guidance for adding custom models to AutoGluon, focusing on inheriting from the AbstractModel class and following AutoGluon's API patterns. It covers essential techniques for model preprocessing, fitting, and integration with TabularPredictor, including handling feature cleaning, model serialization, and hyperparameter tuning. Key functionalities include implementing custom RandomForest models, bagged ensembles, feature generation, and optimizing model performance through hyperparameter search spaces. The tutorial serves as a reference for tasks involving custom model integration, ensemble creation, and automated machine learning pipeline development within the AutoGluon framework, with specific examples of time limits, GPU support, and special data type handling.
-
-# Adding a custom model to AutoGluon
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/advanced/tabular-custom-model.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/advanced/tabular-custom-model.ipynb)
-
-
-
-**Tip**: If you are new to AutoGluon, review [Predicting Columns in a Table - Quick Start](../tabular-quick-start.ipynb) to learn the basics of the AutoGluon API.
-
-This tutorial describes how to add a custom model to AutoGluon that can be trained, hyperparameter-tuned, and ensembled alongside the default models ([default model documentation](../../../api/autogluon.tabular.models.rst)).
-
-In this example, we create a custom Random Forest model for use in AutoGluon. All models in AutoGluon inherit from the AbstractModel class ([AbstractModel source code](https://auto.gluon.ai/stable/_modules/autogluon/core/models/abstract/abstract_model.html)), and must follow its API to work alongside other models.
-
-Note that while this tutorial provides a basic model implementation, this does not cover many aspects that are used in most implemented models.
-
-To best understand how to implement more advanced functionality, refer to the [source code](../../../api/autogluon.tabular.models.rst) of the following models:
-
-| Functionality | Reference Implementation |
-| ------------- | ------------------------ |
-| Respecting time limit / early stopping logic | [LGBModel](https://auto.gluon.ai/stable/_modules/autogluon/tabular/models/lgb/lgb_model.html) and [RFModel](https://auto.gluon.ai/stable/_modules/autogluon/tabular/models/rf/rf_model.html)
-| Respecting memory usage limit | LGBModel and RFModel
-| Sample weight support | LGBModel
-| Validation data and eval_metric usage | LGBModel
-| GPU training support | LGBModel
-| Save / load logic of non-serializable models | [NNFastAiTabularModel](https://auto.gluon.ai/stable/_modules/autogluon/tabular/models/fastainn/tabular_nn_fastai.html)
-| Advanced problem type support (Softclass, Quantile) | RFModel
-| Text feature type support | [TextPredictorModel](https://auto.gluon.ai/stable/_modules/autogluon/tabular/models/text_prediction/text_prediction_v1_model.html)
-| Image feature type support | [ImagePredictorModel](https://auto.gluon.ai/stable/_modules/autogluon/tabular/models/image_prediction/image_predictor.html)
-| Lazy import of package dependencies | LGBModel
-| Custom HPO logic | LGBModel
-
-## Implementing a custom model
-
-Here we define the custom model we will be working with for the rest of the tutorial.
-
-The most important methods that must be implemented are `_fit` and `_preprocess`.
-
-To compare with the official AutoGluon Random Forest implementation, see the [RFModel](https://auto.gluon.ai/stable/_modules/autogluon/tabular/models/rf/rf_model.html) source code.
-
-Follow along with the code comments to better understand how the code works.
-
+Summary: This tutorial demonstrates how to implement custom models in AutoGluon by extending the AbstractModel class, specifically creating a custom RandomForest implementation. It covers preprocessing with label encoding, dynamic model selection based on problem type, and proper integration with AutoGluon's ecosystem. Key functionalities include custom model training, feature preprocessing, model saving/loading, bagged ensembles for improved performance, and hyperparameter tuning using search spaces. The tutorial helps with tasks like implementing custom ML algorithms within AutoGluon, integrating models with TabularPredictor, and optimizing model performance through bagging and hyperparameter optimization.
 
 ```python
 !pip install autogluon.tabular[all]

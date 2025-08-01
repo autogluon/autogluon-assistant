@@ -1,14 +1,4 @@
-Summary: This tutorial demonstrates GPU integration in AutoGluon's TabularPredictor, covering implementation techniques for multi-level resource allocation (predictor, bagged model, and base model levels). It helps with tasks involving GPU-accelerated model training, particularly for LightGBM and neural networks. Key features include configuring single/multiple GPU usage, model-specific GPU allocation, proper CUDA toolkit setup, and hierarchical resource management with specific allocation rules. The tutorial provides practical code examples for both basic and advanced GPU configurations, making it valuable for optimizing machine learning workflows with GPU acceleration.
-
-# Training models with GPU support
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/advanced/tabular-gpu.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/advanced/tabular-gpu.ipynb)
-
-
-
-Training with GPU can significantly speed up base algorithms, and is a necessity for text and vision models where training without GPU is infeasibly slow. 
-CUDA toolkit is required for GPU training. Please refer to the [official documentation](https://docs.nvidia.com/cuda/) for the installation instructions.
+Summary: This tutorial explains GPU acceleration in AutoGluon, covering basic GPU allocation with `num_gpus` parameter, model-specific GPU assignment using hyperparameters dictionary, and multi-modal configuration retrieval. It details special installation requirements for GPU-enabled LightGBM and demonstrates advanced resource allocation techniques to control CPU/GPU usage at predictor, ensemble, and individual model levels. The tutorial helps with optimizing machine learning workflows by efficiently distributing computational resources across different models and training processes, particularly useful for implementing parallel hyperparameter optimization with controlled resource allocation for tabular, multimodal, and gradient-boosted models.
 
 ```python
 predictor = TabularPredictor(label=label).fit(

@@ -1,35 +1,4 @@
-Summary: This tutorial provides implementation guidance for preparing the COCO2017 dataset specifically for AutoMM Detection tasks. It covers two main implementation approaches: using Python CLI commands or bash scripts for dataset installation, with options for custom output paths. The tutorial helps with dataset setup tasks, detailing the required 42.7GB storage, installation commands, and resulting directory structure. Key features include handling COCO2017's 80 classes and 886,284 instances, maintaining COCO format compatibility with AutoGluon MultiModalPredictor, and best practices for storage and data organization. It's particularly useful for setting up object detection datasets in a standardized format.
-
-# AutoMM Detection - Prepare COCO2017 Dataset
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/object_detection/data_preparation/prepare_coco17.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/object_detection/data_preparation/prepare_coco17.ipynb)
-
-
-
-[COCO](https://cocodataset.org/#home) is a large-scale object detection, segmentation, and captioning dataset. 
-For detection, the most commonly used version is COCO2017 with the largest number of training data.
-There are 80 classes, 123,287 images, 886,284 instances, and the median image ratio is 640 x 480.
-This tutorial will walk through the steps of preparing this dataset for Autogluon MultiModalPredictor.
-
-You need 42.7 GB disk space to download and extract this dataset. SSD is preferred over HDD because of its better performance.
-The total time to prepare the dataset depends on your Internet speed and disk performance. For example, it often takes 20 min on AWS EC2 with EBS.
-
-COCO has an [official download page](https://cocodataset.org/#download), 
-but it's always easier to perform a one-step setup.
-We prepared a bash script for one-step downloading the COCO17 dataset: 
-[download_coco17.sh](https://raw.githubusercontent.com/autogluon/autogluon/master/examples/automm/object_detection/download_coco17.sh).
-Or you can also use our cli tool `prepare_detection_dataset` that can download all datasets mentioned in our tutorials.
-This python script is in our code: 
-[prepare_detection_dataset.py](https://raw.githubusercontent.com/autogluon/autogluon/master/multimodal/src/autogluon/multimodal/cli/prepare_detection_dataset.py),
-and you can also run it as a cli: `python3 -m autogluon.multimodal.cli.prepare_detection_dataset`.
-
-## Download with Python Script
-
-The python script does not show progress bar, but is promised to work on all major platforms.
-If you are working on a Unix system and needs a progress bar, try the bash script!
-
-You could either extract it in coco17 folder under current directory by running:
+Summary: This tutorial demonstrates how to download and extract the COCO2017 dataset for object detection using either AutoGluon CLI commands or a bash script. It covers implementation techniques for dataset acquisition with customizable output paths, explains the resulting dataset structure, and emphasizes the importance of using COCO format (JSON) for object detection in AutoGluon MultiModalPredictor. The tutorial helps with dataset preparation tasks for computer vision projects and points to additional resources for format conversion and customization, making it valuable for developers implementing object detection systems.
 
 ```
 python3 -m autogluon.multimodal.cli.prepare_detection_dataset --dataset_name coco2017

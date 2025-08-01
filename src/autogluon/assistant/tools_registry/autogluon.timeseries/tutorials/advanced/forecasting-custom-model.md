@@ -1,29 +1,4 @@
-Summary: This tutorial demonstrates the implementation of a NHITS (Neural Hierarchical Interpolation for Time Series) model within AutoGluon's framework. It provides implementation details for model class setup, data preprocessing, model fitting with GPU support, and data format conversion. The tutorial helps with tasks like handling missing values, integrating deep learning models into AutoGluon, managing time limits, and supporting various feature types (known covariates, past covariates, static features). Key functionalities covered include GPU acceleration, quantile-based predictions, automatic preprocessing, and compatibility with AutoGluon's ensemble capabilities. The implementation knowledge is particularly valuable for developers looking to integrate custom neural forecasting models into the AutoGluon ecosystem.
-
-# Adding a custom time series forecasting model
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/timeseries/advanced/forecasting-custom-model.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/timeseries/advanced/forecasting-custom-model.ipynb)
-
-This tutorial describes how to add a custom forecasting model that can be trained, hyperparameter-tuned, and ensembled alongside the [default forecasting models](../forecasting-model-zoo.html).
-
-As an example, we will implement an AutoGluon wrapper for the [NHITS](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits) model from the [NeuralForecast](https://github.com/Nixtla/NeuralForecast) library.
-
-This tutorial consists of the following sections:
-1. Implementing the model wrapper.
-2. Loading & preprocessing the dataset used for model development.
-3. Using the custom model in standalone mode.
-4. Using the custom model inside the `TimeSeriesPredictor`.
-
-
-```{warning}
-
-This tutorial is designed for advanced AutoGluon users.
-
-Custom model implementations rely heavily on the private of API of AutoGluon that might change over time. For this reason, it might be necessary to update your custom model implementations as you upgrade to new versions of AutoGluon.
-
-```
-
+Summary: This tutorial demonstrates implementing the NHITS neural forecasting model in AutoGluon's time series framework. It covers creating a custom model class that handles preprocessing (filling missing values), configuring hyperparameters (with GPU support), converting data formats, and generating predictions with quantile levels. The implementation supports real-valued covariates (past, known, and static) while handling limitations like NaN values. The tutorial shows how to use the model both standalone and integrated with TimeSeriesPredictor for comparison against other models, hyperparameter tuning, and feature importance analysis. This knowledge helps with implementing custom neural forecasting models in AutoGluon's ecosystem.
 
 ```python
 # We use uv for faster installation
@@ -97,26 +72,13 @@ class NHITSModel(AbstractTimeSeriesModel):
         # to define a custom preprocessing logic
         return data, known_covariates
 
-    def _fit(
-        self,
-        train_data: TimeSeriesDataFrame,
-        val_data: Optional[TimeSeriesDataFrame] = None,
-        time_limit: Optional[float] = None,
-        **kwargs,
-    ) -> None:
-        """Fit the model on the available training data."""
-        print("Entering the `_fit` method")
-
-        # We lazily import other libraries inside the _fit method. This reduces the
-        # import time for autogluon and ensures that even if one model has some problems
-        # with dependencies, the training process won't crash
+    def _get_default_hyperparameters(self) -> dict:
+        """Default hyperparameters that will be provided to the inner model, i.e., the
+        NHITS implementation in neuralforecast. """
         import torch
-        from neuralforecast import NeuralForecast
         from neuralforecast.losses.pytorch import MQLoss
-        from neuralforecast.models import NHITS
 
-        # Default hyperparameters for the model
-        default_model_params = dict(
+        default_hyperparameters = dict(
             loss=MQLoss(quantiles=self.quantile_levels),
             input_size=2 * self.prediction_length,
             scaler_type="standard",
@@ -135,25 +97,46 @@ class NHITSModel(AbstractTimeSeriesModel):
             # only use the real-valued covariates here. To use categorical features in
             # you wrapper, you need to either use techniques like one-hot-encoding, or
             # rely on models that natively handle categorical features.
-            futr_exog_list=self.metadata.known_covariates_real,
-            hist_exog_list=self.metadata.past_covariates_real,
-            stat_exog_list=self.metadata.static_features_real,
+            futr_exog_list=self.covariate_metadata.known_covariates_real,
+            hist_exog_list=self.covariate_metadata.past_covariates_real,
+            stat_exog_list=self.covariate_metadata.static_features_real,
         )
+
         if torch.cuda.is_available():
-            default_model_params["accelerator"] = "gpu"
-            default_model_params["devices"] = 1
+            default_hyperparameters["accelerator"] = "gpu"
+            default_hyperparameters["devices"] = 1
+
+        return default_hyperparameters
+
+    def _fit(
+        self,
+        train_data: TimeSeriesDataFrame,
+        val_data: Optional[TimeSeriesDataFrame] = None,
+        time_limit: Optional[float] = None,
+        **kwargs,
+    ) -> None:
+        """Fit the model on the available training data."""
+        print("Entering the `_fit` method")
+
+        # We lazily import other libraries inside the _fit method. This reduces the
+        # import time for autogluon and ensures that even if one model has some problems
+        # with dependencies, the training process won't crash
+        from neuralforecast import NeuralForecast
+        from neuralforecast.models import NHITS
 
         # It's important to ensure that the model respects the time_limit during `fit`.
         # Since NeuralForecast is based on PyTorch-Lightning, this can be easily enforced
         # using the `max_time` argument to `pl.Trainer`. For other model types such as
         # ARIMA implementing the time_limit logic may require a lot of work.
+        hyperparameter_overrides = {}
         if time_limit is not None:
-            default_model_params["max_time"] = {"seconds": time_limit}
+            hyperparameter_overrides = {"max_time": {"seconds": time_limit}}
 
-        # The method `_get_model_params()` returns the custom hyperparameters provided by
-        # the user in `predictor.fit(..., hyperparameters={NHITSModel: {}})`. We override
-        # the default hyperparameters defined above with the user hyperparameters.
-        model_params = default_model_params | self._get_model_params()
+        # The method `get_hyperparameters()` returns the model hyperparameters in
+        # `_get_default_hyperparameters` overridden with the hyperparameters provided by the user in
+        # `predictor.fit(..., hyperparameters={NHITSModel: {}})`. We override these with other
+        # hyperparameters available at training time.
+        model_params = self.get_hyperparameters() | hyperparameter_overrides
         print(f"Hyperparameters:\n{pprint.pformat(model_params, sort_dicts=False)}")
 
         model = NHITS(h=self.prediction_length, **model_params)
@@ -178,11 +161,11 @@ class NHITSModel(AbstractTimeSeriesModel):
         """Convert a TimeSeriesDataFrame to the format expected by NeuralForecast."""
         df = data.to_data_frame().reset_index()
         # Drop the categorical covariates to avoid NeuralForecast errors
-        df = df.drop(columns=self.metadata.covariates_cat)
+        df = df.drop(columns=self.covariate_metadata.covariates_cat)
         static_df = data.static_features
-        if len(self.metadata.static_features_real) > 0:
+        if len(self.covariate_metadata.static_features_real) > 0:
             static_df = static_df.reset_index()
-            static_df = static_df.drop(columns=self.metadata.static_features_cat)
+            static_df = static_df.drop(columns=self.covariate_metadata.static_features_cat)
         return df, static_df
 
     def _predict(
@@ -191,13 +174,13 @@ class NHITSModel(AbstractTimeSeriesModel):
         known_covariates: Optional[TimeSeriesDataFrame] = None,
         **kwargs,
     ) -> TimeSeriesDataFrame:
-        """Predict future target given the historic time series data and the future values of known_covariates."""
+        """Predict future target given the historical time series data and the future values of known_covariates."""
         print("Entering the `_predict` method")
 
         from neuralforecast.losses.pytorch import quantiles_to_outputs
 
         df, static_df = self._to_neuralforecast_format(data)
-        if len(self.metadata.known_covariates_real) > 0:
+        if len(self.covariate_metadata.known_covariates_real) > 0:
             futr_df, _ = self._to_neuralforecast_format(known_covariates)
         else:
             futr_df = None
@@ -225,7 +208,7 @@ For convenience, here is an overview of the main constraints on the inputs and o
     - timestamps of observations have a regular frequency corresponding to `self.freq`
     - column `self.target` contains the target values of the time series
     - target column might contain missing values represented by `NaN`
-    - data may contain covariates (incl. static features) with schema described in `self.metadata`
+    - data may contain covariates (incl. static features) with schema described in `self.covariate_metadata`
         - real-valued covariates have dtype `float32`
         - categorical covariates have dtype `category`
         - covariates do not contain any missing values
@@ -325,7 +308,7 @@ When using the model in standalone mode, we need to manually configure its param
 model = NHITSModel(
     prediction_length=prediction_length,
     target=target,
-    metadata=feature_generator.covariate_metadata,
+    covariate_metadata=feature_generator.covariate_metadata,
     freq=data.freq,
     quantile_levels=[0.1, 0.5, 0.9],
 )

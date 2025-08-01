@@ -1,25 +1,4 @@
-Summary: This tutorial demonstrates how to convert object detection datasets from VOC to COCO format using AutoMM's conversion tool (autogluon.multimodal.cli.voc2coco). It covers two main implementation approaches: converting existing dataset splits and creating custom split ratios. The tutorial explains the required directory structure, command-line usage patterns, and output file formats. Key functionalities include handling predefined VOC splits, creating custom train/val/test ratios, and generating COCO-formatted JSON annotations. This knowledge is particularly useful for data preprocessing tasks in object detection projects using AutoMM, where COCO format is the recommended standard.
-
-# AutoMM Detection - Convert VOC Format Dataset to COCO Format
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/object_detection/data_preparation/voc_to_coco.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/object_detection/data_preparation/voc_to_coco.ipynb)
-
-
-
-[Pascal VOC](http://host.robots.ox.ac.uk/pascal/VOC/) is a collection of datasets for object detection. 
-And VOC format refers to the specific format (in `.xml` file) the Pascal VOC dataset is using.
-
-In this tutorial, we will convert VOC2007 dataset from VOC format to COCO format. See [AutoMM Detection - Prepare Pascal VOC Dataset](prepare_voc.ipynb) for how to download it.
-We will use our tool `voc2coco`. This python script is in our code: 
-[voc2coco.py](https://raw.githubusercontent.com/autogluon/autogluon/master/multimodal/src/autogluon/multimodal/cli/voc2coco.py),
-and you can also run it as a cli: `python3 -m autogluon.multimodal.cli.voc2coco`.
-
-**Note: In Autogluon MultiModalPredictor, we strongly recommend using COCO as your data format.** However, for fast proof testing we also have limit support for VOC format.
-
-## Convert Existing Splits
-
-Under VOC format root path, we have the following folders:
+Summary: This tutorial demonstrates how to convert Pascal VOC object detection datasets to COCO format using Python code that helps with data format conversion and custom data splitting for object detection tasks. The tutorial covers: 1) converting pre-defined VOC data splits to COCO format using Python scripts, 2) creating custom data splits with specific train/val/test ratios, and 3) generating COCO-format JSON files from VOC annotations. The tutorial helps with dataset preparation for object detection models by providing Python scripts for format conversion and data splitting with customizable train/val/test ratios.
 
 ```
 Annotations  ImageSets  JPEGImages

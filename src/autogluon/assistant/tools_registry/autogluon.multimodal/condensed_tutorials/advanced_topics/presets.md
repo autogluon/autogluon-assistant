@@ -1,102 +1,82 @@
-# Condensed: AutoMM Presets
+# Condensed: ```python
 
-Summary: This tutorial demonstrates how to use AutoMM's preset configurations (medium_quality, high_quality, best_quality) for automated machine learning tasks. It provides implementation details for configuring MultiModalPredictor with different performance-speed tradeoffs, including HPO variants for hyperparameter optimization. The tutorial covers essential code patterns for model setup, training, and evaluation, with specific focus on preset selection, resource management, and tunable parameters (model backbone, batch size, learning rate, max epoch, optimizer type). It's particularly useful for tasks requiring automated model configuration and performance optimization, helping developers choose appropriate presets based on their computational resources and performance requirements.
+Summary: This tutorial demonstrates AutoGluon's MultiModalPredictor for text classification using different quality presets. It covers implementation techniques for sentiment analysis with three preset configurations: medium_quality (fast, smaller models), high_quality (balanced), and best_quality (performance-focused). The tutorial shows how to add hyperparameter optimization with _hpo suffixes, evaluate models using metrics like roc_auc, and view preset configurations. Key functionalities include automatic model selection, time-limited training, and hyperparameter tuning for text classification tasks with minimal code, making it useful for quickly implementing sentiment analysis or other text classification problems.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on essential implementation details:
-
 # AutoMM Presets Tutorial
 
-## Key Concepts
-AutoMM provides three preset configurations to simplify hyperparameter setup:
-- `medium_quality`: Fast training/inference, smaller models
-- `high_quality`: Balanced performance/speed
-- `best_quality`: Optimal performance, higher computational requirements
-- HPO variants: Add `_hpo` suffix (e.g., `medium_quality_hpo`) for hyperparameter optimization
-
-## Implementation
-
-### Basic Setup
+## Setup
 ```python
-from autogluon.multimodal import MultiModalPredictor
+!pip install autogluon.multimodal
 import warnings
 warnings.filterwarnings('ignore')
 ```
 
-### Using Presets
+## Dataset
+Using Stanford Sentiment Treebank (SST) for binary classification of movie reviews.
 
-1. Medium Quality (Fast)
 ```python
-predictor = MultiModalPredictor(
-    label='label', 
-    eval_metric='acc', 
-    presets="medium_quality"
-)
-predictor.fit(
-    train_data=train_data,
-    time_limit=20  # seconds
-)
+from autogluon.core.utils.loaders import load_pd
+
+train_data = load_pd.load('https://autogluon-text.s3-accelerate.amazonaws.com/glue/sst/train.parquet')
+test_data = load_pd.load('https://autogluon-text.s3-accelerate.amazonaws.com/glue/sst/dev.parquet')
+subsample_size = 1000  # subsample for faster demo
+train_data = train_data.sample(n=subsample_size, random_state=0)
 ```
 
-2. High Quality (Balanced)
+## Quality Presets
+
+### Medium Quality
+Optimized for fast training and inference with smaller models.
+
 ```python
-predictor = MultiModalPredictor(
-    label='label', 
-    eval_metric='acc', 
-    presets="high_quality"
-)
-predictor.fit(
-    train_data=train_data,
-    time_limit=20
-)
-```
+from autogluon.multimodal import MultiModalPredictor
 
-3. Best Quality (Performance)
-```python
-predictor = MultiModalPredictor(
-    label='label', 
-    eval_metric='acc', 
-    presets="best_quality"
-)
-predictor.fit(
-    train_data=train_data,
-    time_limit=180
-)
-```
-
-### Viewing Preset Configurations
-```python
-from autogluon.multimodal.presets import get_automm_presets
-
-# Get preset details
-hyperparameters, hyperparameter_tune_kwargs = get_automm_presets(
-    problem_type="default", 
-    presets="high_quality"
-)
-```
-
-## Important Notes
-
-1. **Resource Requirements**:
-   - Best quality preset requires high-end GPUs with large memory
-   - Adjust time_limit based on dataset size and preset complexity
-
-2. **HPO Tunable Parameters**:
-   - Model backbone
-   - Batch size
-   - Learning rate
-   - Max epoch
-   - Optimizer type
-
-3. **Performance vs Speed**:
-   - medium_quality → fastest, lowest performance
-   - high_quality → balanced option
-   - best_quality → slowest, highest performance
-
-4. **Evaluation**:
-```python
+predictor = MultiModalPredictor(label='label', eval_metric='acc', presets="medium_quality")
+predictor.fit(train_data=train_data, time_limit=20)  # seconds
 scores = predictor.evaluate(test_data, metrics=["roc_auc"])
 ```
 
-For customization options, refer to the Customize AutoMM documentation.
+### High Quality
+Balances prediction quality and speed using larger models.
+
+```python
+predictor = MultiModalPredictor(label='label', eval_metric='acc', presets="high_quality")
+predictor.fit(train_data=train_data, time_limit=20)
+scores = predictor.evaluate(test_data, metrics=["roc_auc"])
+```
+
+### Best Quality
+Prioritizes performance over training/inference cost. Requires more time and GPU memory.
+
+```python
+predictor = MultiModalPredictor(label='label', eval_metric='acc', presets="best_quality")
+predictor.fit(train_data=train_data, time_limit=180)
+scores = predictor.evaluate(test_data, metrics=["roc_auc"])
+```
+
+## HPO Presets
+Add `_hpo` suffix to enable hyperparameter optimization:
+- `medium_quality_hpo`
+- `high_quality_hpo`
+- `best_quality_hpo`
+
+## Viewing Preset Configurations
+```python
+import json
+from autogluon.multimodal.utils.presets import get_presets
+
+# View high_quality preset details
+hyperparameters, hyperparameter_tune_kwargs = get_presets(problem_type="default", presets="high_quality")
+print(f"hyperparameters: {json.dumps(hyperparameters, sort_keys=True, indent=4)}")
+
+# View high_quality_hpo preset details
+hyperparameters, hyperparameter_tune_kwargs = get_presets(problem_type="default", presets="high_quality_hpo")
+```
+
+HPO presets tune parameters like model backbone, batch size, learning rate, max epoch, and optimizer type.
+
+## Additional Resources
+- More examples: [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm)
+- Customization: Refer to "Customize AutoMM" documentation

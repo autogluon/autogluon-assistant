@@ -1,24 +1,66 @@
-Summary: This tutorial demonstrates PDF document classification using AutoGluon's MultiModalPredictor, specifically implementing document processing and classification tasks. It covers essential techniques for handling PDF documents, including data preparation, model training with LayoutLM, and extraction of document embeddings. Key functionalities include automatic PDF processing, text recognition, probability predictions, and embedding extraction. The tutorial helps with tasks like setting up document paths, training classifiers, making predictions, and evaluating model performance. It provides implementation details for configuring the document transformer, managing training time limits, and handling PDF datasets effectively using AutoGluon's multimodal capabilities.
+Summary: "Summarize.md"
 
-# Classifying PDF Documents with AutoMM
+Summary: "Summarize.md"
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/document_prediction/pdf_classification.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/document_prediction/pdf_classification.ipynb)
+Summary: 
 
-PDF comes short from Portable Document Format and is one of the most popular document formats.
-We can find PDFs everywhere, from personal resumes to business contracts, and from commercial brochures to government documents. 
-The list can be endless. 
-PDF is highly praised for its portability. 
-There's no worry about the receiver being unable to view the document or see an imperfect version regardless of their operating system and device models.
+Summary: 
 
-Using AutoMM, you can handle and build machine learning models on PDF documents just like working on other modalities such as text and images, without bothering about PDFs processing. 
-In this tutorial, we will introduce how to classify PDF documents automatically with AutoMM using document foundation models. Let’s get started!
+Summary: 
 
-For document processing, AutoGluon requires poppler to be installed. Check https://poppler.freedesktop.org for source 
+Summary: 
 
-https://github.com/oschwartz10612/poppler-windows for Windows release (make sure to add the bin/ folder to PATH after installing) 
+Summary: 
 
-`brew install poppler` for Mac
+Summary: Summary: This tutorial demonstrates how.
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: This tutorial demonstrates PDF document classification using AutoGluon's MultiModalPredictor. It covers implementing a complete workflow for document classification including dataset preparation, model training with LayoutLM, evaluation, prediction, and embedding extraction. The tutorial shows how AutoGluon handles PDF processing automatically, requiring minimal code to build a document classifier. Key functionalities include proper path configuration for PDF files, model training with time constraints, accuracy evaluation, and extracting document embeddings for downstream tasks.
 
 ## Get the PDF document dataset
 We have created a simple PDFs dataset via manual crawling for demonstration purpose. 
@@ -90,7 +132,7 @@ predictor = MultiModalPredictor(label="label")
 predictor.fit(
     train_data=train_data,
     hyperparameters={"model.document_transformer.checkpoint_name":"microsoft/layoutlm-base-uncased",
-    "optimization.top_k_average_method":"best",
+    "optim.top_k_average_method":"best",
     },
     time_limit=120,
 )

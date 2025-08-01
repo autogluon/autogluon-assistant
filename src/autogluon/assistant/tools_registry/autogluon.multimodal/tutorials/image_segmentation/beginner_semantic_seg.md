@@ -1,23 +1,4 @@
-Summary: This tutorial demonstrates implementing semantic segmentation using AutoGluon's MultiModalPredictor with SAM (Segment Anything Model). It covers essential techniques for data preparation with path handling, zero-shot inference, and model fine-tuning using LoRA. The tutorial helps with tasks like setting up semantic segmentation pipelines, performing zero-shot evaluation, and fine-tuning SAM models for domain-specific applications. Key features include configuring the predictor for foreground-background segmentation, handling data in DataFrame format, model persistence, and performance evaluation using IoU metrics. It's particularly useful for implementing efficient semantic segmentation with pre-trained SAM models while emphasizing security considerations when loading saved models.
-
-# AutoMM for Semantic Segmentation - Quick Start
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/image_segmentation/beginner_semantic_seg.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/image_segmentation/beginner_semantic_seg.ipynb)
-
-
-Semantic Segmentation is a computer vision task where the objective is to create a detailed pixel-wise segmentation map of an image, assigning each pixel to a specific class or object. This technology is crucial in various applications, such as in autonomous vehicles to identify vehicles, pedestrians, traffic signs, pavement, and other road features.
-
-The Segment Anything Model (SAM) is a foundational model pretrained on a vast dataset with 1 billion masks and 11 million images. While SAM performs exceptionally well on generic scenes, it encounters challenges when applied to specialized domains like remote sensing, medical imagery, agriculture, and manufacturing. Fortunately, AutoMM comes to the rescue by facilitating the fine-tuning of SAM on domain-specific data.
-
-In this easy-to-follow tutorial, we will guide you through the process of using AutoMM to fine-tune SAM. With just a single call to the `fit()` API, you can effortlessly train the model.
-
-
-## Prepare Data
-For demonstration purposes, we use the [Leaf Disease Segmentation](https://www.kaggle.com/datasets/sovitrath/leaf-disease-segmentation-with-trainvalid-split) from Kaggle. This dataset is a good example for automating disease detection in plants, especially for speeding up the plant pathology process. Segmenting specific regions on leaves or plants can be quite challenging, particularly when dealing with smaller diseased areas or various types of diseases.
-
-To begin, download and prepare the dataset.
-
+Summary: This tutorial demonstrates implementing semantic segmentation using Meta's Segment Anything Model (SAM) with AutoGluon. It covers zero-shot inference and fine-tuning SAM for domain-specific tasks using LoRA (Low-Rank Adaptation). Key functionalities include data preparation for segmentation tasks, model initialization with pre-trained SAM checkpoints, efficient fine-tuning techniques, evaluation using IoU metrics, and visualization of segmentation masks. The tutorial helps with implementing image segmentation tasks that require minimal labeled data by leveraging transfer learning from foundation models, particularly useful for specialized domains like disease detection in plant leaves.
 
 ```python
 !pip install autogluon.multimodal

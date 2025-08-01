@@ -1,14 +1,10 @@
-Summary: This tutorial provides implementation techniques for handling multiple label columns in AutoGluon MultiModal, addressing a native limitation of the framework. It covers two approaches: (1) converting mutually exclusive label columns into a single combined label with preprocessing code for transformation and postprocessing for converting predictions back, and (2) training separate predictors for non-mutually exclusive labels where multiple categories can be true simultaneously. The tutorial includes complete Python code examples for both approaches, emphasizing the importance of feature selection and time management when training multiple predictors.
+Summary: This tutorial explains how to handle multiple label columns in AutoGluon MultiModal using two approaches: (1) converting mutually exclusive labels into a single combined column, or (2) training separate models for non-mutually exclusive labels. It provides code examples for both methods, emphasizing the need to properly manage label columns during training and prediction. Key implementation notes include time allocation across multiple models, excluding other label columns as features, and maintaining consistent preprocessing between training and inference. The tutorial helps with multi-label classification tasks in AutoGluon's MultiModal framework.
 
-# Multiple Label Columns in AutoMM 
+# Multiple Label Columns with AutoMM
 
-This tutorial explains how to handle multiple label columns with AutoGluon MultiModal.
+AutoGluon MultiModal doesn't natively support multiple label columns. Here's how to handle this challenge in different scenarios.
 
-## Problem Statement
-
-AutoGluon MultiModal doesn't natively support multiple label columns. Here's how to handle this challenge in both frameworks.
-
-## Option 1: Mutually Exclusive Labels
+## Scenario 1: Mutually Exclusive Labels
 
 When your label columns are mutually exclusive (only one can be true at a time):
 
@@ -30,10 +26,10 @@ predictor = MultiModalPredictor(label='combined_label').fit(df)
 # Postprocessing (if needed): Convert predictions back to multiple columns
 predictions = predictor.predict(test_data)
 for label in label_columns:
-    test_data[f'pred_{label}'] = (predictions == label).astype(int)
+    test_data[f'{label}'] = (predictions == label).astype(int)
 ```
 
-## Option 2: Non-Mutually Exclusive Labels
+## Scenario 2: Non-Mutually Exclusive Labels
 
 When your label columns are NOT mutually exclusive (multiple can be true simultaneously):
 
@@ -58,10 +54,7 @@ for label in label_columns:
     test_data[f'pred_{label}'] = predictors[label].predict(test_features)
 ```
 
-## Important Notes
- 
-Ensure other label columns are excluded from features.
+Note that you need to ensure other label columns are excluded from features, and adjust the time_limit parameter accordingly. If you have N label columns, consider allocating your total available time divided by N for each predictor
 
-When training multiple predictors (Option 2), adjust the time_limit parameter accordingly. If you have N label columns, consider allocating your total available time divided by N for each predictor
-
-This approach allows you to use both AutoGluon MultiModal with multiple label columns despite their native limitations.
+## Customization
+To learn how to customize AutoMM, please refer to [Customize AutoMM](../advanced_topics/customization.ipynb).

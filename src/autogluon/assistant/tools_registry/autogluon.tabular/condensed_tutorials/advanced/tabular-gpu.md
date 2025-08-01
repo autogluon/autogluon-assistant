@@ -1,51 +1,62 @@
-# Condensed: Training models with GPU support
+# Condensed: ```python
 
-Summary: This tutorial demonstrates GPU integration in AutoGluon's TabularPredictor, covering implementation techniques for multi-level resource allocation (predictor, bagged model, and base model levels). It helps with tasks involving GPU-accelerated model training, particularly for LightGBM and neural networks. Key features include configuring single/multiple GPU usage, model-specific GPU allocation, proper CUDA toolkit setup, and hierarchical resource management with specific allocation rules. The tutorial provides practical code examples for both basic and advanced GPU configurations, making it valuable for optimizing machine learning workflows with GPU acceleration.
+Summary: This tutorial explains GPU acceleration in AutoGluon, covering basic GPU allocation with `num_gpus` parameter, model-specific GPU assignment using hyperparameters dictionary, and multi-modal configuration retrieval. It details special installation requirements for GPU-enabled LightGBM and demonstrates advanced resource allocation techniques to control CPU/GPU usage at predictor, ensemble, and individual model levels. The tutorial helps with optimizing machine learning workflows by efficiently distributing computational resources across different models and training processes, particularly useful for implementing parallel hyperparameter optimization with controlled resource allocation for tabular, multimodal, and gradient-boosted models.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on essential implementation details:
-
-# Training Models with GPU Support in AutoGluon
+# GPU Acceleration in AutoGluon
 
 ## Basic GPU Usage
+
 ```python
-# Basic GPU allocation
 predictor = TabularPredictor(label=label).fit(
     train_data,
-    num_gpus=1  # Allocate 1 GPU for TabularPredictor
+    num_gpus=1,  # Grant 1 GPU for the entire Tabular Predictor
 )
+```
 
-# Model-specific GPU allocation
+## Model-Specific GPU Allocation
+
+```python
 hyperparameters = {
     'GBM': [
-        {'ag_args_fit': {'num_gpus': 0}},  # CPU training
-        {'ag_args_fit': {'num_gpus': 1}}   # GPU training
+        {'ag_args_fit': {'num_gpus': 0}},  # Train with CPU
+        {'ag_args_fit': {'num_gpus': 1}}   # Train with GPU
     ]
 }
 predictor = TabularPredictor(label=label).fit(
     train_data, 
     num_gpus=1,
-    hyperparameters=hyperparameters
+    hyperparameters=hyperparameters, 
 )
 ```
 
-## Important Notes
-- CUDA toolkit required for GPU training
-- LightGBM requires special GPU installation:
-  ```bash
-  pip uninstall lightgbm -y
-  pip install lightgbm --install-option=--gpu
-  ```
-  If above fails, follow [official guide](https://lightgbm.readthedocs.io/en/latest/GPU-Tutorial.html)
+## Multi-modal Configuration
+
+For multimodal data (tabular, text, and image), you can retrieve the default configuration:
+
+```python
+from autogluon.tabular.configs.hyperparameter_configs import get_hyperparameter_config
+hyperparameters = get_hyperparameter_config('multimodal')
+```
+
+## Enabling GPU for LightGBM
+
+LightGBM requires special installation for GPU support:
+1. Uninstall existing LightGBM: `pip uninstall lightgbm -y`
+2. Install GPU version: `pip install lightgbm --install-option=--gpu`
+
+If this doesn't work, follow the [official guide](https://lightgbm.readthedocs.io/en/latest/GPU-Tutorial.html) to install from source.
 
 ## Advanced Resource Allocation
-Three levels of resource control:
-1. TabularPredictor level: `num_cpus`, `num_gpus`
-2. Bagged model level: `ag_args_ensemble: ag_args_fit`
-3. Base model level: `ag_args_fit`
 
-### Example Configuration
+Control resources at different levels:
+- `num_cpus` and `num_gpus` at predictor level
+- `ag_args_ensemble: ag_args_fit: { RESOURCES }` for bagged models
+- `ag_args_fit: { RESOURCES }` for individual base models
+
+Example with detailed resource allocation:
+
 ```python
 predictor.fit(
     num_cpus=32,
@@ -70,7 +81,4 @@ predictor.fit(
 )
 ```
 
-### Resource Allocation Rules
-- Bagged model resources must be ≤ total TabularPredictor resources
-- Base model resources must be ≤ bagged model resources (if applicable)
-- Base model resources must be ≤ total TabularPredictor resources
+This configuration runs 2 HPO trials in parallel, each with 2 parallel folds, using a total of 16 CPUs and 2 GPUs.

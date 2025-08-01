@@ -1,92 +1,95 @@
-# Condensed: AutoGluon Multimodal - Quick Start
+# Condensed: ```python
 
-Summary: This tutorial demonstrates the implementation of AutoGluon's MultiModalPredictor for multimodal machine learning tasks, specifically focusing on combining image, text, and tabular data for classification problems. It provides code for data preparation (handling image paths and DataFrame formatting), model initialization, training, and prediction workflows. Key functionalities covered include automatic problem type detection, feature modality detection, model selection, and late-fusion model addition. The tutorial is particularly useful for tasks requiring unified processing of multiple data types, offering implementation details for prediction, probability scoring, and performance evaluation, while also highlighting advanced features like embedding extraction and model distillation.
+Summary: This tutorial demonstrates AutoGluon MultiModal for multimodal machine learning, focusing on image-text classification with the PetFinder dataset. It covers implementation techniques for preparing multimodal data (handling image paths and text features), training a MultiModalPredictor with automatic modality detection and model selection, and making predictions. Key functionalities include automatic problem type inference, multimodal feature handling, time-constrained training, classification prediction, probability estimation, and performance evaluation using metrics like ROC-AUC. This knowledge helps with tasks requiring combined processing of images and tabular data for classification problems.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on essential implementation details:
+# AutoGluon MultiModal Quickstart Tutorial
 
-# AutoGluon MultiModalPredictor Quick Start
+## Setup
 
-## Key Setup
 ```python
-# Install and import
+!python -m pip install --upgrade pip
 !python -m pip install autogluon
 
+import os
+import warnings
 import numpy as np
-import pandas as pd
-from autogluon.multimodal import MultiModalPredictor
+
+warnings.filterwarnings('ignore')
+np.random.seed(123)
 ```
 
-## Implementation Details
+## Data Preparation
 
-### 1. Data Preparation
-- Dataset: PetFinder (simplified version for adoption speed prediction)
-- Features: Images, text descriptions, and tabular data
-- Target: Binary classification (AdoptionSpeed: 0=slow, 1=fast)
+Download and prepare the PetFinder dataset (simplified version with binary adoption speed):
 
 ```python
+from autogluon.core.utils.loaders import load_zip
+import pandas as pd
+
+# Download dataset
+download_dir = './ag_multimodal_tutorial'
+zip_file = 'https://automl-mm-bench.s3.amazonaws.com/petfinder_for_tutorial.zip'
+load_zip.unzip(zip_file, unzip_dir=download_dir)
+
 # Load data
-train_data = pd.read_csv('train.csv', index_col=0)
-test_data = pd.read_csv('test.csv', index_col=0)
+dataset_path = f'{download_dir}/petfinder_for_tutorial'
+train_data = pd.read_csv(f'{dataset_path}/train.csv', index_col=0)
+test_data = pd.read_csv(f'{dataset_path}/test.csv', index_col=0)
 label_col = 'AdoptionSpeed'
 
-# Image path handling
+# Process image paths (take only first image per record)
 image_col = 'Images'
-# Convert multiple image paths to single image path
 train_data[image_col] = train_data[image_col].apply(lambda ele: ele.split(';')[0])
 test_data[image_col] = test_data[image_col].apply(lambda ele: ele.split(';')[0])
 
-# Expand relative paths to absolute paths
+# Expand image paths to absolute paths
 def path_expander(path, base_folder):
     path_l = path.split(';')
     return ';'.join([os.path.abspath(os.path.join(base_folder, path)) for path in path_l])
+
+train_data[image_col] = train_data[image_col].apply(lambda ele: path_expander(ele, base_folder=dataset_path))
+test_data[image_col] = test_data[image_col].apply(lambda ele: path_expander(ele, base_folder=dataset_path))
 ```
 
-### 2. Model Training
+## Training
+
+Train the MultiModalPredictor with a time limit:
+
 ```python
-# Initialize and train
+from autogluon.multimodal import MultiModalPredictor
+
 predictor = MultiModalPredictor(label=label_col).fit(
     train_data=train_data,
-    time_limit=120  # Adjust time limit based on needs
+    time_limit=120  # 2 minutes time limit for quick demo
 )
 ```
 
-### 3. Prediction
+Key features:
+- Automatically infers problem type (classification/regression)
+- Detects feature modalities
+- Selects appropriate models
+- Adds late-fusion model (MLP or transformer) for multiple backbones
+
+## Prediction
+
+Make predictions on test data:
+
 ```python
-# Make predictions
+# Class predictions
 predictions = predictor.predict(test_data.drop(columns=label_col))
 
-# Get probability scores
+# Probability predictions
 probs = predictor.predict_proba(test_data.drop(columns=label_col))
+```
 
-# Evaluate performance
+## Evaluation
+
+Evaluate model performance:
+
+```python
 scores = predictor.evaluate(test_data, metrics=["roc_auc"])
 ```
 
-## Important Notes
-
-1. **Data Format Requirements**:
-   - Image columns must contain paths to single image files
-   - Data should be in pandas DataFrame format
-   - Label column must be specified
-
-2. **Automatic Features**:
-   - Problem type detection (classification/regression)
-   - Feature modality detection
-   - Model selection from multimodal pools
-   - Late-fusion model addition for multiple backbones
-
-3. **Best Practices**:
-   - Increase `time_limit` for better model performance
-   - Ensure image paths are correctly formatted
-   - Verify all image files exist at specified paths
-
-4. **Advanced Features Available**:
-   - Embedding extraction
-   - Model distillation
-   - Fine-tuning
-   - Text/image prediction
-   - Semantic matching
-
-This implementation provides a foundation for multimodal prediction tasks combining images, text, and tabular data using AutoGluon's MultiModalPredictor.
+This tutorial demonstrates basic functionality - see in-depth tutorials for advanced features like embedding extraction, distillation, model fine-tuning, and semantic matching.

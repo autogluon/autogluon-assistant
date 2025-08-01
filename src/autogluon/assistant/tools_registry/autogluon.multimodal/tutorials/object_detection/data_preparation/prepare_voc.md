@@ -1,38 +1,4 @@
-Summary: This tutorial provides implementation guidance for preparing the Pascal VOC dataset for object detection tasks using AutoMM. It covers two main implementation approaches: using Python CLI (cross-platform) and Bash scripts (Unix), with specific commands for downloading VOC2007 and VOC2012 datasets. The tutorial helps with dataset setup tasks, including proper directory structure organization and format conversion. Key features include dataset download automation, proper directory structure setup (~8.4GB), and handling both VOC2007 and VOC2012 versions with 20 object categories. It emphasizes COCO format recommendation over VOC format and includes essential information about dataset splits for training and validation.
-
-# AutoMM Detection - Prepare Pascal VOC Dataset
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/object_detection/data_preparation/prepare_voc.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/object_detection/data_preparation/prepare_voc.ipynb)
-
-
-
-[Pascal VOC](http://host.robots.ox.ac.uk/pascal/VOC/) is a collection of datasets for object detection. 
-The most commonly combination for benchmarking is using VOC2007 trainval and VOC2012 trainval for training and VOC2007 test for validation.
-Both VOC2007 and VOC2012 have the same 20 classes, and they have 16551 training images in total.
-This tutorial will walk through the steps of preparing both VOC2007 and VOC2012 for Autogluon MultiModalPredictor.
-
-You need 8.4 GB disk space to download and extract this dataset. SSD is preferred over HDD because of its better performance.
-The total time to prepare the dataset depends on your Internet speed and disk performance. For example, it often takes 10 min on AWS EC2 with EBS.
-
-VOC has an [official webpage](http://host.robots.ox.ac.uk/pascal/VOC/) to download the data, 
-but it's always easier to perform a one-step setup.
-We prepared a script to download both VOC2007 and VOC2012 in our examples: 
-[download_voc0712.sh](https://raw.githubusercontent.com/autogluon/autogluon/master/examples/automm/object_detection/download_voc0712.sh).
-You can also download them separately:
-[download_voc07.sh](https://raw.githubusercontent.com/autogluon/autogluon/master/examples/automm/object_detection/download_voc07.sh),
-[download_voc12.sh](https://raw.githubusercontent.com/autogluon/autogluon/master/examples/automm/object_detection/download_voc12.sh).
-Or you can also use our cli tool `prepare_detection_dataset` that can download all datasets mentioned in our tutorials.
-This python script is in our code: 
-[prepare_detection_dataset.py](https://raw.githubusercontent.com/autogluon/autogluon/master/multimodal/src/autogluon/multimodal/cli/prepare_detection_dataset.py),
-and you can also run it as a cli: `python3 -m autogluon.multimodal.cli.prepare_detection_dataset`.
-
-## Download with Python Script
-
-The python script does not show progress bar, but is promised to work on all major platforms.
-If you are working on a Unix system and needs a progress bar, try the bash script!
-
-You could either extract it under current directory by running:
+Summary: This tutorial demonstrates how to download and use the VOC dataset for object detection tasks with AutoGluon. It covers multiple download methods: using AutoGluon CLI commands to get the full VOC0712 dataset or individual VOC2007/2012 datasets, and using bash scripts. The tutorial explains the resulting dataset structure with folders like Annotations, ImageSets, and JPEGImages. It emphasizes that AutoGluon MultiModalPredictor recommends using COCO format instead of VOC format for better compatibility, though limited VOC format support exists for testing. The guide includes the necessary folder structure requirements when using VOC format and points to additional resources for examples and customization.
 
 ```
 python3 -m autogluon.multimodal.cli.prepare_detection_dataset --dataset_name voc0712

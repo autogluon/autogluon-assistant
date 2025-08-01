@@ -1,22 +1,4 @@
-Summary: This tutorial demonstrates advanced AutoGluon customization techniques, specifically focusing on implementing custom models and feature generators to maintain control over feature preprocessing. It shows how to prevent feature dropping through model-specific parameter overrides and custom feature generators, implement specialized feature handling using BulkFeatureGenerator, and configure feature metadata for custom preprocessing paths. The tutorial enables tasks like creating models that preserve unique-valued features and implementing custom preprocessing logic for specific features. Key functionalities include custom model class implementation, feature generator customization, metadata configuration, and integration with TabularPredictor, making it valuable for developers needing fine-grained control over AutoGluon's preprocessing pipeline.
-
-# Adding a custom model to AutoGluon (Advanced)
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/advanced/tabular-custom-model-advanced.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/advanced/tabular-custom-model-advanced.ipynb)
-
-
-
-**Tip**: If you are new to AutoGluon, review [Predicting Columns in a Table - Quick Start](../tabular-quick-start.ipynb) to learn the basics of the AutoGluon API.
-
-In this tutorial we will cover advanced custom model options that go beyond the topics covered in [Adding a custom model to AutoGluon](tabular-custom-model.ipynb).
-
-It is assumed that you have fully read through [Adding a custom model to AutoGluon](tabular-custom-model.ipynb) prior to this tutorial.
-
-## Loading the data
-
-First we will load the data. For this tutorial we will use the adult income dataset because it has a mix of integer, float, and categorical features.
-
+Summary: This tutorial demonstrates how to prevent AutoGluon from dropping specific features during preprocessing. It covers three key techniques: (1) creating custom models with the `drop_unique=False` parameter to preserve single-value features, (2) implementing a `CustomFeatureGeneratorWithUserOverride` that uses `IdentityFeatureGenerator` to bypass preprocessing for tagged features, and (3) tagging features with special types like 'user_override' to control their processing. These methods are valuable for maintaining important features in machine learning pipelines, ensuring model interpretability, and handling domain-specific features that shouldn't undergo standard transformations.
 
 ```python
 !pip install autogluon.tabular[all]

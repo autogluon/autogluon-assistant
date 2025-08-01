@@ -1,72 +1,92 @@
-# Condensed: Continuous Training with AutoMM
+# Condensed: Continuous training provides a method for machine learning models to refine their performance over time. It enables models to build upon previously acquired knowledge, thereby enhancing accuracy, facilitating knowledge transfer across tasks, and saving computational resources. In this tutorial, we will demonstrate three use cases of continuous training with AutoMM.
 
-Summary: This tutorial demonstrates continuous training techniques using AutoMM's MultiModalPredictor, covering three main implementation patterns: extending training with new data, resuming interrupted training from checkpoints, and transfer learning with pre-trained models. It helps with tasks involving model persistence, training continuation, and transfer learning for text, image, and fusion models. Key features include checkpoint management (model.ckpt vs last.ckpt), hyperparameter configuration for different model types (HuggingFace, TIMM, MMDetection), and data consistency requirements. The tutorial emphasizes best practices for production deployment and warns about potential catastrophic forgetting in transfer learning scenarios.
+Summary: This tutorial demonstrates AutoMM's continuous training capabilities with three key use cases: (1) extending model training with additional data or epochs without restarting, (2) resuming training from the last checkpoint after interruptions, and (3) transferring knowledge from pre-trained models to new tasks. It covers implementation techniques for loading/saving models, continuing training with new data, and applying transfer learning across different tasks. The tutorial specifically shows how to reuse weights from text classification for regression tasks and supports transfer learning for HuggingFace text models, TIMM image models, MMDetection models, and fusion models, while warning about potential catastrophic forgetting.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on key implementation details and practices:
-
 # Continuous Training with AutoMM
 
-## Key Implementation Patterns
+## Use Case 1: Expanding Training with Additional Data or Training Time
 
-### 1. Extending Training Time/Adding Data
+AutoMM allows extending model training without starting from scratch, either by adding more epochs or incorporating new data of the same problem type.
+
 ```python
+# Load data
+from autogluon.core.utils.loaders import load_pd
+
+train_data = load_pd.load("https://autogluon-text.s3-accelerate.amazonaws.com/glue/sst/train.parquet")
+test_data = load_pd.load("https://autogluon-text.s3-accelerate.amazonaws.com/glue/sst/dev.parquet")
+subsample_size = 1000  # subsample for faster demo
+train_data_1 = train_data.sample(n=subsample_size, random_state=0)
+
 # Initial training
+from autogluon.multimodal import MultiModalPredictor
+import uuid
+
+model_path = f"./tmp/{uuid.uuid4().hex}-automm_sst"
 predictor = MultiModalPredictor(label="label", eval_metric="acc", path=model_path)
 predictor.fit(train_data_1, time_limit=60)
 
+# Evaluate
+test_score = predictor.evaluate(test_data)
+print(test_score)
+
 # Continue training with new data
 predictor_2 = MultiModalPredictor.load(model_path)
+train_data_2 = train_data.drop(train_data_1.index).sample(n=subsample_size, random_state=0)
 predictor_2.fit(train_data_2, time_limit=60)
+
+test_score_2 = predictor_2.evaluate(test_data)
+print(test_score_2)
 ```
 
-**Important**: 
-- New data must match the original problem type and classes
-- Model checkpoints are saved as `model.ckpt` under `model_path`
+## Use Case 2: Resuming Training from the Last Checkpoint
 
-### 2. Resuming Interrupted Training
+If training collapses, resume from the last checkpoint:
+
 ```python
-# Resume from last checkpoint
 predictor_resume = MultiModalPredictor.load(path=model_path, resume=True)
 predictor.fit(train_data, time_limit=60)
 ```
 
-**Note**: Uses `last.ckpt` instead of `model.ckpt`
+## Use Case 3: Applying Pre-Trained Models to New Tasks
 
-### 3. Transfer Learning with Pre-trained Models
+Transfer knowledge from a trained model to a related but different task:
 
-1. Dump existing model:
 ```python
+# Dump model weights
+dump_model_path = f"./tmp/{uuid.uuid4().hex}-automm_sst"
 predictor.dump_model(save_path=dump_model_path)
-```
 
-2. Use as foundation for new task:
-```python
-# For HuggingFace text models
-hyperparameters={
-    "model.hf_text.checkpoint_name": f"{dump_model_path}/hf_text"
-}
+# Load regression dataset
+sts_train_data = load_pd.load("https://autogluon-text.s3-accelerate.amazonaws.com/glue/sts/train.parquet")[
+    ["sentence1", "sentence2", "score"]
+]
+sts_test_data = load_pd.load("https://autogluon-text.s3-accelerate.amazonaws.com/glue/sts/dev.parquet")[
+    ["sentence1", "sentence2", "score"]
+]
 
-predictor_new = MultiModalPredictor(label="new_label", path=new_model_path)
-predictor_new.fit(
-    new_data, 
-    hyperparameters=hyperparameters,
+# Train on new task using previous model weights
+sts_model_path = f"./tmp/{uuid.uuid4().hex}-automm_sts"
+predictor_sts = MultiModalPredictor(label="score", path=sts_model_path)
+predictor_sts.fit(
+    sts_train_data, 
+    hyperparameters={"model.hf_text.checkpoint_name": f"{dump_model_path}/hf_text"}, 
     time_limit=30
 )
+
+# Evaluate
+test_score = predictor_sts.evaluate(sts_test_data, metrics=["rmse", "pearsonr", "spearmanr"])
+print("RMSE = {:.2f}".format(test_score["rmse"]))
+print("PEARSONR = {:.4f}".format(test_score["pearsonr"]))
+print("SPEARMANR = {:.4f}".format(test_score["spearmanr"]))
 ```
 
-**Supported Model Types**:
-- HuggingFace text models: `model.hf_text.checkpoint_name`
-- TIMM image models: `model.timm_image.checkpoint_name`
-- MMDetection models: `model.mmdet_image.checkpoint_name`
-- Fusion models combining the above
+### Supported Model Types for Transfer Learning
 
-## Best Practices
-1. Set adequate `time_limit` for production (recommended: 1+ hour or `None`)
-2. Ensure data consistency when continuing training
-3. Consider catastrophic forgetting when transfer learning
-4. Verify model checkpoints exist before resuming training
+- HuggingFace text models: `{"model.hf_text.checkpoint_name": hf_text_model_path}`
+- TIMM image models: `{"model.timm_image.checkpoint_name": timm_image_model_path}`
+- MMDetection models: `{"model.mmdet_image.checkpoint_name": mmdet_image_model_path}`
+- Any fusion models comprising the above models
 
-## Warning
-Transfer learning may face catastrophic forgetting issues - consider this when applying to new tasks.
+**Note:** Be aware of potential catastrophic forgetting when applying pre-trained models to new tasks.
