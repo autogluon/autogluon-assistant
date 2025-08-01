@@ -537,6 +537,7 @@ class Manager:
 
         if target_step == self.best_step_saved:
             logger.info(f"Skipping the saving process as step {target_step} has already been saved as best run.")
+            return
 
         # Create paths
         source_folder = os.path.join(self.output_folder, f"generation_iter_{target_step}")
@@ -575,9 +576,9 @@ class Manager:
 
             if self.config.cleanup_unused_env:
                 # Move conda_env folder from source to best_run folder
-                shutil.move(os.path.join(source_folder, "conda_env"), os.path.join(best_run_folder, "conda_env"))
+                shutil.move(os.path.join(source_folder, ENV_FOLDER_NAME), os.path.join(best_run_folder, ENV_FOLDER_NAME))
             # Copy the entire source folder to best_run folder
-            shutil.copytree(source_folder, best_run_folder)
+            shutil.copytree(source_folder, best_run_folder, dirs_exist_ok=True)
 
             logger.brief(
                 f"[bold green]Created best_run folder (copied from step {target_step} - {copy_reason})[/bold green]"
