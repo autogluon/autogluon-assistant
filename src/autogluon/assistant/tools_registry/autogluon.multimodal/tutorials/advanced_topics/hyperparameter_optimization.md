@@ -1,18 +1,4 @@
-Summary: This tutorial demonstrates hyperparameter optimization (HPO) implementation in AutoGluon's MultiModalPredictor, specifically focusing on configuring and executing HPO for machine learning models. It covers techniques for defining search spaces using Ray Tune, setting up HPO configurations with different searchers (random, Bayesian) and schedulers (FIFO, ASHA), and implementing model fitting with HPO. The tutorial helps with tasks like optimizing learning rates, model checkpoint selection, and training parameters. Key features include integration with Ray Tune backend, support for both AutoGluon and Ray Tune search spaces, checkpoint management, and various searcher/scheduler combinations for efficient hyperparameter tuning.
-
-# Hyperparameter Optimization in AutoMM
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/hyperparameter_optimization.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/hyperparameter_optimization.ipynb)
-
-Hyperparameter optimization (HPO) is a method that helps solve the challenge of tuning hyperparameters of machine learning models. ML algorithms have multiple complex hyperparameters that generate an enormous search space, and the search space in deep learning methods is even larger than traditional ML algorithms. Tuning on a massive search space is a tough challenge, but AutoMM provides various options for you to guide the fitting process based on your domain knowledge and the constraint on computing resources.
-
-## Create Image Dataset
-
-In this tutorial, we are going to again use the subset of the Shopee-IET dataset from Kaggle for demonstration purpose. Each image contains a clothing item and the corresponding label specifies its clothing category. Our subset of the data contains the following possible labels: `BabyPants`, `BabyShirt`, `womencasualshoes`, `womenchiffontop`.
-
-We can load a dataset by downloading a url data automatically:
-
+Summary: This tutorial demonstrates hyperparameter optimization (HPO) for multimodal models using AutoGluon's MultiModalPredictor. It covers implementing Ray Tune-based HPO for image classification tasks by defining search spaces for learning rates, optimizers, epochs, and model architectures. Key features include configuring search strategies (random/Bayesian), schedulers (FIFO/ASHA), and trial management. The tutorial shows how to compare regular training with HPO approaches, evaluate model performance, and efficiently tune hyperparameters to improve accuracy. This knowledge helps with implementing automated hyperparameter tuning for computer vision tasks, particularly when working with limited training data.
 
 ```python
 !pip install autogluon.multimodal
@@ -74,9 +60,9 @@ There are a few options we can have in MultiModalPredictor. We use [Ray Tune](ht
 
 ```
 hyperparameters = {
-        "optimization.learning_rate": tune.uniform(0.00005, 0.005),
-        "optimization.optim_type": tune.choice(["adamw", "sgd"]),
-        "optimization.max_epochs": tune.choice(["10", "20"]), 
+        "optim.lr": tune.uniform(0.00005, 0.005),
+        "optim.optim_type": tune.choice(["adamw", "sgd"]),
+        "optim.max_epochs": tune.choice(["10", "20"]), 
         "model.timm_image.checkpoint_name": tune.choice(["swin_base_patch4_window7_224", "convnext_base_in22ft1k"])
         }
 ```
@@ -136,7 +122,7 @@ from ray import tune
 predictor_hpo = MultiModalPredictor(label="label")
 
 hyperparameters = {
-            "optimization.learning_rate": tune.uniform(0.00005, 0.001),
+            "optim.lr": tune.uniform(0.00005, 0.001),
             "model.timm_image.checkpoint_name": tune.choice(["ghostnet_100",
                                                              "mobilenetv3_large_100"])
 }
@@ -169,7 +155,7 @@ print('Top-1 test acc: %.3f' % scores_hpo["accuracy"])
 From the training log, you should be able to see the current best trial as below:
 
 ```
-Current best trial: 47aef96a with val_accuracy=0.862500011920929 and parameters={'optimization.learning_rate': 0.0007195214018085505, 'model.timm_image.checkpoint_name': 'ghostnet_100'}
+Current best trial: 47aef96a with val_accuracy=0.862500011920929 and parameters={'optim.lr': 0.0007195214018085505, 'model.timm_image.checkpoint_name': 'ghostnet_100'}
 ```
 
 

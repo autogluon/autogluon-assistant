@@ -1,31 +1,4 @@
-Summary: This tutorial demonstrates implementing multilingual text classification using AutoMM, focusing on cross-lingual sentiment analysis of Amazon product reviews. It provides code for setting up datasets across multiple languages (English, German, French, Japanese), implementing German BERT fine-tuning, and achieving zero-shot cross-lingual transfer using DeBERTa-V3. Key functionalities include multilingual preset configuration, parameter-efficient fine-tuning, and direct multilingual processing without translation services. The tutorial helps with tasks involving multilingual text classification, model fine-tuning, and cross-lingual transfer learning, particularly useful for developers working with multi-language sentiment analysis applications.
-
-# AutoMM for Text - Multilingual Problems
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/text_prediction/multilingual_text.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/text_prediction/multilingual_text.ipynb)
-
-
-
-People around the world speaks lots of languages. According to [SIL International](https://en.wikipedia.org/wiki/SIL_International)'s [Ethnologue: Languages of the World](https://en.wikipedia.org/wiki/Ethnologue), 
-there are more than **7,100** spoken and signed languages. In fact, web data nowadays are highly multilingual and lots of 
-real-world problems involve text written in languages other than English.
-
-In this tutorial, we introduce how `MultiModalPredictor` can help you build multilingual models. For the purpose of demonstration, 
-we use the [Cross-Lingual Amazon Product Review Sentiment](https://webis.de/data/webis-cls-10.html) dataset, which 
-comprises about 800,000 Amazon product reviews in four languages: English, German, French, and Japanese. 
-We will demonstrate how to use AutoGluon Text to build sentiment classification models on the German fold of this dataset in two ways:
-
-- Finetune the German BERT
-- Cross-lingual transfer from English to German
-
-*Note:* You are recommended to also check [Single GPU Billion-scale Model Training via Parameter-Efficient Finetuning](../advanced_topics/efficient_finetuning_basic.ipynb) about how to achieve better performance via parameter-efficient finetuning. 
-
-## Load Dataset
-
-The [Cross-Lingual Amazon Product Review Sentiment](https://webis.de/data/webis-cls-10.html) dataset contains Amazon product reviews in four languages. 
-Here, we load the English and German fold of the dataset. In the label column, `0` means negative sentiment and `1` means positive sentiment.
-
+Summary: This tutorial demonstrates multilingual text classification with AutoGluon, covering: implementation of sentiment analysis across languages using pre-trained transformer models; techniques for both language-specific model training and zero-shot cross-lingual transfer; and comparison between monolingual and multilingual approaches. Key features include using language-specific BERT models (showing their limitations with other languages), implementing cross-lingual transfer with the "multilingual" preset parameter, and evaluating model performance across English, German, and Japanese datasets without language-specific training. The tutorial helps with building text classifiers that work effectively across multiple languages with minimal language-specific customization.
 
 ```python
 !pip install autogluon.multimodal
@@ -89,7 +62,7 @@ predictor = MultiModalPredictor(label='label')
 predictor.fit(train_de_df,
               hyperparameters={
                   'model.hf_text.checkpoint_name': 'bert-base-german-cased',
-                  'optimization.max_epochs': 2
+                  'optim.max_epochs': 2
               })
 ```
 
@@ -132,7 +105,7 @@ predictor = MultiModalPredictor(label='label')
 predictor.fit(train_en_df,
               presets='multilingual',
               hyperparameters={
-                  'optimization.max_epochs': 2
+                  'optim.max_epochs': 2
               })
 ```
 

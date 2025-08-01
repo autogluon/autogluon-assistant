@@ -1,25 +1,4 @@
-Summary: This tutorial demonstrates implementing text-to-text semantic matching using AutoGluon's MultiModalPredictor. It covers techniques for computing similarity between text pairs using BERT embeddings, specifically useful for tasks like web search, QA, and document deduplication. Key functionalities include data preparation with SNLI dataset, model training configuration with text similarity settings, making predictions on text pairs, and extracting embeddings. The tutorial shows how to set up binary classification for semantic matching, configure match labels, and evaluate model performance using AUC metrics, all through AutoMM's streamlined interface.
-
-# Text-to-Text Semantic Matching with AutoMM 
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/semantic_matching/text2text_matching.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/semantic_matching/text2text_matching.ipynb)
-
-
-
-Computing the similarity between two sentences/passages is a common task in NLP, with several practical applications such as web search, question answering, documents deduplication, plagiarism comparison, natural language inference, recommendation engines, etc. In general, text similarity models will take two sentences/passages as input and transform them into vectors, and then similarity scores calculated using cosine similarity, dot product, or Euclidean distances are used to measure how alike or different of the two text pieces. 
-
-## Prepare your Data
-In this tutorial, we will demonstrate how to use AutoMM for text-to-text semantic matching with the Stanford Natural Language Inference ([SNLI](https://nlp.stanford.edu/projects/snli/)) corpus. SNLI is a corpus contains around 570k human-written sentence pairs labeled with *entailment*, *contradiction*, and *neutral*. It is a widely used benchmark for evaluating the representation and inference capbility of machine learning methods. The following table contains three examples taken from this corpus.
-
-| Premise                                                   | Hypothesis                                                           | Label         |
-|-----------------------------------------------------------|----------------------------------------------------------------------|---------------|
-| A black race car starts up in front of a crowd of people. | A man is driving down a lonely road.                                 | contradiction |
-|  An older and younger man smiling.                        | Two men are smiling and laughing at the cats playing on the   floor. | neutral       |
-| A soccer game with multiple males playing.                | Some men are playing a sport.                                        | entailment    |
-
-Here, we consider sentence pairs with label *entailment* as positive pairs (labeled as 1) and those with label *contradiction* as negative pairs (labeled as 0). Sentence pairs with neural relationship are discarded. The following code downloads and loads the corpus into dataframes.
-
+Summary: This tutorial demonstrates implementing text similarity models with AutoGluon MultiModal, teaching how to leverage BERT-based sentence embeddings for semantic matching tasks. It covers loading text pair datasets, configuring and training a text similarity predictor with customizable parameters (query/response columns, match labels), evaluating model performance, making predictions on new sentence pairs, and extracting embeddings from individual sentences. Key functionalities include binary classification for semantic similarity, probability score generation, and embedding extraction—valuable for applications like duplicate detection, paraphrase identification, and semantic search implementations.
 
 ```python
 !pip install autogluon.multimodal

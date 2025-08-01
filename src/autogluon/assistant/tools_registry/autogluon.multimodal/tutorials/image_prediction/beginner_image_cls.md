@@ -1,23 +1,4 @@
-Summary: This tutorial demonstrates AutoGluon's MultiModalPredictor implementation for image classification tasks, covering essential techniques for model training, evaluation, and deployment. It provides code examples for data preparation (supporting both image paths and bytearrays), model training configuration, prediction generation, feature extraction, and model persistence. Key functionalities include accuracy evaluation, probability predictions, embedding extraction (512-2048 dimensional vectors), and flexible input handling. The tutorial is particularly useful for implementing automated image classification pipelines, with specific focus on practical aspects like model saving/loading, security considerations, and input format compatibility.
-
-# AutoMM for Image Classification - Quick Start
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/image_prediction/beginner_image_cls.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/image_prediction/beginner_image_cls.ipynb)
-
-
-
-In this quick start, we'll use the task of image classification to illustrate how to use **MultiModalPredictor**. Once the data is prepared in [Pandas DataFrame](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html) format, a single call to `MultiModalPredictor.fit()` will take care of the model training for you.
-
-
-## Create Image Dataset
-
-For demonstration purposes, we use a subset of the [Shopee-IET dataset](https://www.kaggle.com/competitions/demo-shopee-iet-competition/data) from Kaggle.
-Each image in this data depicts a clothing item and the corresponding label specifies its clothing category.
-Our subset of the data contains the following possible labels: `BabyPants`, `BabyShirt`, `womencasualshoes`, `womenchiffontop`.
-
-We can load a dataset by downloading a url data automatically:
-
+Summary: This tutorial demonstrates image classification using AutoGluon MultiModal, covering implementation of a complete workflow from setup to deployment. It teaches how to: load image data (both file paths and bytearrays), train classification models with minimal code using MultiModalPredictor, evaluate model performance, make predictions on new images, extract feature embeddings for transfer learning, and save/load models. Key features include time-constrained training, handling multiple input formats, probability-based predictions, and feature extraction capabilities - all with AutoGluon's simplified API that abstracts away complex deep learning implementation details.
 
 ```python
 !pip install autogluon.multimodal

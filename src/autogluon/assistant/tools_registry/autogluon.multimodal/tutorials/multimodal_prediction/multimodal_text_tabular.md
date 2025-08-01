@@ -1,17 +1,124 @@
-Summary: This tutorial demonstrates implementing multimodal machine learning using AutoGluon's MultiModalPredictor for combined text and tabular data analysis. It covers essential techniques for data preprocessing (including numeric conversions and log transformations), model configuration, training, prediction, and embedding extraction. The tutorial helps with tasks like automated feature fusion, mixed-type data handling, and neural network generation. Key functionalities include automatic architecture selection based on data types, joint training across modalities, embedding extraction for downstream tasks, and flexible model customization options. The implementation focuses on practical aspects like proper numerical preprocessing, time limit setting, and model artifact management.
+Summary: "
 
-# AutoMM for Text + Tabular - Quick Start
+Summary: Summary: "
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/multimodal_prediction/multimodal_text_tabular.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/multimodal_prediction/multimodal_text_tabular.ipynb)
+Summary: "
 
+Summary: 
 
+Summary: 
 
-In many applications, text data may be mixed with numeric/categorical data. 
-AutoGluon's `MultiModalPredictor` can train a single neural network that jointly operates on multiple feature types, 
-including text, categorical, and numerical columns. The general idea is to embed the text, categorical and numeric fields 
-separately and fuse these features across modalities. This tutorial demonstrates such an application.
+Summary: 
 
+Summary: 
+
+Summary: 
+
+Summary: Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: 
+
+Summary: This tutorial demonstrates how to implement book price prediction using AutoGluon MultiModal, showcasing techniques for handling mixed data types (text and numeric features), preprocessing text data, and applying log transformation for regression tasks. It covers training a multimodal predictor with minimal configuration, making predictions, evaluating model performance, and extracting embeddings for downstream tasks. Key features include automatic handling of mixed data types, simple API for model training and prediction, and embedding extraction capabilities—all valuable for developing price prediction systems with textual and numerical inputs.
 
 ```python
 !pip install autogluon.multimodal

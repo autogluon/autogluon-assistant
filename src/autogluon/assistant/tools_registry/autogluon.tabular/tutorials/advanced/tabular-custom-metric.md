@@ -1,20 +1,4 @@
-Summary: This tutorial demonstrates how to implement custom evaluation metrics in AutoGluon using the make_scorer() function. It covers the technical implementation of creating serializable custom metrics for different types of machine learning tasks (classification, regression, probability-based) through detailed examples. The tutorial helps with tasks like defining custom accuracy, MSE, and ROC AUC metrics, integrating them into model training and evaluation workflows. Key features include the essential parameters for make_scorer(), proper metric serialization requirements, handling different prediction types (class, probability, threshold-based), and best practices for implementing custom metric functions that are compatible with AutoGluon's framework.
-
-# Adding a custom metric to AutoGluon
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/advanced/tabular-custom-metric.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/advanced/tabular-custom-metric.ipynb)
-
-
-
-**Tip**: If you are new to AutoGluon, review [Predicting Columns in a Table - Quick Start](../tabular-quick-start.ipynb) to learn the basics of the AutoGluon API.
-
-This tutorial describes how to add a custom evaluation metric to AutoGluon that is used to inform validation scores, model ensembling, hyperparameter tuning, and more.
-
-In this example, we show a variety of evaluation metrics and how to convert them to an AutoGluon Scorer ([Scorer source code](https://github.com/autogluon/autogluon/blob/master/core/src/autogluon/core/metrics/__init__.py)), which can then be passed to AutoGluon models and predictors.
-
-First, we will randomly generate 10 ground truth labels and predictions and show how to calculate metric scores from them.
-
+Summary: This tutorial demonstrates how to create and use custom evaluation metrics in AutoGluon, focusing on what makes them better for model optimization. It covers the implementation of custom metrics for classification, regression, and probability-based tasks, with examples of accuracy, ROC AUC, and MSE. The metrics are defined using make_scorer and can be used for model evaluation and comparison.
 
 ```python
 !pip install autogluon.tabular[all]

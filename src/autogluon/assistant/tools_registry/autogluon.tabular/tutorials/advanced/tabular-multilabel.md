@@ -1,18 +1,4 @@
-Summary: This tutorial covers AutoGluon's MultilabelPredictor implementation for handling multiple prediction tasks simultaneously. It demonstrates how to build models that can predict different types of targets (regression, classification) while considering label correlations. Key implementation knowledge includes initializing the predictor with different problem types and metrics, training with time limits, and accessing individual predictors. The tutorial helps with tasks involving multi-target prediction, model optimization, and memory management. Notable features include label correlation handling, support for mixed problem types (regression/classification), performance optimization through presets, and model persistence capabilities. It's particularly useful for developers working on complex prediction tasks requiring multiple interdependent outputs.
-
-# Predicting Multiple Columns in a Table (Multi-Label Prediction)
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/advanced/tabular-multilabel.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/advanced/tabular-multilabel.ipynb)
-
-
-
-In multi-label prediction, we wish to predict multiple columns of a table (i.e. labels) based on the values in the remaining columns. Here we present a simple strategy to do this with AutoGluon, which simply maintains a separate [TabularPredictor](../../../api/autogluon.tabular.TabularPredictor.rst) object for each column being predicted. Correlations between labels can be accounted for in predictions by imposing an order on the labels and allowing the `TabularPredictor` for each label to condition on the predicted values for labels that appeared earlier in the order.
-
-## MultilabelPredictor Class
-
-We start by defining a custom `MultilabelPredictor` class to manage a collection of `TabularPredictor` objects, one for each label. You can use the `MultilabelPredictor` similarly to an individual `TabularPredictor`, except it operates on multiple labels rather than one.
-
+Summary: This tutorial demonstrates AutoGluon's MultilabelPredictor implementation for predicting multiple target columns simultaneously. It covers creating a custom class that manages multiple TabularPredictors, with methods for training, prediction, evaluation, and model persistence. Key features include handling different problem types (regression, classification) for each target, optional correlation consideration between labels during prediction, and customizable evaluation metrics. The code helps with multi-target machine learning tasks, offering flexibility in how predictions are generated and evaluated. The implementation provides a clean API for training multiple models with a single interface while maintaining individual model access.
 
 ```python
 !pip install autogluon.tabular[all]

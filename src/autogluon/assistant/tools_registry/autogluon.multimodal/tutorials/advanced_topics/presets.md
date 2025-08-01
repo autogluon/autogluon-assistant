@@ -1,15 +1,4 @@
-Summary: This tutorial demonstrates how to use AutoMM's preset configurations (medium_quality, high_quality, best_quality) for automated machine learning tasks. It provides implementation details for configuring MultiModalPredictor with different performance-speed tradeoffs, including HPO variants for hyperparameter optimization. The tutorial covers essential code patterns for model setup, training, and evaluation, with specific focus on preset selection, resource management, and tunable parameters (model backbone, batch size, learning rate, max epoch, optimizer type). It's particularly useful for tasks requiring automated model configuration and performance optimization, helping developers choose appropriate presets based on their computational resources and performance requirements.
-
-# AutoMM Presets
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/presets.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/presets.ipynb)
-
-
-It is well-known that we usually need to set hyperparameters before the learning process begins. Deep learning models, e.g., pretrained foundation models, can have anywhere from a few hyperparameters to a few hundred. The hyperparameters can impact training speed, final model performance, and inference latency. However, choosing the proper hyperparameters may be challenging for many users with limited expertise.
-
-In this tutorial, we will introduce the easy-to-use presets in AutoMM. Our presets can condense the complex hyperparameter setups into simple strings. More specifically, AutoMM supports three presets: `medium_quality`, `high_quality`, and `best_quality`.
-
+Summary: This tutorial demonstrates AutoGluon's MultiModalPredictor for text classification using different quality presets. It covers implementation techniques for sentiment analysis with three preset configurations: medium_quality (fast, smaller models), high_quality (balanced), and best_quality (performance-focused). The tutorial shows how to add hyperparameter optimization with _hpo suffixes, evaluate models using metrics like roc_auc, and view preset configurations. Key functionalities include automatic model selection, time-limited training, and hyperparameter tuning for text classification tasks with minimal code, making it useful for quickly implementing sentiment analysis or other text classification problems.
 
 ```python
 !pip install autogluon.multimodal
@@ -114,9 +103,9 @@ In case you want to see each preset's inside details, we provide you with a util
 
 ```python
 import json
-from autogluon.multimodal.presets import get_automm_presets
+from autogluon.multimodal.utils.presets import get_presets
 
-hyperparameters, hyperparameter_tune_kwargs = get_automm_presets(problem_type="default", presets="high_quality")
+hyperparameters, hyperparameter_tune_kwargs = get_presets(problem_type="default", presets="high_quality")
 print(f"hyperparameters: {json.dumps(hyperparameters, sort_keys=True, indent=4)}")
 print(f"hyperparameter_tune_kwargs: {json.dumps(hyperparameter_tune_kwargs, sort_keys=True, indent=4)}")
 ```
@@ -127,9 +116,9 @@ The HPO presets make several hyperparameters tunable such as model backbone, bat
 ```python
 import json
 import yaml
-from autogluon.multimodal.presets import get_automm_presets
+from autogluon.multimodal.utils.presets import get_presets
 
-hyperparameters, hyperparameter_tune_kwargs = get_automm_presets(problem_type="default", presets="high_quality_hpo")
+hyperparameters, hyperparameter_tune_kwargs = get_presets(problem_type="default", presets="high_quality_hpo")
 print(f"hyperparameters: {yaml.dump(hyperparameters, allow_unicode=True, default_flow_style=False)}")
 print(f"hyperparameter_tune_kwargs: {json.dumps(hyperparameter_tune_kwargs, sort_keys=True, indent=4)}")
 ```

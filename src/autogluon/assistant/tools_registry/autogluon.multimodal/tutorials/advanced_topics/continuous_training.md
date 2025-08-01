@@ -1,11 +1,4 @@
-Summary: This tutorial demonstrates continuous training techniques using AutoMM's MultiModalPredictor, covering three main implementation patterns: extending training with new data, resuming interrupted training from checkpoints, and transfer learning with pre-trained models. It helps with tasks involving model persistence, training continuation, and transfer learning for text, image, and fusion models. Key features include checkpoint management (model.ckpt vs last.ckpt), hyperparameter configuration for different model types (HuggingFace, TIMM, MMDetection), and data consistency requirements. The tutorial emphasizes best practices for production deployment and warns about potential catastrophic forgetting in transfer learning scenarios.
-
-# Continuous Training with AutoMM
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/continuous_training.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/continuous_training.ipynb)
-
-
-
+Summary: This tutorial demonstrates AutoMM's continuous training capabilities with three key use cases: (1) extending model training with additional data or epochs without restarting, (2) resuming training from the last checkpoint after interruptions, and (3) transferring knowledge from pre-trained models to new tasks. It covers implementation techniques for loading/saving models, continuing training with new data, and applying transfer learning across different tasks. The tutorial specifically shows how to reuse weights from text classification for regression tasks and supports transfer learning for HuggingFace text models, TIMM image models, MMDetection models, and fusion models, while warning about potential catastrophic forgetting.
 
 Continuous training provides a method for machine learning models to refine their performance over time. It enables models to build upon previously acquired knowledge, thereby enhancing accuracy, facilitating knowledge transfer across tasks, and saving computational resources. In this tutorial, we will demonstrate three use cases of continuous training with AutoMM.
 

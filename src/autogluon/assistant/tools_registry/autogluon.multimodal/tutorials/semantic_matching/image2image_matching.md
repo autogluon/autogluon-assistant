@@ -1,14 +1,4 @@
-Summary: This tutorial demonstrates implementing image-to-image semantic matching using AutoGluon's MultiModalPredictor. It covers essential techniques for training a model that determines if two images are semantically similar, using the Stanford Online Products dataset. Key implementations include data preparation with path handling, model configuration for image similarity tasks, training with customizable parameters, and various prediction methods (binary classification, probability scores, and embedding extraction). The tutorial showcases how to leverage Swin Transformer for feature vector generation and cosine similarity computation, making it valuable for tasks involving image pair matching, product similarity detection, and feature extraction for downstream applications.
-
-# Image-to-Image Semantic Matching with AutoMM 
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/matching/image2image_matching.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/matching/image2image_matching.ipynb)
-
-
-
-Computing the similarity between two images is a common task in computer vision, with several practical applications such as detecting same or different product, etc. In general, image similarity models will take two images as input and transform them into vectors, and then similarity scores calculated using cosine similarity, dot product, or Euclidean distances are used to measure how alike or different of the two images.
-
+Summary: This tutorial demonstrates image-to-image semantic matching using AutoGluon's MultiModalPredictor. It covers implementing similarity-based image matching with Swin Transformer embeddings and cosine similarity calculations. Key functionalities include: data preparation with image path handling, model training with the "image_similarity" problem type, evaluation using AUC metrics, prediction with probability outputs for custom thresholding, and feature extraction to obtain image embeddings. The tutorial helps with tasks like determining if two product images represent the same item, building image retrieval systems, and creating custom similarity thresholds for matching applications.
 
 ```python
 !pip install autogluon.multimodal

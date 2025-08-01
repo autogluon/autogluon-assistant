@@ -1,17 +1,4 @@
-Summary: This tutorial demonstrates implementing object detection using AutoGluon's MultiModalPredictor, covering setup requirements, model configuration, and inference workflows. It provides implementation details for training and evaluating models with different quality presets (YOLOX-large, DINO-Resnet50, DINO-SwinL), handling COCO-format datasets, and performing predictions with confidence thresholds. Key functionalities include model saving/loading, GPU configuration, visualization tools, and working with both single images and COCO-format data. The tutorial is particularly useful for tasks involving object detection model setup, training pipelines, and inference optimization with AutoGluon's framework.
-
-# AutoMM Detection - Quick Start on a Tiny COCO Format Dataset
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/object_detection/quick_start/quick_start_coco.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/object_detection/quick_start/quick_start_coco.ipynb)
-
-
-
-In this section, our goal is to fast finetune a pretrained model on a small dataset in COCO format, 
-and evaluate on its test set. Both training and test sets are in COCO format.
-See [Convert Data to COCO Format](../data_preparation/convert_data_to_coco_format.ipynb) for how to convert other datasets to COCO format.
-
-## Setting up the imports
+Summary: This tutorial demonstrates implementing object detection with AutoGluon's MultiModalPredictor. It covers installation requirements, dataset preparation, model configuration with three quality presets (YOLOX-large, DINO-Resnet50, DINO-SwinL), training and evaluation workflows, model saving/loading, and inference techniques. Key functionalities include prediction in both CSV and COCO formats, visualization of detection results using OpenCV, and custom inference on new images through either COCO JSON format or direct image path lists. The tutorial provides practical code for implementing complete object detection pipelines with performance optimization options.
 
 To start, make sure `mmcv` and `mmdet` are installed.
 **Note:** MMDet is no longer actively maintained and is only compatible with MMCV version 2.1.0. Installation can be problematic due to CUDA version compatibility issues. For best results:
@@ -226,7 +213,10 @@ By default, predictions are returned but not saved. To save detection results, u
 
 
 ```python
+# To save as csv format
 pred = predictor.predict(test_path, save_results=True, as_coco=False)
+# Or to save as COCO format. Note that the `pred` returned is always a pandas dataframe.
+pred = predictor.predict(test_path, save_results=True, as_coco=True, result_save_path="./results.json")
 ```
 
 The predictions can be saved in two formats:
@@ -272,7 +262,7 @@ Download the example image:
 
 
 ```python
-from autogluon.multimodal import download
+from autogluon.multimodal.utils import download
 image_url = "https://raw.githubusercontent.com/dmlc/web-data/master/gluoncv/detection/street_small.jpg"
 test_image = download(image_url)
 ```

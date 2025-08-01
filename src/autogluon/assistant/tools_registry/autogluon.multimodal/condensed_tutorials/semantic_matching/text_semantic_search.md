@@ -1,43 +1,73 @@
-# Condensed: Text Semantic Search with AutoMM
+# Condensed: ```python
 
-Summary: This tutorial demonstrates implementing semantic search using AutoGluon's MultiModalPredictor, covering both pure semantic search and hybrid approaches combining BM25. It provides code for text embedding generation, document ranking, and score normalization. Key implementations include data preprocessing, BM25 scoring, semantic embedding extraction using pre-trained transformers, and a hybrid scoring method that combines both approaches. The tutorial helps with tasks like document retrieval, similarity scoring, and ranking optimization. Notable features include configurable evaluation metrics (NDCG), customizable model parameters, and practical considerations for production deployment using efficient similarity search methods like Faiss.
+Summary: This tutorial demonstrates implementing semantic search using AutoGluon's MultiModal (AutoMM) framework. It covers: (1) embedding extraction and semantic similarity computation using pre-trained language models, (2) implementing and evaluating BM25, pure semantic search, and hybrid search approaches, and (3) creating a ranking system with NDCG evaluation. Key functionalities include document embedding, semantic similarity calculation, and hybrid search combining lexical (BM25) and semantic signals. The tutorial helps with building efficient search systems, document retrieval, and implementing information retrieval evaluation metrics, showing how semantic search outperforms traditional keyword-based approaches.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on key implementation details and concepts:
+# Semantic Search with AutoMM
 
-# Text Semantic Search with AutoMM
+## Setup
 
-## Key Concepts
-- Semantic embedding converts text into feature vectors that encode semantic meaning
-- Advantages over classical methods:
-  - Matches by meaning rather than word usage
-  - More computationally efficient
-  - Supports multi-modal search
-
-## Implementation
-
-### 1. Setup and Data Preparation
 ```python
-!pip install autogluon.multimodal ir_datasets
+!pip install autogluon.multimodal
+!pip3 install ir_datasets rank_bm25
+
 import ir_datasets
 import pandas as pd
+import nltk
+from collections import defaultdict
+import numpy as np
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from rank_bm25 import BM25Okapi
+from autogluon.multimodal import MultiModalPredictor
+from autogluon.multimodal.utils import compute_ranking_score, semantic_search, compute_semantic_similarity
+import torch
+```
 
-# Load dataset
+## Dataset Preparation
+
+```python
+# Load NF Corpus dataset
 dataset = ir_datasets.load("beir/nfcorpus/test")
+
+# Prepare dataframes
 doc_data = pd.DataFrame(dataset.docs_iter())
 query_data = pd.DataFrame(dataset.queries_iter())
 labeled_data = pd.DataFrame(dataset.qrels_iter())
 
-# Data preprocessing
+# Define key columns
+label_col = "relevance"
+query_id_col = "query_id"
+doc_id_col = "doc_id"
+text_col = "text"
+
+# Clean data
+query_data = query_data.drop("url", axis=1)
 doc_data[text_col] = doc_data[[text_col, "title"]].apply(" ".join, axis=1)
 doc_data = doc_data.drop(["title", "url"], axis=1)
+
+# Create id mappings for evaluation
+id_mappings = {
+    query_id_col: query_data.set_index(query_id_col)[text_col], 
+    doc_id_col: doc_data.set_index(doc_id_col)[text_col]
+}
 ```
 
-### 2. BM25 Implementation
-```python
-from rank_bm25 import BM25Okapi
+## Evaluation Metric: NDCG
 
+NDCG (Normalized Discounted Cumulative Gain) measures ranking performance with emphasis on top results:
+
+- **DCG**: $\mathrm{DCG}_p = \sum_{i=1}^p \frac{\mathrm{rel}_i}{\log_2(i + 1)}$
+- **NDCG**: $\mathrm{NDCG}_p = \frac{\mathrm{DCG}_p}{\mathrm{IDCG}_p}$
+
+```python
+cutoffs = [5, 10, 20]  # Evaluation at different cutoff points
+```
+
+## BM25 Implementation
+
+```python
 def tokenize_corpus(corpus):
     stop_words = set(stopwords.words("english") + list(string.punctuation))
     tokenized_docs = []
@@ -56,12 +86,29 @@ def rank_documents_bm25(queries_text, queries_id, docs_id, top_k, bm25):
         for doc_idx in scores_top_k_idx:
             results[queries_id[query_idx]][docs_id[doc_idx]] = float(scores[doc_idx])
     return results
+
+def get_qrels(dataset):
+    qrel_dict = defaultdict(dict)
+    for qrel in dataset.qrels_iter():
+        qrel_dict[qrel.query_id][qrel.doc_id] = qrel.relevance
+    return qrel_dict
+
+def evaluate_bm25(doc_data, query_data, qrel_dict, cutoffs):
+    tokenized_corpus = tokenize_corpus(doc_data[text_col].tolist())
+    bm25_model = BM25Okapi(tokenized_corpus, k1=1.2, b=0.75)
+    results = rank_documents_bm25(query_data[text_col].tolist(), query_data[query_id_col].tolist(), 
+                                 doc_data[doc_id_col].tolist(), max(cutoffs), bm25_model)
+    ndcg = compute_ranking_score(results=results, qrel_dict=qrel_dict, metrics=["ndcg"], cutoffs=cutoffs)
+    return ndcg
+
+# Get ground truth and evaluate BM25
+qrel_dict = get_qrels(dataset)
+bm25_scores = evaluate_bm25(doc_data, query_data, qrel_dict, cutoffs)
 ```
 
-### 3. AutoMM Implementation
-```python
-from autogluon.multimodal import MultiModalPredictor
+## AutoMM for Semantic Search
 
+```python
 # Initialize predictor
 predictor = MultiModalPredictor(
     query=query_id_col,
@@ -71,14 +118,23 @@ predictor = MultiModalPredictor(
     hyperparameters={"model.hf_text.checkpoint_name": "sentence-transformers/all-MiniLM-L6-v2"}
 )
 
-# Evaluate ranking
-results = predictor.evaluate(
+# Evaluate ranking performance
+automm_scores = predictor.evaluate(
     labeled_data,
     query_data=query_data[[query_id_col]],
     response_data=doc_data[[doc_id_col]],
     id_mappings=id_mappings,
     cutoffs=cutoffs,
-    metrics=["ndcg"]
+    metrics=["ndcg"],
+)
+
+# Perform semantic search
+hits = semantic_search(
+    matcher=predictor,
+    query_data=query_data[text_col].tolist(),
+    response_data=doc_data[text_col].tolist(),
+    query_chunk_size=len(query_data),
+    top_k=max(cutoffs),
 )
 
 # Extract embeddings
@@ -86,30 +142,67 @@ query_embeds = predictor.extract_embedding(query_data[[query_id_col]], id_mappin
 doc_embeds = predictor.extract_embedding(doc_data[[doc_id_col]], id_mappings=id_mappings, as_tensor=True)
 ```
 
-### 4. Hybrid BM25
+## Hybrid BM25 Implementation
+
+Combines BM25 and semantic embeddings with the formula:
+`score = β * normalized_BM25 + (1 - β) * score_of_plm`
+
 ```python
 def hybridBM25(query_data, query_embeds, doc_data, doc_embeds, recall_num, top_k, beta):
-    # Combine BM25 and semantic search scores
-    bm25_scores = rank_documents_bm25(...)
+    # Recall documents with BM25 scores
+    tokenized_corpus = tokenize_corpus(doc_data[text_col].tolist())
+    bm25_model = BM25Okapi(tokenized_corpus, k1=1.2, b=0.75)
+    bm25_scores = rank_documents_bm25(query_data[text_col].tolist(), query_data[query_id_col].tolist(), 
+                                     doc_data[doc_id_col].tolist(), recall_num, bm25_model)
     
     # Normalize BM25 scores
     all_bm25_scores = [score for scores in bm25_scores.values() for score in scores.values()]
     max_bm25_score = max(all_bm25_scores)
     min_bm25_score = min(all_bm25_scores)
+
+    # Prepare embeddings
+    q_embeddings = {qid: embed for qid, embed in zip(query_data[query_id_col].tolist(), query_embeds)}
+    d_embeddings = {did: embed for did, embed in zip(doc_data[doc_id_col].tolist(), doc_embeds)}
     
-    # Compute final scores
-    results[qid][doc_id] = (1 - beta) * float(score.numpy()) + \
-        beta * (bm25_scores[qid][doc_id] - min_bm25_score) / (max_bm25_score - min_bm25_score)
+    # Calculate hybrid scores
+    query_ids = query_data[query_id_col].tolist()
+    results = {qid: {} for qid in query_ids}
+    for idx, qid in enumerate(query_ids):
+        rec_docs = bm25_scores[qid]
+        rec_doc_emb = [d_embeddings[doc_id] for doc_id in rec_docs.keys()]
+        rec_doc_id = [doc_id for doc_id in rec_docs.keys()]
+        rec_doc_emb = torch.stack(rec_doc_emb)
+        scores = compute_semantic_similarity(q_embeddings[qid], rec_doc_emb)
+        scores[torch.isnan(scores)] = -1
+        top_k_values, top_k_idxs = torch.topk(
+            scores,
+            min(top_k + 1, len(scores[0])),
+            dim=1,
+            largest=True,
+            sorted=False,
+        )
+
+        for doc_idx, score in zip(top_k_idxs[0], top_k_values[0]):
+            doc_id = rec_doc_id[int(doc_idx)]
+            # Hybrid scores from BM25 and cosine similarity of embeddings
+            normalized_bm25 = (bm25_scores[qid][doc_id] - min_bm25_score) / (max_bm25_score - min_bm25_score)
+            results[qid][doc_id] = (1 - beta) * float(score.numpy()) + beta * normalized_bm25
+    
+    return results
+
+def evaluate_hybridBM25(query_data, query_embeds, doc_data, doc_embeds, recall_num, beta, cutoffs):
+    results = hybridBM25(query_data, query_embeds, doc_data, doc_embeds, recall_num, max(cutoffs), beta)
+    ndcg = compute_ranking_score(results=results, qrel_dict=qrel_dict, metrics=["ndcg"], cutoffs=cutoffs)
+    return ndcg
+
+# Evaluate Hybrid BM25
+recall_num = 1000
+beta = 0.3
+hybrid_scores = evaluate_hybridBM25(query_data, query_embeds, doc_data, doc_embeds, recall_num, beta, cutoffs)
 ```
 
-## Important Parameters
-- `cutoffs`: List of positions to evaluate NDCG [5, 10, 20]
-- `recall_num`: Number of documents to recall (1000)
-- `beta`: Weight for hybrid scoring (0.3)
-- BM25 parameters: k1=1.2, b=0.75
+## Key Findings
 
-## Best Practices
-1. Pre-compute and store document embeddings for efficiency
-2. Use efficient similarity search methods (e.g., Faiss) for production
-3. Consider hybrid approaches combining BM25 and semantic search
-4. Normalize scores when combining different ranking methods
+1. AutoMM significantly outperforms traditional BM25 for semantic search
+2. Hybrid BM25 (combining BM25 with embedding similarity) provides further improvements
+3. The embedding extraction capability enables efficient offline/online search systems

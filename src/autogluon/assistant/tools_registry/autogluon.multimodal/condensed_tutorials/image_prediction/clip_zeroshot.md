@@ -1,68 +1,94 @@
-# Condensed: Zero-Shot Image Classification with CLIP
+# Condensed: ```python
 
-Summary: This tutorial demonstrates implementing zero-shot image classification using CLIP via AutoGluon's MultiModalPredictor. It shows how to perform image classification without training data by matching images against text descriptions. Key implementation knowledge includes the basic predictor initialization and prediction pattern, handling image-text pair inputs, and awareness of typographic attack limitations. The tutorial helps with tasks like building zero-shot classifiers, implementing CLIP-based image classification, and utilizing pre-trained models that achieve ResNet50-level performance. Core features covered include zero-shot classification without training data, flexible category definition through text descriptions, and batch prediction support, all implemented through a straightforward Python API.
+Summary: This tutorial demonstrates zero-shot image classification using CLIP via AutoGluon's MultiModalPredictor. It covers implementation of image classification without prior training by comparing images against arbitrary text descriptions. Key functionalities include initializing the predictor, performing predictions with image-text pairs, and understanding CLIP's capabilities and limitations (particularly typographic attacks). The code shows how to classify dog breeds and uncommon objects, making it useful for developers implementing flexible image classification systems without labeled training data for specific categories.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on essential implementation details:
-
 # Zero-Shot Image Classification with CLIP
 
-## Key Implementation Details
+## Setup and Basic Usage
 
 ```python
-from autogluon.multimodal import MultiModalPredictor
-from autogluon.multimodal import download
+!pip install autogluon.multimodal
 
-# Initialize predictor
+from IPython.display import Image, display
+from autogluon.multimodal.utils import download
+from autogluon.multimodal import MultiModalPredictor
+
+# Load a dog image
+url = "https://farm4.staticflickr.com/3445/3262471985_ed886bf61a_z.jpg"
+dog_image = download(url)
+display(Image(filename=dog_image))
+```
+
+## Zero-Shot Classification Implementation
+
+CLIP allows for zero-shot classification without training on specific datasets:
+
+```python
+# Initialize the predictor for zero-shot classification
 predictor = MultiModalPredictor(problem_type="zero_shot_image_classification")
 
-# Basic usage pattern
+# Predict dog breed
 prob = predictor.predict_proba(
-    {"image": [image_path]}, 
-    {"text": ['class1', 'class2', 'class3']}
+    {"image": [dog_image]}, 
+    {"text": ['This is a Husky', 'This is a Golden Retriever', 
+              'This is a German Sheperd', 'This is a Samoyed.']}
 )
+print("Label probs:", prob)
 ```
 
-## Core Functionality
+## Additional Example - Uncommon Object
 
-1. **Zero-shot Classification**: CLIP can classify images without training data by providing text descriptions of categories
-2. **Input Format**: 
-   - Images: Provided as file paths
-   - Categories: Provided as text descriptions in list format
-
-## Key Features & Capabilities
-
-- Matches supervised ResNet50 performance on ImageNet (76.2% top-1 accuracy) without training
-- Works with arbitrary visual categories by simply providing text descriptions
-- Pre-trained on 400M image-text pairs
-
-## Important Limitations
-
-1. **Vulnerability to Typographic Attacks**
-   - CLIP's predictions can be significantly influenced by text present in images
-   - Example: An apple image labeled as "iPod" can cause CLIP to misclassify it as an iPod
-
-2. **Usage Pattern for Classification**:
 ```python
-# Basic classification
+# Segway example
+url = "https://live.staticflickr.com/7236/7114602897_9cf00b2820_b.jpg"
+segway_image = download(url)
+display(Image(filename=segway_image))
+
 prob = predictor.predict_proba(
-    {"image": [image_path]}, 
-    {"text": ['category1', 'category2', ...]}
+    {"image": [segway_image]}, 
+    {"text": ['segway', 'bicycle', 'wheel', 'car']}
 )
+print("Label probs:", prob)
 ```
 
-## Best Practices
+## How CLIP Works
 
-1. Use clear, descriptive text labels for categories
-2. Be aware of potential text-based vulnerabilities in images
-3. Provide multiple relevant category options for better classification
+CLIP (Contrastive Language-Image Pre-training) was trained on 400M image-text pairs using a contrastive learning approach. It predicts which text is paired with a given image, enabling application to arbitrary visual classification tasks.
 
-## Technical Notes
+## CLIP Limitations - Typographic Attacks
 
-- No training required - purely inference-based
-- Works with common image formats
-- Supports batch prediction
-- Based on contrastive learning between image and text pairs
+CLIP is vulnerable to text in images affecting predictions:
 
-This implementation provides zero-shot image classification capabilities without the need for training data or fine-tuning.
+```python
+# Apple example
+url = "https://cdn.openai.com/multimodal-neurons/assets/apple/apple-blank.jpg"
+image_path = download(url)
+display(Image(filename=image_path))
+
+# Normal classification
+prob = predictor.predict_proba(
+    {"image": [image_path]}, 
+    {"text": ['Granny Smith', 'iPod', 'library', 'pizza', 'toaster', 'dough']}
+)
+print("Label probs:", prob)
+
+# Apple with "iPod" text
+url = "https://cdn.openai.com/multimodal-neurons/assets/apple/apple-ipod.jpg"
+image_path = download(url)
+display(Image(filename=image_path))
+
+# Classification affected by text
+prob = predictor.predict_proba(
+    {"image": [image_path]}, 
+    {"text": ['Granny Smith', 'iPod', 'library', 'pizza', 'toaster', 'dough']}
+)
+print("Label probs:", prob)
+```
+
+For more details on CLIP's limitations, refer to the [CLIP paper](https://arxiv.org/abs/2103.00020).
+
+## Additional Resources
+- [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm)
+- [Customize AutoMM](../advanced_topics/customization.ipynb)

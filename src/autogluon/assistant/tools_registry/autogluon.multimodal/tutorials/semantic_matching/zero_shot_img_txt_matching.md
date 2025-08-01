@@ -1,26 +1,4 @@
-Summary: This tutorial demonstrates implementing zero-shot image-text semantic matching using AutoMM's MultiModalPredictor with CLIP model. It covers three main functionalities: image retrieval using text queries, text retrieval using image queries, and direct image-text pair matching. Key implementation techniques include efficient embedding extraction with tensor output, offline embedding storage for scalability, and semantic search functionality. The tutorial helps with tasks like building image search systems, text-based image retrieval, and determining semantic similarity between image-text pairs. Notable features include batch processing support, two-tower architecture utilization, and flexible matching threshold configuration through probability scores.
-
-# Image-Text Semantic Matching with AutoMM - Zero-Shot
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/semantic_matching/zero_shot_img_txt_matching.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/semantic_matching/zero_shot_img_txt_matching.ipynb)
-
-
-
-The task of image-text semantic matching refers to measuring the visual-semantic similarity between an image and a sentence. AutoMM supports zero-shot image-text matching by leveraging the powerful [CLIP](https://github.com/openai/CLIP). 
-Thanks to the contrastive loss objective and trained on millions of image-text pairs, CLIP learns good embeddings for both vision and language, and their connections. Hence, we can use it to extract embeddings for retrieval and matching.
-
-CLIP has a two-tower architecture, which means it has two encoders: one for image, the other for text. An overview of CLIP model can be seen in the diagram below. Left shows its pre-training stage, and Right shows its zero-shot predicton stage. By computing the cosine similarity scores between one image embedding and all the text images, we pick the text which has the highest similarity as the prediction.
-
-Given the two encoders, we can extract image embeddings, or text embeddings. And most importantly, embedding extraction can be done offline, only similarity computation needs to be done online. So this means good scalability. 
-![CLIP](https://github.com/openai/CLIP/raw/main/CLIP.png)
-
-
-In this tutorial, we will show how the AutoMM's easy-to-use APIs can ship the powerful CLIP to you.
-
-## Prepare Demo Data
-First, let's get some texts and download some images. These images are from [COCO datasets](https://cocodataset.org/#home).
-
+Summary: This tutorial demonstrates using AutoGluon MultiModal for image-text similarity tasks. It covers extracting embeddings from images and text, performing cross-modal retrieval (finding images matching text queries and vice versa using semantic search), and predicting image-text matching with probability scores. Key functionalities include embedding extraction, semantic search for retrieval, and binary classification of image-text pairs. The implementation uses MultiModalPredictor with "image_text_similarity" problem type, making it valuable for building multimodal search systems, content recommendation, or image captioning validation.
 
 ```python
 !pip install autogluon.multimodal
@@ -29,7 +7,7 @@ First, let's get some texts and download some images. These images are from [COC
 
 
 ```python
-from autogluon.multimodal import download
+from autogluon.multimodal.utils import download
 
 texts = [
     "A cheetah chases prey on across a field.",

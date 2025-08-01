@@ -1,17 +1,4 @@
-Summary: This tutorial provides implementation guidance for AutoGluon's TabularPredictor, covering essential techniques for automated machine learning on tabular data. It helps with tasks including model training, prediction, evaluation, and optimization through presets. Key features include basic setup and installation, data loading without preprocessing, model training with various quality presets (best_quality to medium_quality), prediction methods (including probability predictions), model evaluation and persistence, and performance optimization techniques. The tutorial demonstrates how to handle both classification and regression tasks, configure evaluation metrics, and implement best practices for model deployment, while highlighting AutoGluon's automatic handling of feature engineering, missing data, and model ensembling.
-
-# AutoGluon Tabular - Essential Functionality
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/tabular-essentials.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/tabular-essentials.ipynb)
-
-
-Via a simple `fit()` call, AutoGluon can produce highly-accurate models to predict the values in one column of a data table based on the rest of the columns' values. Use AutoGluon with tabular data for both classification and regression problems. This tutorial demonstrates how to use AutoGluon to produce a classification model that predicts whether or not a person's income exceeds $50,000.
-
-## TabularPredictor
-
-To start, import AutoGluon's [TabularPredictor](../../api/autogluon.tabular.TabularPredictor.rst) and [TabularDataset](../../api/autogluon.core.TabularDataset.rst) classes:
-
+Summary: This tutorial covers AutoGluon's TabularPredictor for automated machine learning on tabular data. It demonstrates implementation of quick model training with minimal code, automated handling of data preprocessing, and model deployment. Key functionalities include: loading tabular data, training multiple models simultaneously, making predictions, evaluating performance, and saving/loading models. The tutorial explains different performance presets (from "medium" to "extreme"), feature importance analysis, and optimization strategies for classification and regression tasks. AutoGluon automatically handles missing values, feature engineering, and model selection, making it valuable for rapid prototyping and production-quality predictive modeling with just a few lines of code.
 
 ```python
 !pip install autogluon.tabular[all]
@@ -197,19 +184,23 @@ The scores of predictive performance above were based on a default evaluation me
 
 ## Presets
 
-AutoGluon comes with a variety of presets that can be specified in the call to `.fit` via the `presets` argument. `medium_quality` is used by default to encourage initial prototyping, but for serious usage, the other presets should be used instead.
+AutoGluon comes with a variety of presets that can be specified in the call to `.fit` via the `presets` argument. `medium` is used by default to encourage initial prototyping, but for serious usage, the other presets should be used instead.
 
-| Preset         | Model Quality                                          | Use Cases                                                                                                                                               | Fit Time (Ideal) | Inference Time (Relative to medium_quality) | Disk Usage |
-| :------------- |:-------------------------------------------------------| :------------------------------------------------------------------------------------------------------------------------------------------------------ |:-----------------| :------------------------------------------ | :--------- |
-| best_quality   | State-of-the-art (SOTA), much better than high_quality | When accuracy is what matters                                                                                                                           | 16x+             | 32x+                                        | 16x+       |
-| high_quality   | Better than good_quality                               | When a very powerful, portable solution with fast inference is required: Large-scale batch inference                                                    | 16x+             | 4x                                          | 2x         |
-| good_quality   | Stronger than any other AutoML Framework               | When a powerful, highly portable solution with very fast inference is required: Billion-scale batch inference, sub-100ms online-inference, edge-devices | 16x              | 2x                                          | 0.1x       |
-| medium_quality | Competitive with other top AutoML Frameworks           | Initial prototyping, establishing a performance baseline                                                                                                | 1x               | 1x                                          | 1x         |
+| Preset  | Model Quality                                               | Use Cases                                                                                                                                                                                          | Fit Time (Ideal) | Inference Time (Relative to medium_quality) | Disk Usage |
+|:--------|:------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------| :------------------------------------------ |:-----------|
+| extreme | **Far better** than best on datasets <30000 samples | (New in v1.4) The absolute cutting edge. Incorporates very recent tabular foundation models TabPFNv2, TabICL, and Mitra, along with the deep learning model TabM. Requires a GPU for best results. | 4x+              | 32x+                                        | 8x+        |
+| best    | State-of-the-art (SOTA), much better than high      | When accuracy is what matters.  This should be considered the preferred setting for serious usage. Has been used to win numerous Kaggle competitions.                                              | 16x+             | 32x+                                        | 16x+       |
+| high    | Better than good                                    | When a very powerful, portable solution with fast inference is required: Large-scale batch inference                                                                                               | 16x+             | 4x                                          | 2x         |
+| good    | Stronger than any other AutoML Framework                    | When a powerful, highly portable solution with very fast inference is required: Billion-scale batch inference, sub-100ms online-inference, edge-devices                                            | 16x              | 2x                                          | 0.1x       |
+| medium  | Competitive with other top AutoML Frameworks                | Initial prototyping, establishing a performance baseline                                                                                                                                           | 1x               | 1x                                          | 1x         |
 
-We recommend users to start with `medium_quality` to get a sense of the problem and identify any data related issues. If `medium_quality` is taking too long to train, consider subsampling the training data during this prototyping phase.  
-Once you are comfortable, next try `best_quality`. Make sure to specify at least 16x the `time_limit` value as used in `medium_quality`. Once finished, you should have a very powerful solution that is often stronger than `medium_quality`.  
+We recommend users to start with `medium` to get a sense of the problem and identify any data related issues. If `medium` is taking too long to train, consider subsampling the training data during this prototyping phase.  
+Once you are comfortable, next try `best`. Make sure to specify at least 16x the `time_limit` value as used in `medium`. Once finished, you should have a very powerful solution that is often stronger than `medium`.  
 Make sure to consider holding out test data that AutoGluon never sees during training to ensure that the models are performing as expected in terms of performance.  
-Once you evaluate both `best_quality` and `medium_quality`, check if either satisfies your needs. If neither do, consider trying `high_quality` and/or `good_quality`.  
+Once you evaluate both `best` and `medium`, check if either satisfies your needs. If neither do, consider trying `high` and/or `good`.  
+
+If you have a GPU, we recommend trying the new `extreme` preset, which is meta-learned from TabArena: https://tabarena.ai and demonstrates the absolute cutting edge performance, dramatically improving over `best` on small datasets. Ensure you have installed the required dependencies via `pip install autogluon[tabarena]`.
+
 If none of the presets satisfy requirements, refer to [Predicting Columns in a Table - In Depth](tabular-indepth.ipynb) for more advanced AutoGluon options.
 
 ## Maximizing predictive performance
@@ -221,7 +212,7 @@ To get the best predictive accuracy with AutoGluon, you should generally use it 
 ```python
 time_limit = 60  # for quick demonstration only, you should set this to longest time you are willing to wait (in seconds)
 metric = 'roc_auc'  # specify your evaluation metric here
-predictor = TabularPredictor(label, eval_metric=metric).fit(train_data, time_limit=time_limit, presets='best_quality')
+predictor = TabularPredictor(label, eval_metric=metric).fit(train_data, time_limit=time_limit, presets='best')
 ```
 
 
@@ -231,7 +222,7 @@ predictor.leaderboard(test_data)
 
 This command implements the following strategy to maximize accuracy:
 
-- Specify the argument `presets='best_quality'`, which allows AutoGluon to automatically construct powerful model ensembles based on [stacking/bagging](https://arxiv.org/abs/2003.06505), and will greatly improve the resulting predictions if granted sufficient training time. The default value of `presets` is `'medium_quality'`, which produces _less_ accurate models but facilitates faster prototyping. With `presets`, you can flexibly prioritize predictive accuracy vs. training/inference speed. For example, if you care less about predictive performance and want to quickly deploy a basic model, consider using: `presets=['good_quality', 'optimize_for_deployment']`.
+- Specify the argument `presets='best'`, which allows AutoGluon to automatically construct powerful model ensembles based on [stacking/bagging](https://arxiv.org/abs/2003.06505), and will greatly improve the resulting predictions if granted sufficient training time. The default value of `presets` is `'medium'`, which produces _less_ accurate models but facilitates faster prototyping. With `presets`, you can flexibly prioritize predictive accuracy vs. training/inference speed. For example, if you care less about predictive performance and want to quickly deploy a basic model, consider using: `presets=['good', 'optimize_for_deployment']`.
 
 - Provide the parameter `eval_metric` to `TabularPredictor()` if you know what metric will be used to evaluate predictions in your application. Some other non-default metrics you might use include things like: `'f1'` (for binary classification), `'roc_auc'` (for binary classification), `'log_loss'` (for classification), `'mean_absolute_error'` (for regression), `'median_absolute_error'` (for regression). You can also define your own custom metric function. For more information refer to [Adding a custom metric to AutoGluon](advanced/tabular-custom-metric.ipynb).
 

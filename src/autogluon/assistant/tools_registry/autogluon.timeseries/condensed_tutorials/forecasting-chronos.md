@@ -1,104 +1,108 @@
-# Condensed: Forecasting with Chronos
+# Condensed: ```python
 
-Summary: This tutorial covers implementing time series forecasting using AutoGluon's Chronos models, specifically focusing on the faster Chronos-Bolt variants. It demonstrates how to perform zero-shot forecasting and model fine-tuning, incorporate covariates using regression models, and compare model performances. Key implementation techniques include basic model setup, covariate integration through tabular regressors, and fine-tuning configurations with customizable learning rates and steps. The tutorial helps with tasks like time series prediction, model optimization, and handling exogenous variables. Notable features include support for both CPU and GPU execution, various model sizes (tiny to large), automated model selection through presets, and visualization capabilities. It emphasizes best practices for model selection, hardware requirements, and performance optimization.
+Summary: This tutorial introduces Chronos and Chronos-Bolt models in AutoGluon for time series forecasting. It covers implementation of zero-shot forecasting that scales linearly with time series volume, model selection across different sizes (tiny to large), and practical code examples for prediction. Key functionalities include fine-tuning options with customizable learning rates and steps, incorporating covariates through regressors (particularly CatBoost), and hardware recommendations. The tutorial demonstrates how to load data, split into train/test sets, create predictors with various configurations, generate predictions, and evaluate model performance through leaderboards—particularly useful for implementing efficient time series forecasting with minimal training requirements.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on key implementation details and concepts:
-
-# Forecasting with Chronos in AutoGluon
-
-## Key Points
-- Chronos models are pretrained on large collections of time series data
-- New Chronos-Bolt⚡️ models are up to 250x faster than original Chronos
-- Supports both zero-shot forecasting and fine-tuning
+# Getting Started with Chronos in AutoGluon
 
 ## Installation
+
 ```python
-!pip install autogluon.timeseries
+!pip install uv
+!uv pip install -q autogluon.timeseries --system
+!uv pip uninstall -q torchaudio torchvision torchtext --system # fix incompatible package versions on Colab
 ```
 
-## Model Types & Presets
+## Overview
 
-### Chronos-Bolt Models (Recommended)
-- `bolt_tiny`, `bolt_mini`, `bolt_small`, `bolt_base`
-- Can run on both CPU and GPU
+Chronos is a pretrained model for zero-shot forecasting that differs from other AG-TS models:
+- Does not truly `fit` time series data
+- Computation happens during inference (like ETS or ARIMA)
+- Scales linearly with the number of time series
 
-### Original Chronos Models
-- `chronos_tiny`, `chronos_mini`, `chronos_small`, `chronos_base`, `chronos_large`
-- Models `small` and above require GPU
+AutoGluon supports:
+- Original Chronos models (e.g., `chronos-t5-large`)
+- New Chronos-Bolt⚡ models (up to 250x faster, more accurate)
 
-## Implementation Details
+## Model Selection
 
-### Basic Usage
+**Recommended presets:**
+- Chronos-Bolt: `"bolt_tiny"`, `"bolt_mini"`, `"bolt_small"`, `"bolt_base"` (CPU/GPU compatible)
+- Original Chronos: `"chronos_tiny"`, `"chronos_mini"`, `"chronos_small"`, `"chronos_base"`, `"chronos_large"` (sizes `small` and above require GPU)
+
+## Zero-shot Forecasting Example
+
 ```python
 from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
 
-# Load data
-data = TimeSeriesDataFrame.from_path("path_to_data.csv")
+# Load dataset
+data = TimeSeriesDataFrame.from_path(
+    "https://autogluon.s3.amazonaws.com/datasets/timeseries/australian_electricity_subset/test.csv"
+)
 
 # Split data
 prediction_length = 48
 train_data, test_data = data.train_test_split(prediction_length)
 
-# Create and fit predictor
+# Create predictor with Chronos-Bolt
 predictor = TimeSeriesPredictor(prediction_length=prediction_length).fit(
-    train_data, 
-    presets="bolt_small"
+    train_data, presets="bolt_small",
 )
 
-# Generate predictions
+# Generate and visualize predictions
 predictions = predictor.predict(train_data)
-```
-
-## Important Notes
-1. Chronos models don't actually "fit" to data - computation happens during inference
-2. Prediction computation scales linearly with number of time series
-3. The `fit` method primarily:
-   - Infers time series frequency
-   - Saves predictor state
-   - Handles basic setup tasks
-
-## Best Practices
-- Use Chronos-Bolt models for better performance
-- For combining with other models, use presets:
-  - `medium_quality`
-  - `high_quality`
-  - `best_quality`
-- Consider GPU requirements when selecting model size
-
-## Visualization
-```python
 predictor.plot(
     data=data,
     predictions=predictions,
     item_ids=data.item_ids[:2],
-    max_history_length=200
+    max_history_length=200,
+);
+```
+
+## Fine-tuning
+
+Compare zero-shot and fine-tuned models:
+
+```python
+predictor = TimeSeriesPredictor(prediction_length=prediction_length).fit(
+    train_data=train_data,
+    hyperparameters={
+        "Chronos": [
+            {"model_path": "bolt_small", "ag_args": {"name_suffix": "ZeroShot"}},
+            {"model_path": "bolt_small", "fine_tune": True, "ag_args": {"name_suffix": "FineTuned"}},
+        ]
+    },
+    time_limit=60,  # time limit in seconds
+    enable_ensemble=False,
+)
+
+# Evaluate models
+predictor.leaderboard(test_data)
+```
+
+**Advanced fine-tuning options:**
+```python
+predictor.fit(
+    ...,
+    hyperparameters={"Chronos": {"fine_tune": True, "fine_tune_lr": 1e-4, "fine_tune_steps": 2000}},
 )
 ```
 
-This condensed version maintains all critical implementation details while removing redundant explanations and focusing on practical usage.
+## Incorporating Covariates
 
-Here's the condensed tutorial section focusing on key implementation details and concepts:
+Chronos is univariate but can be combined with covariate regressors to incorporate exogenous information:
 
-# Incorporating Covariates with Chronos-Bolt
-
-## Key Concepts
-- Chronos is typically univariate but can incorporate exogenous variables through covariate regressors
-- Covariate regressors are tabular models that predict target values using known covariates
-- The process: regressor predictions are subtracted from target, then univariate model forecasts residuals
-
-## Implementation Details
-
-### 1. Data Setup
 ```python
-data = TimeSeriesDataFrame.from_path("path_to_grocery_sales_data")
+# Load dataset with covariates
+data = TimeSeriesDataFrame.from_path(
+    "https://autogluon.s3.amazonaws.com/datasets/timeseries/grocery_sales/test.csv",
+)
+
 prediction_length = 8
 train_data, test_data = data.train_test_split(prediction_length=prediction_length)
-```
 
-### 2. Predictor Configuration
-```python
+# Create predictor with covariates
 predictor = TimeSeriesPredictor(
     prediction_length=prediction_length,
     target="unit_sales",
@@ -107,7 +111,7 @@ predictor = TimeSeriesPredictor(
     train_data,
     hyperparameters={
         "Chronos": [
-            # Zero-shot model without covariates
+            # Zero-shot model WITHOUT covariates
             {
                 "model_path": "bolt_small",
                 "ag_args": {"name_suffix": "ZeroShot"},
@@ -124,120 +128,12 @@ predictor = TimeSeriesPredictor(
     enable_ensemble=False,
     time_limit=60,
 )
+
+# Evaluate models
+predictor.leaderboard(test_data)
 ```
 
-## Important Configurations
-1. `known_covariates_names`: List of covariate columns to use
-2. `covariate_regressor`: Specifies the regression model (e.g., "CAT" for CatBoost)
-3. `target_scaler`: Recommended when using covariate regressors
-4. `model_path`: Specifies the Chronos-Bolt model size
+## Hardware Recommendations
 
-## Best Practices
-- Always apply target scaling when using covariate regressors
-- Compare models with and without covariates to validate improvement
-- Use meaningful name suffixes to distinguish models in the leaderboard
-
-## Performance Note
-Models using covariates typically achieve better forecast accuracy compared to pure univariate approaches, as demonstrated in the example where the model with covariates outperformed the zero-shot model.
-
-Here's the condensed version focusing on the key implementation details and insights:
-
-# Model Comparison and Best Practices
-
-## Performance Comparison
-```python
-# Sample results table showing model performance
-| model                           | score_test | score_val | pred_time_test | pred_time_val | fit_time_marginal |
-|--------------------------------|------------|-----------|----------------|---------------|-------------------|
-| ChronosWithRegressor[bolt_small]| -0.268969 | -0.358048 | 0.881176      | 0.916053     | 1.004376         |
-| ChronosZeroShot[bolt_small]    | -0.318562 | -0.452296 | 0.859930      | 0.844927     | 0.019435         |
-```
-
-## Key Implementation Notes
-
-1. **Model Selection**
-   - Covariates may not always improve model performance
-   - Zero-shot model might achieve better accuracy in some cases
-   - Always evaluate multiple models on held-out data
-
-2. **Best Practices**
-   - Use AutoGluon's preset configurations:
-     - `"high_quality"`
-     - `"best_quality"`
-   - These presets automatically try multiple models and select the best performer
-
-3. **Performance Metrics**
-   - Consider both prediction accuracy and computational costs
-   - Monitor fit time and prediction time alongside accuracy metrics
-
-This section emphasizes the importance of empirical model selection and the use of AutoGluon's automated model selection capabilities.
-
-Here's the condensed version focusing on key implementation details and practices:
-
-# Fine-tuning Chronos Models
-
-## Core Implementation
-
-### Basic Fine-tuning Setup
-```python
-predictor = TimeSeriesPredictor(prediction_length=prediction_length).fit(
-    train_data=train_data,
-    hyperparameters={
-        "Chronos": [
-            # Zero-shot configuration
-            {"model_path": "bolt_small", "ag_args": {"name_suffix": "ZeroShot"}},
-            # Fine-tuned configuration
-            {"model_path": "bolt_small", "fine_tune": True, "ag_args": {"name_suffix": "FineTuned"}},
-        ]
-    },
-    time_limit=60,
-    enable_ensemble=False,
-)
-```
-
-### Custom Fine-tuning Parameters
-```python
-predictor.fit(
-    ...,
-    hyperparameters={
-        "Chronos": {
-            "fine_tune": True,
-            "fine_tune_lr": 1e-4,
-            "fine_tune_steps": 2000
-        }
-    }
-)
-```
-
-## Key Points
-
-1. **Model Variants**:
-   - Zero-shot: Uses pretrained model directly
-   - Fine-tuned: Adapts model to specific dataset
-
-2. **Performance Evaluation**:
-   - Use `predictor.leaderboard(test_data)` to compare model variants
-   - Scores are reported in "higher is better" format (error metrics are multiplied by -1)
-
-3. **Hardware Requirements**:
-   - Recommended: AWS g5.2xlarge or p3.2xlarge
-   - GPU: 16GB+ memory
-   - RAM: 32GB+ recommended
-   - CPU execution possible but slower
-
-## Best Practices
-
-1. **Model Selection**:
-   - Fine-tuned models typically achieve better accuracy than zero-shot
-   - Compare performance using leaderboard functionality
-
-2. **Resource Considerations**:
-   - GPU recommended for larger models and fine-tuning
-   - CPU mode available but with longer runtime
-
-3. **Support Channels**:
-   - Discord server: discord.gg/wjUmjqAc2N
-   - GitHub: github.com/autogluon/autogluon
-   - Chronos GitHub: github.com/amazon-science/chronos-forecasting/discussions
-
-For detailed fine-tuning options, refer to the Chronos documentation in the Forecasting Model Zoo.
+- For larger models: AWS `g5.2xlarge` or `p3.2xlarge` with NVIDIA A10G/V100 GPUs (16GB+ GPU memory, 32GB+ RAM)
+- Chronos-Bolt models can run on CPU but with longer runtime
