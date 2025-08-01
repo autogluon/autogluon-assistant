@@ -412,6 +412,7 @@ class Manager:
                 logger.brief(
                     f"[bold yellow]Current validation score: {validation_score:.4f} (best: {self.val_scores[self.best_step]:.4f} at step {self.best_step})[/bold yellow]"
                 )
+                self.remove_env_folder(self.iteration_folder)
 
         # Save validation score information
         self.save_and_log_states(
@@ -572,11 +573,11 @@ class Manager:
                 elif os.path.isdir(source_item):
                     shutil.copytree(source_item, dest_item, dirs_exist_ok=True)
 
+            if self.config.cleanup_unused_env:
+                # Move conda_env folder from source to best_run folder
+                shutil.move(os.path.join(source_folder, "conda_env"), os.path.join(best_run_folder, "conda_env"))
             # Copy the entire source folder to best_run folder
             shutil.copytree(source_folder, best_run_folder)
-
-            # Remove the env folder from source folder to save space
-            self.remove_env_folder(source_folder)
 
             logger.brief(
                 f"[bold green]Created best_run folder (copied from step {target_step} - {copy_reason})[/bold green]"
