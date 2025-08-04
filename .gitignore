@@ -2,6 +2,17 @@
 maab/datasets/
 runs/
 maab/runs/
+temp/
+
+# MCP specific
+src/autogluon/mcp/server/.flask.pid
+src/autogluon/mcp/server/.mcp.pid
+src/autogluon/mcp/server/test_output/
+src/autogluon/mcp/server/test_data/
+src/autogluon/mcp/server/nohup.out
+src/autogluon/mcp/**/uploads/
+src/autogluon/mcp/**/mlzero-*/
+src/autogluon/mcp/server_info.txt
 
 # OS specific
 *.DS_Store
@@ -20,6 +31,17 @@ cdk.out/
 .langchain.db
 output_*.csv
 runs/
+
+# MCP specific
+.flask.pid
+.mcp.pid
+mcp_output/
+mcp/__pycache__/
+mcp/*.pyc
+mcp/server_info.txt
+
+# IDE specific
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -190,10 +212,13 @@ aga-output-*.csv
 # ignore the MLAgent output folder
 output/
 
-# MLZero Specific
-maab/datasets/
-runs/
-maab/runs/
-
 # OS specific
 *.DS_Store
+
+# Credentials
+*.credentials
+*.creds
+credentials.txt
+aws_credentials.txt
+
+.claude

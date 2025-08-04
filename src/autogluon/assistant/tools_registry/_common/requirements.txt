@@ -1,0 +1,14 @@
+chardet>=5.2.0
+pydantic
+python-calamine
+torch
+torchaudio
+torchvision
+pandas
+opencv-python
+numpy
+pytz
+python-dateutil
+datasets>=3.6
+six
+pyarrow

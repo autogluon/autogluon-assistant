@@ -6,15 +6,18 @@ per_execution_timeout: 86400
 max_file_group_size_to_show: 5
 num_example_files_to_show: 1
 
-max_chars_per_file: 1024
-num_tutorial_retrievals: 20
+max_chars_per_file: 768
+num_tutorial_retrievals: 30
 max_num_tutorials: 5
 max_user_input_length: 2048
 max_error_message_length: 2048
-max_tutorial_length: 8192
+max_tutorial_length: 32768
 create_venv: false
 condense_tutorials: True
 use_tutorial_summary: True
+continuous_improvement: False
+optimize_system_resources: False
+cleanup_unused_env: True
 
 # Default LLM Configuration
 # For each agent (coder, etc.) you can use a different one
@@ -27,9 +30,10 @@ llm: &default_llm
   #model: gpt-4o-2024-08-06
   #provider: anthropic
   # model: claude-3-7-sonnet-20250219
-  max_tokens: 16384
+  max_tokens: 65535
   proxy_url: null
-  temperature: 1.
+  temperature: 0.1
+  top_p: 0.9
   verbose: True
   multi_turn: False
   template: null
@@ -37,9 +41,7 @@ llm: &default_llm
 
 coder:
   <<: *default_llm  # Merge llm_config
-  temperature: 0.
   multi_turn: True
-  top_p: 1
 
 executer:
   <<: *default_llm  # Merge llm_config
@@ -58,9 +60,13 @@ retriever:
 
 reranker:
   <<: *default_llm  # Merge llm_config
+  temperature: 0.
+  top_p: 1.
 
 description_file_retriever:
   <<: *default_llm  # Merge llm_config
+  temperature: 0.
+  top_p: 1.
 
 task_descriptor:
   <<: *default_llm  # Merge llm_config
@@ -69,3 +75,5 @@ task_descriptor:
 
 tool_selector:
   <<: *default_llm  # Merge llm_config
+  temperature: 0.
+  top_p: 1.

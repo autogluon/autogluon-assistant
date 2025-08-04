@@ -1,5 +1,16 @@
+from pathlib import Path
+
+### PATHs
+
+PACKAGE_ROOT = Path(__file__).parent  # /src/autogluon/assistant
+DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "configs" / "default.yaml"
+LOGO_DAY_PATH = PACKAGE_ROOT / "webui" / "static" / "sidebar_logo_blue.png"
+LOGO_NIGHT_PATH = PACKAGE_ROOT / "webui" / "static" / "sidebar_icon.png"
+LOGO_PATH = PACKAGE_ROOT / "webui" / "static" / "page_icon.png"
+
+### WebUI
+
 VALID_CODING_LANGUAGES = ["python", "bash"]
-LOGO_PATH = "static/page_icon.png"
 DEMO_URL = "https://youtu.be/kejJ3QJPW7E"
 DETAIL_LEVEL = 19
 BRIEF_LEVEL = 25
@@ -34,3 +45,7 @@ PROVIDER_DEFAULTS = {
     "openai": "gpt-4o-2024-08-06",
     "anthropic": "claude-3-7-sonnet-20250219",
 }
+
+### MLZero
+
+ENV_FOLDER_NAME = "conda_env"

@@ -1,41 +1,39 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+/* Import only the Montserrat font being used */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
 
-html, body, [class*="css"] {
-  font-family: "Montserrat", sans-serif;
-  font-optical-sizing: auto;
-  font-style: normal;
-}
-
-/* Remove page padding */
+/* Remove all page padding */
 .block-container {
     padding-left: 0;
     padding-right: 0;
     padding-top: 0;
 }
+
+/* Feature container styles */
 .feature-container {
     background-color: white;
     padding: 20px;
     border-radius: 5px;
     margin-bottom: 20px;
 }
+
 .feature-title {
-font-size: 18px;
-font-weight: bold;
-margin-bottom: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
 }
+
 .feature-description {
-font-size: 14px;
-color: #666;
-margin-bottom: 15px;
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 15px;
 }
 
-div[data-testid='stExpanderDetails'] p{
-font-size:0.8rem
+/* Expander content styles */
+div[data-testid='stExpanderDetails'] p {
+    font-size: 0.8rem;
 }
 
-/* Page structure and styles */
-
+/* Main container styles */
 .main-container {
     display: flex;
     flex-direction: row;
@@ -53,6 +51,7 @@ font-size:0.8rem
     padding-left: 3vw;
 }
 
+/* Logo and title styles */
 .logo {
     width: 20vw;
     height: 13vh;
@@ -93,11 +92,12 @@ font-size:0.8rem
     padding: 1vh;
 }
 
+/* Right section content styles */
 .get-started-title {
     font-size: 3.5vw;
     font-weight: bold;
-    margin-bottom: 20px;
     margin-top: 2vh;
+    margin-bottom: 20px;
 }
 
 .description {
@@ -114,7 +114,7 @@ font-size:0.8rem
     font-size: 1.3vw;
 }
 
-/* Responsive design */
+/* Responsive design for mobile devices */
 @media (max-width: 800px) {
     .main-container {
         height: 40vh;

@@ -1,14 +1,13 @@
 {
   "name": "autogluon.timeseries",
   "version": "1.2.0",
-  "description": "AutoGluon Timeseries is an open-source AutoML framework that automates the training and tuning of forecasting models for time series data, handling tasks from preprocessing to model ensembling with built-in support for both univariate and multivariate forecasting.",
+  "description": "AutoGluon TimeSeries automates forecasting model training for time series data, supporting both univariate and multivariate predictions.",
   "features": [
-    "timeseries forecasting"
   ],
   "requirements": [],
   "prompt_template": [
     "DO NOT drop any data samples (to make sure the frequency is regular).",
-    "tuning_data: only use validation if there is a validation dataset.",
+    "DO NOT create validation dataset from training data. Validation score is provided during the training process.",
     "Note that the prediction is given in a column named \"mean\". You need to rename the column in the result.",
     "`from_data_frame()` method of TimeSeriesDataFrame does not accept a 'target' parameter.",
     "If there are known covariates, they should be specified in both TimeSeriesPredictor initialization AND predict."

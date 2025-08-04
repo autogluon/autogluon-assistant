@@ -81,11 +81,10 @@ DO NOT include any other text, explanation, or formatting in your response.
 
         # Get tutorial information
         selected_tool = self.manager.selected_tool
-        condense_tutorials = self.manager.config.condense_tutorials
         use_tutorial_summary = self.manager.config.use_tutorial_summary
 
-        # Get all available tutorials
-        self.tutorials = get_all_tutorials(selected_tool, condensed=condense_tutorials)
+        # Get retrieved tutorials from manager
+        self.tutorials = self.manager.tutorial_retrieval
 
         if not self.tutorials:
             logger.warning(f"No tutorials found for {selected_tool}")
