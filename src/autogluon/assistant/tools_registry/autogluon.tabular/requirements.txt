@@ -1,1 +1,2 @@
-autogluon>=1.4.1b20250806
+# TODO: update this to 0806
+autogluon>=1.4.1b20250805

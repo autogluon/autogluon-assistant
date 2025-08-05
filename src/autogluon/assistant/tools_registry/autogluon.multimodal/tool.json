@@ -1,6 +1,6 @@
 {
   "name": "autogluon.multimodal",
-  "version": "1.4.0.dev",
+  "version": "1.4.1.dev",
   "description": "AutoGluon Multimodal excels at multimodal classification, regression, document classification, and semantic segmentation tasks. The framework is not optimized for pure tabular data processing and DOES NOT support generative tasks (image generation, text generation, etc.) or audio-related tasks. It also doesn't handle object detection.",
   "requirements": [],
   "prompt_template": [

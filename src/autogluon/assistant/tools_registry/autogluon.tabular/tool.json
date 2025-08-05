@@ -1,6 +1,6 @@
 {
   "name": "autogluon.tabular",
-  "version": "1.4.0.dev",
+  "version": "1.4.1.dev",
   "description": "AutoGluon Tabular automates ML model training for tabular data, excelling at numerical and categorical data processing. It doesn't support NLP or image-based tasks.",
   "requirements": [],
   "prompt_template": [
