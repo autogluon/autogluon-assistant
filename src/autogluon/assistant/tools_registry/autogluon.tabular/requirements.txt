@@ -1,7 +1,1 @@
-git+https://github.com/FANGAreNotGnu/autogluon.git@140dev_mlzero#subdirectory=core&egg=autogluon-core[all]
-git+https://github.com/FANGAreNotGnu/autogluon.git@140dev_mlzero#subdirectory=features&egg=autogluon-features
-git+https://github.com/FANGAreNotGnu/autogluon.git@140dev_mlzero#subdirectory=tabular&egg=autogluon-tabular[all,skex]
-git+https://github.com/FANGAreNotGnu/autogluon.git@140dev_mlzero#subdirectory=multimodal&egg=autogluon-multimodal[all]
-git+https://github.com/FANGAreNotGnu/autogluon.git@140dev_mlzero#subdirectory=timeseries&egg=autogluon-timeseries[all]
-git+https://github.com/FANGAreNotGnu/autogluon.git@140dev_mlzero#subdirectory=eda&egg=autogluon-eda
-git+https://github.com/FANGAreNotGnu/autogluon.git@140dev_mlzero#subdirectory=autogluon&egg=autogluon
+autogluon>=1.4.1b20250806
