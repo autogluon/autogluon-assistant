@@ -20,7 +20,7 @@ dependencies = [
   "langchain>=0.3.3",
   "langchain_openai>=0.2.2",
   "langchain-anthropic>=0.3.15",
-  "langchain_aws>=0.2.2",
+  "langchain_aws>=0.2.29",
   "pydantic>=2.9.2",
   "hydra-core",
   "matplotlib>=3.9.2",

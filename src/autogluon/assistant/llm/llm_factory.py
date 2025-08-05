@@ -9,6 +9,7 @@ from .azure_openai_chat import AssistantAzureChatOpenAI, create_azure_openai_cha
 from .base_chat import GlobalTokenTracker
 from .bedrock_chat import AssistantChatBedrock, create_bedrock_chat, get_bedrock_models
 from .openai_chat import AssistantChatOpenAI, create_openai_chat, get_openai_models
+from .sagemaker_chat import SagemakerEndpointChat, create_sagemaker_chat, get_sagemaker_endpoints
 
 logger = logging.getLogger(__name__)
 
@@ -31,17 +32,19 @@ class ChatLLMFactory:
             return get_bedrock_models()
         elif provider == "anthropic":
             return get_anthropic_models()
+        elif provider == "sagemaker":
+            return get_sagemaker_endpoints()
         else:
             raise ValueError(f"Unsupported provider: {provider}")
 
     @classmethod
     def get_valid_providers(cls):
-        return ["azure", "openai", "bedrock", "anthropic"]
+        return ["azure", "openai", "bedrock", "anthropic", "sagemaker"]
 
     @classmethod
     def get_chat_model(
         cls, config: DictConfig, session_name: str
-    ) -> Union[AssistantChatOpenAI, AssistantAzureChatOpenAI, AssistantChatBedrock, AssistantChatAnthropic]:
+    ) -> Union[AssistantChatOpenAI, AssistantAzureChatOpenAI, AssistantChatBedrock, AssistantChatAnthropic, SagemakerEndpointChat]:
         """Get a configured chat model instance using LangGraph patterns."""
         provider = config.provider
         model = config.model
@@ -50,12 +53,13 @@ class ChatLLMFactory:
         if provider not in valid_providers:
             raise ValueError(f"Invalid provider: {provider}. Must be one of {valid_providers}")
 
-        valid_models = cls.get_valid_models(provider)
-        if model not in valid_models:
-            if model[3:] not in valid_models:  # TODO: better logic for cross region inference
-                raise ValueError(
-                    f"Invalid model: {model} for provider {provider}. All valid models are {valid_models}. If you are using Bedrock, please check if the requested model is available in the provided AWS_DEFAULT_REGION: {os.environ.get('AWS_DEFAULT_REGION')}"
-                )
+        if provider != "sagemaker":
+            valid_models = cls.get_valid_models(provider)
+            if model not in valid_models:
+                if model[3:] not in valid_models:  # TODO: better logic for cross region inference
+                    raise ValueError(
+                        f"Invalid model: {model} for provider {provider}. All valid models are {valid_models}. If you are using Bedrock, please check if the requested model is available in the provided AWS_DEFAULT_REGION: {os.environ.get('AWS_DEFAULT_REGION')}"
+                    )
 
         if provider == "openai":
             return create_openai_chat(config, session_name)
@@ -65,5 +69,7 @@ class ChatLLMFactory:
             return create_anthropic_chat(config, session_name)
         elif provider == "bedrock":
             return create_bedrock_chat(config, session_name)
+        elif provider == "sagemaker":
+            return create_sagemaker_chat(config, session_name)
         else:
             raise ValueError(f"Unsupported provider: {provider}")
