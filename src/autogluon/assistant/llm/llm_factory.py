@@ -42,9 +42,13 @@ class ChatLLMFactory:
         return ["azure", "openai", "bedrock", "anthropic", "sagemaker"]
 
     @classmethod
-    def get_chat_model(
-        cls, config: DictConfig, session_name: str
-    ) -> Union[AssistantChatOpenAI, AssistantAzureChatOpenAI, AssistantChatBedrock, AssistantChatAnthropic, SagemakerEndpointChat]:
+    def get_chat_model(cls, config: DictConfig, session_name: str) -> Union[
+        AssistantChatOpenAI,
+        AssistantAzureChatOpenAI,
+        AssistantChatBedrock,
+        AssistantChatAnthropic,
+        SagemakerEndpointChat,
+    ]:
         """Get a configured chat model instance using LangGraph patterns."""
         provider = config.provider
         model = config.model
