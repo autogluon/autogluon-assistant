@@ -1,37 +1,14 @@
-Summary: This tutorial provides comprehensive implementation guidance for AutoMM (Auto Multi-Modal) model configurations, covering optimization techniques, model architectures, and data processing. It details how to configure learning rates, optimizers, gradient management, and model checkpointing; implement efficient fine-tuning strategies like LoRA and IA3; set up various model architectures including HF-Text, TIMM-Image, CLIP, and SAM; and handle data preprocessing, augmentation (Mixup/CutMix), and distillation. Key functionalities include GPU/batch size configuration, precision settings, model compilation options, text/image transformations, and specialized configurations for classification, object detection, and segmentation tasks. The tutorial is particularly valuable for tasks involving model training optimization, multi-modal learning, and performance tuning.
-
-# Customize AutoMM
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/customization.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/customization.ipynb)
-
-
-
-
-AutoMM has a powerful yet easy-to-use configuration design.
-This tutorial walks you through various AutoMM configurations to empower you the customization flexibility. Specifically, AutoMM configurations consist of several parts:
-
-- optimization
-- environment
-- model
-- data
-- distiller
-
-## Optimization
-
-### optimization.learning_rate
-
-Learning rate.
+Summary: This tutorial covers AutoMM optimization parameters for fine-tuning multimodal models. It demonstrates how to configure learning rates, optimizers, training schedules, and validation strategies through hyperparameter settings. Key features include layer-wise learning rate decay, gradient handling, parameter-efficient fine-tuning (PEFT), GPU/batch size configuration, precision settings, and model-specific options for text (tokenization, augmentation), image (transforms, backbones), and object detection models. The tutorial also covers data processing strategies for handling missing values, label preprocessing, and advanced techniques like Mixup augmentation and knowledge distillation. These configurations help optimize model performance for various multimodal machine learning tasks.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.learning_rate": 1.0e-4})
+predictor.fit(hyperparameters={"optim.lr": 1.0e-4})
 # set learning rate to 5.0e-4
-predictor.fit(hyperparameters={"optimization.learning_rate": 5.0e-4})
+predictor.fit(hyperparameters={"optim.lr": 5.0e-4})
 ```
 
 
-### optimization.optim_type
+### optim.optim_type
 
 Optimizer type.
 
@@ -41,68 +18,68 @@ Optimizer type.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.optim_type": "adamw"})
+predictor.fit(hyperparameters={"optim.optim_type": "adamw"})
 # use optimizer adam
-predictor.fit(hyperparameters={"optimization.optim_type": "adam"})
+predictor.fit(hyperparameters={"optim.optim_type": "adam"})
 ```
 
 
-### optimization.weight_decay
+### optim.weight_decay
 
 Weight decay.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.weight_decay": 1.0e-3})
+predictor.fit(hyperparameters={"optim.weight_decay": 1.0e-3})
 # set weight decay to 1.0e-4
-predictor.fit(hyperparameters={"optimization.weight_decay": 1.0e-4})
+predictor.fit(hyperparameters={"optim.weight_decay": 1.0e-4})
 ```
 
 
-### optimization.lr_decay
+### optim.lr_decay
 
 Later layers can have larger learning rates than the earlier layers. The last/head layer
-has the largest learning rate `optimization.learning_rate`. For a model with `n` layers, layer `i` has learning rate `optimization.learning_rate * optimization.lr_decay^(n-i)`. To use one uniform learning rate, simply set the learning rate decay to `1`.
+has the largest learning rate `optim.lr`. For a model with `n` layers, layer `i` has learning rate `optim.lr * optim.lr_decay^(n-i)`. To use one uniform learning rate, simply set the learning rate decay to `1`.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.lr_decay": 0.9})
+predictor.fit(hyperparameters={"optim.lr_decay": 0.9})
 # turn off learning rate decay
-predictor.fit(hyperparameters={"optimization.lr_decay": 1})
+predictor.fit(hyperparameters={"optim.lr_decay": 1})
 ```
 
 
-### optimization.lr_mult
+### optim.lr_mult
 
 While we are using two_stages lr choice,
-The last/head layer has the largest learning rate `optimization.learning_rate` * `optimization.lr_mult`.
-And other layers has normal learning rate `optimization.learning_rate`.
+The last/head layer has the largest learning rate `optim.lr` * `optim.lr_mult`.
+And other layers has normal learning rate `optim.lr`.
 To use one uniform learning rate, simply set the learning rate multiple to `1`.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.lr_mult": 1})
+predictor.fit(hyperparameters={"optim.lr_mult": 1})
 # turn on two-stage lr for 10 times learning rate in head layer
-predictor.fit(hyperparameters={"optimization.lr_mult": 10})
+predictor.fit(hyperparameters={"optim.lr_mult": 10})
 ```
 
 
-### optimization.lr_choice
+### optim.lr_choice
 
 We may want different layers to have different lr,
-here we have strategy `two_stages` lr choice (see `optimization.lr_mult` section for more details),
-or `layerwise_decay` lr choice (see `optimization.lr_decay` section for more details).
+here we have strategy `two_stages` lr choice (see `optim.lr_mult` section for more details),
+or `layerwise_decay` lr choice (see `optim.lr_decay` section for more details).
 To use one uniform learning rate, simply set this to `""`.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.lr_choice": "layerwise_decay"})
+predictor.fit(hyperparameters={"optim.lr_choice": "layerwise_decay"})
 # turn on two-stage lr choice
-predictor.fit(hyperparameters={"optimization.lr_choice": "two_stages"})
+predictor.fit(hyperparameters={"optim.lr_choice": "two_stages"})
 ```
 
 
-### optimization.lr_schedule
+### optim.lr_schedule
 
 Learning rate schedule.
 
@@ -112,62 +89,62 @@ Learning rate schedule.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.lr_schedule": "cosine_decay"})
+predictor.fit(hyperparameters={"optim.lr_schedule": "cosine_decay"})
 # use polynomial decay
-predictor.fit(hyperparameters={"optimization.lr_schedule": "polynomial_decay"})
+predictor.fit(hyperparameters={"optim.lr_schedule": "polynomial_decay"})
 ```
 
 
-### optimization.max_epochs
+### optim.max_epochs
 
 Stop training once this number of epochs is reached.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.max_epochs": 10})
+predictor.fit(hyperparameters={"optim.max_epochs": 10})
 # train 20 epochs
-predictor.fit(hyperparameters={"optimization.max_epochs": 20})
+predictor.fit(hyperparameters={"optim.max_epochs": 20})
 ```
 
 
-### optimization.max_steps
+### optim.max_steps
 
-Stop training after this number of steps. Training will stop if `optimization.max_steps` or `optimization.max_epochs` have reached (earliest).
-By default, we disable `optimization.max_steps` by setting it to -1.
+Stop training after this number of steps. Training will stop if `optim.max_steps` or `optim.max_epochs` have reached (earliest).
+By default, we disable `optim.max_steps` by setting it to -1.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.max_steps": -1})
+predictor.fit(hyperparameters={"optim.max_steps": -1})
 # train 100 steps
-predictor.fit(hyperparameters={"optimization.max_steps": 100})
+predictor.fit(hyperparameters={"optim.max_steps": 100})
 ```
 
 
-### optimization.warmup_steps
+### optim.warmup_steps
 
-Warm up the learning rate from 0 to `optimization.learning_rate` within this percentage of steps at the beginning of training.
+Warm up the learning rate from 0 to `optim.lr` within this percentage of steps at the beginning of training.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.warmup_steps": 0.1})
+predictor.fit(hyperparameters={"optim.warmup_steps": 0.1})
 # do learning rate warmup in the first 20% steps.
-predictor.fit(hyperparameters={"optimization.warmup_steps": 0.2})
+predictor.fit(hyperparameters={"optim.warmup_steps": 0.2})
 ```
 
 
-### optimization.patience
+### optim.patience
 
-Stop training after this number of checks with no improvement. The check frequency is controlled by `optimization.val_check_interval`.
+Stop training after this number of checks with no improvement. The check frequency is controlled by `optim.val_check_interval`.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.patience": 10})
+predictor.fit(hyperparameters={"optim.patience": 10})
 # set patience to 5 checks
-predictor.fit(hyperparameters={"optimization.patience": 5})
+predictor.fit(hyperparameters={"optim.patience": 5})
 ```
 
 
-### optimization.val_check_interval
+### optim.val_check_interval
 
 How often within one training epoch to check the validation set. Can specify as float or int.
 
@@ -176,73 +153,73 @@ How often within one training epoch to check the validation set. Can specify as 
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.val_check_interval": 0.5})
+predictor.fit(hyperparameters={"optim.val_check_interval": 0.5})
 # check validation set 4 times during a training epoch
-predictor.fit(hyperparameters={"optimization.val_check_interval": 0.25})
+predictor.fit(hyperparameters={"optim.val_check_interval": 0.25})
 ```
 
 
-### optimization.gradient_clip_algorithm
+### optim.gradient_clip_algorithm
 
 The gradient clipping algorithm to use. Support to clip gradients by value or norm.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.gradient_clip_algorithm": "norm"})
+predictor.fit(hyperparameters={"optim.gradient_clip_algorithm": "norm"})
 # clip gradients by value
-predictor.fit(hyperparameters={"optimization.gradient_clip_algorithm": "value"})
+predictor.fit(hyperparameters={"optim.gradient_clip_algorithm": "value"})
 ```
 
 
-### optimization.gradient_clip_val
+### optim.gradient_clip_val
 
-Gradient clipping value, which can be the absolute value or gradient norm depending on the choice of `optimization.gradient_clip_algorithm`.
+Gradient clipping value, which can be the absolute value or gradient norm depending on the choice of `optim.gradient_clip_algorithm`.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.gradient_clip_val": 1})
+predictor.fit(hyperparameters={"optim.gradient_clip_val": 1})
 # cap the gradients to 5
-predictor.fit(hyperparameters={"optimization.gradient_clip_val": 5})
+predictor.fit(hyperparameters={"optim.gradient_clip_val": 5})
 ```
 
 
-### optimization.track_grad_norm
+### optim.track_grad_norm
 
 Track the p-norm of gradients during training. May be set to ‘inf’ infinity-norm. If using Automatic Mixed Precision (AMP), the gradients will be unscaled before logging them.
 
 ```
 # default used by AutoMM (no tracking)
-predictor.fit(hyperparameters={"optimization.track_grad_norm": -1})
+predictor.fit(hyperparameters={"optim.track_grad_norm": -1})
 # track the 2-norm
-predictor.fit(hyperparameters={"optimization.track_grad_norm": 2})
+predictor.fit(hyperparameters={"optim.track_grad_norm": 2})
 ```
 
 
-### optimization.log_every_n_steps
+### optim.log_every_n_steps
 
 How often to log within steps.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.log_every_n_steps": 10})
+predictor.fit(hyperparameters={"optim.log_every_n_steps": 10})
 # log once every 50 steps
-predictor.fit(hyperparameters={"optimization.log_every_n_steps": 50})
+predictor.fit(hyperparameters={"optim.log_every_n_steps": 50})
 ```
 
 
-### optimization.top_k
+### optim.top_k
 
 Based on the validation score, choose top k model checkpoints to do model averaging.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.top_k": 3})
+predictor.fit(hyperparameters={"optim.top_k": 3})
 # use top 5 checkpoints
-predictor.fit(hyperparameters={"optimization.top_k": 5})
+predictor.fit(hyperparameters={"optim.top_k": 5})
 ```
 
 
-### optimization.top_k_average_method
+### optim.top_k_average_method
 
 Use what strategy to average the top k model checkpoints.
 
@@ -252,13 +229,13 @@ Use what strategy to average the top k model checkpoints.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.top_k_average_method": "greedy_soup"})
+predictor.fit(hyperparameters={"optim.top_k_average_method": "greedy_soup"})
 # average all the top k checkpoints
-predictor.fit(hyperparameters={"optimization.top_k_average_method": "uniform_soup"})
+predictor.fit(hyperparameters={"optim.top_k_average_method": "uniform_soup"})
 ```
 
 
-### optimization.efficient_finetune
+### optim.peft
 
 Options for parameter-efficient finetuning. Parameter-efficient finetuning means to finetune only a small portion of parameters instead of the whole pretrained backbone.
 
@@ -273,23 +250,23 @@ Options for parameter-efficient finetuning. Parameter-efficient finetuning means
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.efficient_finetune": None})
+predictor.fit(hyperparameters={"optim.peft": None})
 # finetune only bias parameters
-predictor.fit(hyperparameters={"optimization.efficient_finetune": "bit_fit"})
+predictor.fit(hyperparameters={"optim.peft": "bit_fit"})
 # finetune with IA3 + BitFit
-predictor.fit(hyperparameters={"optimization.efficient_finetune": "ia3_bias"})
+predictor.fit(hyperparameters={"optim.peft": "ia3_bias"})
 ```
 
 
-### optimization.skip_final_val
+### optim.skip_final_val
 
 Whether to skip the final validation after training is signaled to stop.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"optimization.skip_final_val": False})
+predictor.fit(hyperparameters={"optim.skip_final_val": False})
 # skip the final validation
-predictor.fit(hyperparameters={"optimization.skip_final_val": True})
+predictor.fit(hyperparameters={"optim.skip_final_val": True})
 ```
 
 
@@ -331,15 +308,15 @@ predictor.fit(hyperparameters={"env.batch_size": 256})
 ```
 
 
-### env.eval_batch_size_ratio
+### env.inference_batch_size_ratio
 
-Prediction or evaluation uses a larger per gpu batch size `env.per_gpu_batch_size * env.eval_batch_size_ratio`.
+Prediction or evaluation uses a larger per gpu batch size `env.per_gpu_batch_size * env.inference_batch_size_ratio`.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"env.eval_batch_size_ratio": 4})
+predictor.fit(hyperparameters={"env.inference_batch_size_ratio": 4})
 # use 2x per gpu batch size during prediction or evaluation
-predictor.fit(hyperparameters={"env.eval_batch_size_ratio": 2})
+predictor.fit(hyperparameters={"env.inference_batch_size_ratio": 2})
 ```
 
 
@@ -370,15 +347,15 @@ predictor.fit(hyperparameters={"env.num_workers": 4})
 ```
 
 
-### env.num_workers_evaluation
+### env.num_workers_inference
 
 The number of worker processes used by the Pytorch dataloader in prediction or evaluation.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"env.num_workers_evaluation": 2})
+predictor.fit(hyperparameters={"env.num_workers_inference": 2})
 # use 4 workers in the prediction/evaluation dataloader
-predictor.fit(hyperparameters={"env.num_workers_evaluation": 4})
+predictor.fit(hyperparameters={"env.num_workers_inference": 4})
 ```
 
 
@@ -899,7 +876,7 @@ predictor.fit(hyperparameters={"data.numerical.scaler_with_std": False})
 ```
 
 
-### data.label.numerical_label_preprocessing
+### data.label.numerical_preprocessing
 
 How to process the numerical labels in regression tasks.
 
@@ -908,9 +885,9 @@ How to process the numerical labels in regression tasks.
 
 ```
 # default used by AutoMM
-predictor.fit(hyperparameters={"data.label.numerical_label_preprocessing": "standardscaler"})
+predictor.fit(hyperparameters={"data.label.numerical_preprocessing": "standardscaler"})
 # scale numerical labels to (0, 1)
-predictor.fit(hyperparameters={"data.label.numerical_label_preprocessing": "minmaxscaler"})
+predictor.fit(hyperparameters={"data.label.numerical_preprocessing": "minmaxscaler"})
 ```
 
 

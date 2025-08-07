@@ -1,60 +1,56 @@
-# Condensed: AutoMM Detection - Prepare Watercolor Dataset
+# Condensed: ```
 
-Summary: This tutorial provides implementation guidance for preparing the Watercolor dataset for object detection tasks using AutoMM. It covers two installation methods (Python CLI and Bash script), dataset structure, and format requirements. The tutorial helps with dataset setup tasks, including downloading and organizing 2,000 watercolor images (1,000 each for training/testing) in the correct directory structure. Key features include cross-platform installation options, COCO format conversion recommendations, and system requirements specification (7.5GB disk space, SSD preferred). It's particularly useful for developers setting up object detection pipelines with AutoMM MultiModalPredictor and those needing to handle VOC to COCO format conversions.
+Summary: This tutorial demonstrates how to prepare the Watercolor object detection dataset using AutoGluon. It covers two implementation methods: using AutoGluon CLI commands or a bash script, with options for specifying output paths. The tutorial explains that Watercolor uses VOC format but recommends converting to COCO format for use with AutoGluon MultiModalPredictor. It references additional resources for COCO format conversion and customization. This knowledge helps with dataset preparation tasks for object detection models, specifically working with the Watercolor dataset in AutoGluon's ecosystem.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on essential implementation details:
+# Preparing Detection Dataset - Watercolor
 
-# AutoMM Detection - Watercolor Dataset Preparation
+## Download Methods
 
-## Key Requirements
-- Disk space: 7.5 GB
-- SSD preferred over HDD for better performance
-- Estimated preparation time: ~8 min on AWS EC2 with EBS
+### Using AutoGluon CLI
 
-## Dataset Installation Methods
-
-### 1. Using Python CLI (Cross-platform)
 ```python
-# Basic installation in current directory
+# Basic usage - extracts to current directory
 python3 -m autogluon.multimodal.cli.prepare_detection_dataset --dataset_name watercolor
 
-# Installation with custom output path
+# Specify output path
+python3 -m autogluon.multimodal.cli.prepare_detection_dataset --dataset_name watercolor --output_path ~/data
+
+# Short form
 python3 -m autogluon.multimodal.cli.prepare_detection_dataset -d watercolor -o ~/data
 ```
 
-### 2. Using Bash Script (Unix systems)
+### Using Bash Script
+
 ```bash
-# Basic installation
+# Extract to current directory
 bash download_watercolor.sh
 
-# Installation with custom path
+# Extract to specific path
 bash download_watercolor.sh ~/data
 ```
 
-## Dataset Structure
-After extraction, the dataset contains:
+## Dataset Format
+
+Watercolor uses VOC format with the following structure:
 ```
-watercolor/
-├── Annotations
-├── ImageSets
-└── JPEGImages
+Annotations  ImageSets  JPEGImages
 ```
 
-## Important Notes
-1. **Format Recommendation**: COCO format is strongly recommended over VOC format for AutoMM MultiModalPredictor
-2. **Dataset Details**:
-   - 1,000 training images
-   - 1,000 testing images
-   - Domain: watercolor images
+**Important:** AutoGluon MultiModalPredictor strongly recommends using COCO format instead of VOC. See [AutoMM Detection - Prepare COCO2017 Dataset](prepare_coco17.ipynb) and [Convert Data to COCO Format](convert_data_to_coco_format.ipynb) for conversion instructions.
 
-## Best Practices
-1. Use COCO format when possible
-2. Refer to "Convert Data to COCO Format" tutorial for format conversion
-3. For VOC format usage, ensure root path contains required directories (Annotations, ImageSets, JPEGImages)
+## Additional Resources
+- For more examples: [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm)
+- For customization: [Customize AutoMM](../../advanced_topics/customization.ipynb)
 
-## References
-- [Official Project Page](https://naoto0804.github.io/cross_domain_detection/)
-- [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm)
-- For customization: Refer to "Customize AutoMM" tutorial
+## Citation
+```
+@inproceedings{inoue_2018_cvpr,
+    author = {Inoue, Naoto and Furuta, Ryosuke and Yamasaki, Toshihiko and Aizawa, Kiyoharu},
+    title = {Cross-Domain Weakly-Supervised Object Detection Through Progressive Domain Adaptation},
+    booktitle = {The IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+    month = {June},
+    year = {2018}
+}
+```

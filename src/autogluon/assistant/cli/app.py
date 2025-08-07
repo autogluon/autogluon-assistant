@@ -7,6 +7,7 @@ from pathlib import Path
 import typer
 
 from autogluon.assistant.coding_agent import run_agent
+from autogluon.assistant.constants import DEFAULT_CONFIG_PATH
 
 
 def _noop(*args, **kwargs):
@@ -17,8 +18,6 @@ multiprocessing.resource_tracker.register = _noop
 multiprocessing.resource_tracker.unregister = _noop
 multiprocessing.resource_tracker.ensure_running = _noop
 
-PACKAGE_ROOT = Path(__file__).parent.parent
-DEFAULT_CONFIG_PATH = PACKAGE_ROOT / "configs" / "default.yaml"
 
 app = typer.Typer(add_completion=False)
 
@@ -44,6 +43,11 @@ def main(
         "-n",
         "--max-iterations",
         help="Max iteration count. If the task hasn’t succeeded after this many iterations, it will terminate.",
+    ),
+    continuous_improvement: bool = typer.Option(
+        False,
+        "--continuous_improvement",
+        help="If enabled, the system will continue optimizing even after finding a valid solution. Instead of stopping at the first successful run, it will keep searching for better solutions until reaching the maximum number of iterations. This allows the system to potentially find higher quality solutions at the cost of additional computation time.",
     ),
     need_user_input: bool = typer.Option(
         False,
@@ -74,7 +78,7 @@ def main(
     ),
 ):
     """
-    mlzero: a CLI for running the AutoMLAgent pipeline.
+    mlzero: a CLI for running the AutoGluon Assistant.
     """
 
     # 3) Invoke the core run_agent function
@@ -83,6 +87,7 @@ def main(
         output_folder=output_dir,
         config_path=str(config_path),
         max_iterations=max_iterations,
+        continuous_improvement=continuous_improvement,
         need_user_input=need_user_input,
         initial_user_input=initial_user_input,
         extract_archives_to=extract_archives_to,

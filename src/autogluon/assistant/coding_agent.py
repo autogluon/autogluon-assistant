@@ -17,6 +17,7 @@ def run_agent(
     output_folder=None,
     config_path=None,
     max_iterations=5,
+    continuous_improvement=None,
     need_user_input=False,
     initial_user_input=None,
     extract_archives_to=None,
@@ -92,6 +93,9 @@ def run_agent(
         user_config = OmegaConf.load(config_path)
         config = OmegaConf.merge(config, user_config)
 
+    if continuous_improvement is not None:
+        config.continuous_improvement = continuous_improvement
+
     if manager is None:
         manager = Manager(
             input_data_folder=input_data_folder,
@@ -114,7 +118,7 @@ def run_agent(
         decision, error_summary = manager.execute_code()
 
         if decision == "SUCCESS":
-            if config.stop_when_success:
+            if not config.continuous_improvement:
                 break
         elif decision in ["FIX", "INVALID"]:
             # Continue to next iteration with current setup

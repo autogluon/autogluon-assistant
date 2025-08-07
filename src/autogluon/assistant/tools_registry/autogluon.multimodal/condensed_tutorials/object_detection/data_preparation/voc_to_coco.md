@@ -1,58 +1,52 @@
-# Condensed: AutoMM Detection - Convert VOC Format Dataset to COCO Format
+# Condensed: ```
 
-Summary: This tutorial demonstrates how to convert object detection datasets from VOC to COCO format using AutoMM's conversion tool (autogluon.multimodal.cli.voc2coco). It covers two main implementation approaches: converting existing dataset splits and creating custom split ratios. The tutorial explains the required directory structure, command-line usage patterns, and output file formats. Key functionalities include handling predefined VOC splits, creating custom train/val/test ratios, and generating COCO-formatted JSON annotations. This knowledge is particularly useful for data preprocessing tasks in object detection projects using AutoMM, where COCO format is the recommended standard.
+Summary: This tutorial demonstrates how to convert Pascal VOC object detection datasets to COCO format using Python code that helps with data format conversion and custom data splitting for object detection tasks. The tutorial covers: 1) converting pre-defined VOC data splits to COCO format using Python scripts, 2) creating custom data splits with specific train/val/test ratios, and 3) generating COCO-format JSON files from VOC annotations. The tutorial helps with dataset preparation for object detection models by providing Python scripts for format conversion and data splitting with customizable train/val/test ratios.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on essential implementation details:
+# VOC to COCO Format Conversion
 
-# Converting VOC Format to COCO Format for AutoMM Detection
+## Converting Pre-defined Splits
 
-## Key Points
-- AutoMM strongly recommends using COCO format over VOC format
-- Conversion tool: `autogluon.multimodal.cli.voc2coco`
-
-## Implementation Details
-
-### Directory Structure
+VOC datasets typically have this structure:
 ```
-VOCdevkit/VOC2007/
-├── Annotations/
-├── ImageSets/Main/
-│   ├── train.txt
-│   ├── val.txt
-│   └── test.txt
-└── JPEGImages/
+Annotations  ImageSets  JPEGImages
 ```
 
-### Converting Existing Splits
-```bash
-# Basic conversion using existing splits
+With split files under `ImageSets/Main/`:
+```
+train.txt
+val.txt
+test.txt
+```
+
+Convert these splits to COCO format:
+```python
 python3 -m autogluon.multimodal.cli.voc2coco --root_dir ./VOCdevkit/VOC2007
 ```
 
-Output files:
-- `Annotations/train_cocoformat.json`
-- `Annotations/val_cocoformat.json`
-- `Annotations/test_cocoformat.json`
-
-### Custom Split Ratios
-```bash
-# Create custom splits (60/20/20)
-python3 -m autogluon.multimodal.cli.voc2coco \
-    --root_dir ./VOCdevkit/VOC2007 \
-    --train_ratio 0.6 \
-    --val_ratio 0.2
+This generates COCO format files in the `Annotations` folder:
+```
+train_cocoformat.json
+val_cocoformat.json
+test_cocoformat.json
 ```
 
-Output files:
-- `Annotations/usersplit_train_cocoformat.json`
-- `Annotations/usersplit_val_cocoformat.json`
-- `Annotations/usersplit_test_cocoformat.json`
+## Custom Data Splitting
 
-## Best Practices
-1. Use COCO format for optimal compatibility with AutoMM
-2. VOC format is supported but only for quick testing
-3. Choose between existing splits or custom ratios based on your needs
+Create custom splits with specific ratios without requiring pre-existing split files:
 
-For customization details, refer to the AutoMM customization documentation.
+```python
+python3 -m autogluon.multimodal.cli.voc2coco --root_dir ./VOCdevkit/VOC2007 --train_ratio 0.6 --val_ratio 0.2
+```
+
+This generates:
+```
+usersplit_train_cocoformat.json
+usersplit_val_cocoformat.json
+usersplit_test_cocoformat.json
+```
+
+## Additional Resources
+- See [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm) for more examples
+- For customization, refer to [Customize AutoMM](../../advanced_topics/customization.ipynb)

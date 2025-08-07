@@ -1,341 +1,323 @@
-# Condensed: Customize AutoMM
+# Condensed: ```
 
-Summary: This tutorial provides comprehensive implementation guidance for AutoMM (Auto Multi-Modal) model configurations, covering optimization techniques, model architectures, and data processing. It details how to configure learning rates, optimizers, gradient management, and model checkpointing; implement efficient fine-tuning strategies like LoRA and IA3; set up various model architectures including HF-Text, TIMM-Image, CLIP, and SAM; and handle data preprocessing, augmentation (Mixup/CutMix), and distillation. Key functionalities include GPU/batch size configuration, precision settings, model compilation options, text/image transformations, and specialized configurations for classification, object detection, and segmentation tasks. The tutorial is particularly valuable for tasks involving model training optimization, multi-modal learning, and performance tuning.
+Summary: This tutorial covers AutoMM optimization parameters for fine-tuning multimodal models. It demonstrates how to configure learning rates, optimizers, training schedules, and validation strategies through hyperparameter settings. Key features include layer-wise learning rate decay, gradient handling, parameter-efficient fine-tuning (PEFT), GPU/batch size configuration, precision settings, and model-specific options for text (tokenization, augmentation), image (transforms, backbones), and object detection models. The tutorial also covers data processing strategies for handling missing values, label preprocessing, and advanced techniques like Mixup augmentation and knowledge distillation. These configurations help optimize model performance for various multimodal machine learning tasks.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on essential implementation details and configurations:
+# AutoMM Optimization Parameters
 
-# AutoMM Customization Guide
+## Learning Rate and Optimizer Settings
 
-## Key Optimization Configurations
-
-### Learning Rate Related
 ```python
-# Basic learning rate
-predictor.fit(hyperparameters={"optimization.learning_rate": 1.0e-4})
+# Set learning rate
+predictor.fit(hyperparameters={"optim.lr": 5.0e-4})  # Default: 1.0e-4
 
-# Learning rate decay (for layer-wise adjustments)
-predictor.fit(hyperparameters={"optimization.lr_decay": 0.9})  # 1.0 to disable
+# Choose optimizer type
+predictor.fit(hyperparameters={"optim.optim_type": "adam"})  # Default: "adamw"
+# Options: "sgd", "adam", "adamw"
+
+# Set weight decay
+predictor.fit(hyperparameters={"optim.weight_decay": 1.0e-4})  # Default: 1.0e-3
+```
+
+## Learning Rate Strategies
+
+```python
+# Layer-wise learning rate decay
+predictor.fit(hyperparameters={"optim.lr_decay": 0.9})  # Default
+# Set to 1 for uniform learning rate
 
 # Two-stage learning rate
-predictor.fit(hyperparameters={"optimization.lr_mult": 10})    # Multiplier for head layer
-predictor.fit(hyperparameters={"optimization.lr_choice": "two_stages"})  # or "layerwise_decay"
+predictor.fit(hyperparameters={"optim.lr_mult": 10})  # Default: 1
+# Head layer gets lr * lr_mult, other layers get lr
+
+# Learning rate strategy selection
+predictor.fit(hyperparameters={"optim.lr_choice": "two_stages"})  # Default: "layerwise_decay"
 ```
 
-### Optimizer Settings
+## Training Schedule
+
 ```python
-# Optimizer selection
-predictor.fit(hyperparameters={"optimization.optim_type": "adamw"})  # Options: sgd, adam, adamw
-
-# Weight decay
-predictor.fit(hyperparameters={"optimization.weight_decay": 1.0e-3})
-
 # Learning rate schedule
-predictor.fit(hyperparameters={"optimization.lr_schedule": "cosine_decay"})  # Options: polynomial_decay, linear_decay
-```
+predictor.fit(hyperparameters={"optim.lr_schedule": "polynomial_decay"})  # Default: "cosine_decay"
+# Options: "cosine_decay", "polynomial_decay", "linear_decay"
 
-### Training Control
-```python
 # Training duration
-predictor.fit(hyperparameters={
-    "optimization.max_epochs": 10,
-    "optimization.max_steps": -1,  # -1 to disable
-    "optimization.warmup_steps": 0.1  # Percentage of steps for warmup
-})
+predictor.fit(hyperparameters={"optim.max_epochs": 20})  # Default: 10
+predictor.fit(hyperparameters={"optim.max_steps": 100})  # Default: -1 (disabled)
 
-# Early stopping
-predictor.fit(hyperparameters={
-    "optimization.patience": 10,
-    "optimization.val_check_interval": 0.5  # Check validation every 50% of epoch
-})
+# Learning rate warmup
+predictor.fit(hyperparameters={"optim.warmup_steps": 0.2})  # Default: 0.1
+# Percentage of steps to warm up from 0 to full lr
 ```
 
-### Gradient Management
+## Validation and Early Stopping
+
+```python
+# Early stopping patience
+predictor.fit(hyperparameters={"optim.patience": 5})  # Default: 10
+
+# Validation check frequency
+predictor.fit(hyperparameters={"optim.val_check_interval": 0.25})  # Default: 0.5
+# Float (0-1): fraction of epoch, Int: number of batches
+```
+
+## Gradient Handling
+
 ```python
 # Gradient clipping
-predictor.fit(hyperparameters={
-    "optimization.gradient_clip_algorithm": "norm",  # or "value"
-    "optimization.gradient_clip_val": 1
-})
+predictor.fit(hyperparameters={"optim.gradient_clip_algorithm": "value"})  # Default: "norm"
+predictor.fit(hyperparameters={"optim.gradient_clip_val": 5})  # Default: 1
 
-# Gradient tracking
-predictor.fit(hyperparameters={"optimization.track_grad_norm": 2})  # -1 to disable
+# Gradient norm tracking
+predictor.fit(hyperparameters={"optim.track_grad_norm": 2})  # Default: -1 (no tracking)
 ```
 
-### Model Checkpointing
+## Logging and Model Selection
+
 ```python
-# Model averaging settings
-predictor.fit(hyperparameters={
-    "optimization.top_k": 3,  # Number of checkpoints to consider
-    "optimization.top_k_average_method": "greedy_soup"  # Options: uniform_soup, best
-})
+# Logging frequency
+predictor.fit(hyperparameters={"optim.log_every_n_steps": 50})  # Default: 10
+
+# Model checkpoint averaging
+predictor.fit(hyperparameters={"optim.top_k": 5})  # Default: 3
+predictor.fit(hyperparameters={"optim.top_k_average_method": "uniform_soup"})  # Default: "greedy_soup"
+# Options: "greedy_soup", "uniform_soup", "best"
 ```
 
-## Important Notes:
-- Use `lr_decay=1` for uniform learning rate across layers
-- Set `max_steps=-1` to control training by epochs only
-- `val_check_interval` accepts float (0-1) or int values
-- `greedy_soup` averaging stops if performance decreases
-- Gradient tracking may impact performance, disable if not needed
+## Parameter-Efficient Fine-Tuning (PEFT)
 
-Here's the condensed tutorial content focusing on key implementation details and practices:
+```python
+# PEFT options
+predictor.fit(hyperparameters={"optim.peft": "bit_fit"})  # Default: None
+# Options: "bit_fit", "norm_fit", "lora", "lora_bias", "lora_norm", "ia3", "ia3_bias", "ia3_norm"
+```
 
-# AutoMM Hyperparameter Configuration Guide - Part 2
+# AutoMM Hyperparameter Configuration Guide (Part 2/5)
 
 ## Optimization Parameters
 
-### optimization.top_k_average_method
 ```python
-# Average top k checkpoints uniformly
-predictor.fit(hyperparameters={"optimization.top_k_average_method": "uniform_soup"})
+# Skip final validation
+predictor.fit(hyperparameters={"optim.skip_final_val": True})
 ```
 
-### optimization.efficient_finetune
-Parameter-efficient finetuning options:
-- `bit_fit`: Bias parameters only
-- `norm_fit`: Normalization + bias parameters  
-- `lora`: LoRA Adaptors
-- `lora_bias`: LoRA + bias
-- `lora_norm`: LoRA + normalization + bias
-- `ia3`: IA3 algorithm
-- `ia3_bias`: IA3 + bias
-- `ia3_norm`: IA3 + normalization + bias
+## Environment Configuration
 
+### GPU and Batch Size Settings
 ```python
-# Example configurations
-predictor.fit(hyperparameters={"optimization.efficient_finetune": "bit_fit"})
-predictor.fit(hyperparameters={"optimization.efficient_finetune": "ia3_bias"})
-```
+# GPU configuration
+predictor.fit(hyperparameters={"env.num_gpus": -1})  # Use all available GPUs
+predictor.fit(hyperparameters={"env.num_gpus": 1})   # Use 1 GPU only
 
-## Environment Settings
-
-### GPU and Batch Size Configuration
-```python
-# GPU settings
-predictor.fit(hyperparameters={
-    "env.num_gpus": -1,  # Use all available GPUs
-    "env.per_gpu_batch_size": 8,
-    "env.batch_size": 128,
-    "env.eval_batch_size_ratio": 4
-})
+# Batch size settings
+predictor.fit(hyperparameters={"env.per_gpu_batch_size": 16})  # Batch size per GPU
+predictor.fit(hyperparameters={"env.batch_size": 256})         # Total effective batch size
+predictor.fit(hyperparameters={"env.inference_batch_size_ratio": 2})  # 2x batch size during inference
 ```
 
 ### Precision and Workers
 ```python
-# Training precision
+# Precision settings
+predictor.fit(hyperparameters={"env.precision": "16-mixed"})    # Default mixed precision
+predictor.fit(hyperparameters={"env.precision": "bf16-mixed"})  # bfloat16 mixed precision
+
+# Worker processes
+predictor.fit(hyperparameters={"env.num_workers": 4})  # Training dataloader workers
+predictor.fit(hyperparameters={"env.num_workers_inference": 4})  # Inference dataloader workers
+```
+
+### Training Strategy and Hardware
+```python
+# Distributed training mode
+predictor.fit(hyperparameters={"env.strategy": "ddp"})  # Distributed data parallel
+
+# Hardware accelerator
+predictor.fit(hyperparameters={"env.accelerator": "cpu"})  # Force CPU training
+```
+
+### PyTorch Compilation
+```python
+# Enable torch.compile
 predictor.fit(hyperparameters={
-    "env.precision": "16-mixed",  # Supports: 64, 32, bf16-mixed, 16-mixed
-    "env.num_workers": 2,
-    "env.num_workers_evaluation": 2
+    "env.compile.turn_on": True,
+    "env.compile.mode": "reduce-overhead",  # Good for small batches
+    "env.compile.dynamic": False,           # Static input shapes
+    "env.compile.backend": "inductor"       # Default backend
 })
 ```
 
-### Distribution Strategy
+## Model Configuration
+
+### Model Selection
 ```python
-# Training strategy
+# Choose specific model types
+predictor.fit(hyperparameters={"model.names": ["hf_text"]})  # Text models only
+predictor.fit(hyperparameters={"model.names": ["timm_image"]})  # Image models only
+predictor.fit(hyperparameters={"model.names": ["clip"]})  # CLIP models only
+```
+
+### Text Model Configuration
+```python
+# Hugging Face text model settings
 predictor.fit(hyperparameters={
-    "env.strategy": "ddp_spawn",  # Options: dp, ddp, ddp_spawn
-    "env.accelerator": "auto"     # Options: cpu, gpu, auto
+    "model.hf_text.checkpoint_name": "roberta-base",  # Choose specific text backbone
+    "model.hf_text.pooling_mode": "mean"  # Use mean pooling instead of CLS token
 })
 ```
 
-### Model Compilation
+# AutoMM Text and Image Model Configuration
+
+## Text Model Configuration
+
+### Tokenizer Selection
 ```python
-# Torch compile settings
-predictor.fit(hyperparameters={
-    "env.compile.turn_on": False,
-    "env.compile.mode": "default",
-    "env.compile.dynamic": True,
-    "env.compile.backend": "inductor"
-})
+# Default auto tokenizer
+predictor.fit(hyperparameters={"model.hf_text.tokenizer_name": "hf_auto"})
+
+# Using ELECTRA tokenizer
+predictor.fit(hyperparameters={"model.hf_text.tokenizer_name": "electra"})
+```
+Options include: `hf_auto`, `bert`, `electra`, and `clip`
+
+### Text Length Configuration
+```python
+# Default maximum length
+predictor.fit(hyperparameters={"model.hf_text.max_text_len": 512})
+
+# Use tokenizer's maximum allowed length
+predictor.fit(hyperparameters={"model.hf_text.max_text_len": -1})
 ```
 
-## Important Notes:
-- Mixed precision (16-mixed) can achieve 3x speedups on modern GPUs
-- More workers don't always improve speed, especially with ddp_spawn
-- Model compilation is recommended for large models and long training sessions
-- Batch size accumulation occurs if env.batch_size > (per_gpu_batch_size * num_gpus)
-
-This condensed version maintains the critical implementation details while removing redundant examples and explanations.
-
-Here's the condensed tutorial content focusing on key implementation details and configurations:
-
-# AutoMM Model Configuration Guide
-
-## Core Model Selection
+### Text Processing Options
 ```python
-# Select specific model types
-predictor.fit(hyperparameters={
-    "model.names": ["hf_text", "timm_image", "clip", "categorical_mlp", "numerical_mlp", "fusion_mlp"] # Default
-    # OR
-    "model.names": ["hf_text"]  # Text only
-    "model.names": ["timm_image"]  # Image only 
-    "model.names": ["clip"]  # CLIP only
-})
+# Insert SEP token between texts from different columns (default)
+predictor.fit(hyperparameters={"model.hf_text.insert_sep": True})
+
+# Number of text segments in token sequence (default: 2)
+predictor.fit(hyperparameters={"model.hf_text.text_segment_num": 2})
+
+# Handle long text sequences (default: cut from beginning)
+predictor.fit(hyperparameters={"model.hf_text.stochastic_chunk": False})
 ```
 
-## Text Model Configurations (HF_Text)
-
-### Key Parameters
+### Text Augmentation
 ```python
-predictor.fit(hyperparameters={
-    # Model checkpoint
-    "model.hf_text.checkpoint_name": "google/electra-base-discriminator",  # Default
-    
-    # Pooling configuration
-    "model.hf_text.pooling_mode": "cls",  # Options: "cls" or "mean"
-    
-    # Tokenizer selection
-    "model.hf_text.tokenizer_name": "hf_auto",  # Options: "hf_auto", "bert", "electra", "clip"
-    
-    # Text processing
-    "model.hf_text.max_text_len": 512,  # Use -1 for model's max length
-    "model.hf_text.insert_sep": True,  # Insert SEP token between text columns
-    "model.hf_text.text_segment_num": 2,  # Number of text segments per sequence
-    
-    # Text augmentation
-    "model.hf_text.stochastic_chunk": False,  # Random text chunk selection
-    "model.hf_text.text_aug_detect_length": 10,  # Min length for augmentation
-    "model.hf_text.text_trivial_aug_maxscale": 0,  # Max % of tokens for augmentation
-    
-    # Performance optimization
-    "model.hf_text.gradient_checkpointing": False  # Memory optimization
-})
+# Minimum token length for text augmentation (default: 10)
+predictor.fit(hyperparameters={"model.hf_text.text_aug_detect_length": 10})
+
+# Maximum percentage for text augmentation (default: 0 - disabled)
+predictor.fit(hyperparameters={"model.hf_text.text_trivial_aug_maxscale": 0})
+# Enable with 10% maximum scale
+predictor.fit(hyperparameters={"model.hf_text.text_trivial_aug_maxscale": 0.1})
 ```
 
-## FT Transformer Configurations
-
-### Key Parameters
+### Memory Optimization
 ```python
-predictor.fit(hyperparameters={
-    # Model initialization
-    "model.ft_transformer.checkpoint_name": None,  # Load from local or URL
-    
-    # Architecture
-    "model.ft_transformer.num_blocks": 3,
-    "model.ft_transformer.token_dim": 192,
-    "model.ft_transformer.hidden_size": 192,
-    "model.ft_transformer.ffn_hidden_size": 192
-})
+# Enable gradient checkpointing to reduce memory usage
+predictor.fit(hyperparameters={"model.hf_text.gradient_checkpointing": True})
 ```
 
-## Important Notes:
-- Text augmentation only occurs when text length ≥ `text_aug_detect_length`
-- Gradient checkpointing reduces memory usage but may impact training speed
-- For `max_text_len`, system uses minimum between specified value and model's maximum
-- Token segments are limited by model's default maximum
+## FT-Transformer Configuration
 
-This condensed version maintains all critical implementation details while removing redundant examples and verbose explanations.
-
-Here's the condensed tutorial focusing on key implementation details and configurations:
-
-# Image Model Configurations
-
-### Checkpoint Selection
+### Model Architecture
 ```python
-# Swin Transformer (default)
-predictor.fit(hyperparameters={
-    "model.timm_image.checkpoint_name": "swin_base_patch4_window7_224"
-})
+# Initialize from checkpoint
+predictor.fit(hyperparameters={"model.ft_transformer.checkpoint_name": "my_checkpoint.ckpt"})
+# Or from URL
+predictor.fit(hyperparameters={"model.ft_transformer.checkpoint_name": "https://automl-mm-bench.s3.amazonaws.com/ft_transformer_pretrained_ckpt/iter_2k.ckpt"})
 
-# ViT Base
-predictor.fit(hyperparameters={
-    "model.timm_image.checkpoint_name": "vit_base_patch32_224"
-})
+# Number of transformer blocks (default: 3)
+predictor.fit(hyperparameters={"model.ft_transformer.num_blocks": 5})
+
+# Token dimension (default: 192)
+predictor.fit(hyperparameters={"model.ft_transformer.token_dim": 256})
+
+# Model embedding dimension (default: 192)
+predictor.fit(hyperparameters={"model.ft_transformer.hidden_size": 256})
+
+# FFN hidden layer dimension (default: 192)
+predictor.fit(hyperparameters={"model.ft_transformer.ffn_hidden_size": 256})
 ```
 
-### Image Transforms
+## Image Model Configuration
+
+### Model Selection
 ```python
-# Training transforms
-predictor.fit(hyperparameters={
-    "model.timm_image.train_transforms": [
-        "resize_shorter_side", 
-        "center_crop", 
-        "trivial_augment"  # default
-    ]
-})
+# Default Swin Transformer
+predictor.fit(hyperparameters={"model.timm_image.checkpoint_name": "swin_base_patch4_window7_224"})
 
-# Custom transforms using torchvision
-predictor.fit(hyperparameters={
-    "model.timm_image.train_transforms": [
-        torchvision.transforms.RandomResizedCrop(224),
-        torchvision.transforms.RandomHorizontalFlip()
-    ]
-})
-
-# Validation transforms
-predictor.fit(hyperparameters={
-    "model.timm_image.val_transforms": [
-        "resize_shorter_side",
-        "center_crop"  # default
-    ]
-})
+# Use ViT base
+predictor.fit(hyperparameters={"model.timm_image.checkpoint_name": "vit_base_patch32_224"})
 ```
 
-# Object Detection Configurations
-
-### MMDetection Models
+### Image Augmentation
 ```python
-# Default YOLOv3
-predictor = MultiModalPredictor(hyperparameters={
-    "model.mmdet_image.checkpoint_name": "yolov3_mobilenetv2_8xb24-320-300e_coco"
-})
+# Default transforms
+predictor.fit(hyperparameters={"model.timm_image.train_transforms": [
+    "resize_shorter_side", "center_crop", "trivial_augment"
+]})
+
+# Custom transforms
+predictor.fit(hyperparameters={"model.timm_image.train_transforms": [
+    "random_resize_crop", "random_horizontal_flip"
+]})
+
+# Using torchvision transforms
+predictor.fit(hyperparameters={"model.timm_image.train_transforms": [
+    torchvision.transforms.RandomResizedCrop(224), 
+    torchvision.transforms.RandomHorizontalFlip()
+]})
+```
+
+# AutoMM Tutorial: Configuration Options (Chunk 4/5)
+
+## Image Transformation Options
+
+### model.timm_image.val_transforms
+Transform images for validation/test/deployment:
+```python
+# Default transforms
+predictor.fit(hyperparameters={"model.timm_image.val_transforms": ["resize_shorter_side", "center_crop"]})
+
+# Square resize
+predictor.fit(hyperparameters={"model.timm_image.val_transforms": ["resize_to_square"]})
+
+# Custom transforms
+predictor.fit(hyperparameters={"model.timm_image.val_transforms": [torchvision.transforms.Resize((224, 224)]})
+```
+
+## Object Detection Models
+
+### model.mmdet_image.checkpoint_name
+Specify a MMDetection model:
+```python
+# Default model
+predictor = MultiModalPredictor(hyperparameters={"model.mmdet_image.checkpoint_name": "yolov3_mobilenetv2_8xb24-320-300e_coco"})
 
 # YOLOX-L
-predictor = MultiModalPredictor(hyperparameters={
-    "model.mmdet_image.checkpoint_name": "yolox_l"
-})
+predictor = MultiModalPredictor(hyperparameters={"model.mmdet_image.checkpoint_name": "yolox_l"})
+
+# DINO-SwinL
+predictor = MultiModalPredictor(hyperparameters={"model.mmdet_image.checkpoint_name": "dino-5scale_swin-l_8xb2-36e_coco"})
 ```
 
-### Important Settings
+### model.mmdet_image.output_bbox_format
+Bounding box format:
+- `"xyxy"`: [x1,y1,x2,y2] (default)
+- `"xywh"`: [x1,y1,w,h]
+
+### model.mmdet_image.frozen_layers
+Freeze specific layers:
 ```python
-# Bounding box format
-predictor = MultiModalPredictor(hyperparameters={
-    "model.mmdet_image.output_bbox_format": "xyxy"  # or "xywh"
-})
+# Default - freeze nothing
+predictor = MultiModalPredictor(hyperparameters={"model.mmdet_image.frozen_layers": []})
 
-# Freeze layers
-predictor = MultiModalPredictor(hyperparameters={
-    "model.mmdet_image.frozen_layers": ["backbone", "neck"]
-})
+# Freeze backbone
+predictor = MultiModalPredictor(hyperparameters={"model.mmdet_image.frozen_layers": ["backbone"]})
 ```
 
-# SAM (Segment Anything Model) Configurations
-
-```python
-# Model selection
-predictor.fit(hyperparameters={
-    "model.sam.checkpoint_name": "facebook/sam-vit-huge"  # default
-})
-
-# Training configuration
-predictor.fit(hyperparameters={
-    "model.sam.train_transforms": ["random_horizontal_flip"],
-    "model.sam.img_transforms": ["resize_to_square"],
-    "model.sam.gt_transforms": ["resize_gt_to_square"],
-    "model.sam.num_mask_tokens": 1,
-    "model.sam.ignore_label": 255
-})
-```
-
-# Data Processing Configurations
-
-### Missing Data Handling
-```python
-predictor.fit(hyperparameters={
-    "data.image.missing_value_strategy": "zero"  # or "skip"
-})
-```
-
-### Data Type Conversions
-```python
-predictor.fit(hyperparameters={
-    "data.categorical.convert_to_text": False,
-    "data.numerical.convert_to_text": False,
-    "data.text.normalize_text": False
-})
-```
+## Segment Anything Model (SAM) Configuration
 
 
 ...(truncated)

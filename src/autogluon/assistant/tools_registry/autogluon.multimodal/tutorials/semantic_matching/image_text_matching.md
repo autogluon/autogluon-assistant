@@ -1,19 +1,4 @@
-Summary: This tutorial demonstrates implementing image-text semantic matching using AutoGluon's MultiModalPredictor. It covers essential techniques for processing image-text pairs, including dataset preparation with path expansion, model configuration for similarity tasks, and both zero-shot and fine-tuned prediction approaches. The tutorial enables tasks like semantic search, embedding extraction, and match prediction, featuring key functionalities such as text-to-image and image-to-text search with customizable top-k results. It specifically implements CLIP-based matching with evaluation using recall metrics, making it valuable for building multimodal search and matching systems.
-
-# Image-Text Semantic Matching with AutoMM
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/semantic_matching/image_text_matching.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/semantic_matching/image_text_matching.ipynb)
-
-
-
-Vision and language are two important aspects of human intelligence to understand the real world. Image-text semantic matching, measuring the visual-semantic
-similarity between image and text, plays a critical role in bridging the vision and language. 
-Learning a joint space where text
-and image feature vectors are aligned is a typical solution for image-text matching. It is becoming increasingly significant for various vision-and-language tasks,
-such as cross-modal retrieval, image
-captioning, text-to-image synthesis, and multimodal neural machine translation. This tutorial will introduce how to apply AutoMM to the image-text matching task.
-
+Summary: This tutorial demonstrates implementing image-text matching with AutoGluon MultiModal, covering techniques for bidirectional retrieval between images and text. It shows how to prepare datasets, initialize a MultiModalPredictor for image-text similarity tasks, perform zero-shot evaluation, finetune models, and evaluate performance using recall metrics. Key functionalities include extracting embeddings from both modalities, making match predictions with confidence scores, and performing semantic search (text-to-image and image-to-text). The tutorial provides a complete workflow for building cross-modal retrieval systems that can find relevant images given text queries and vice versa.
 
 ```python
 !pip install autogluon.multimodal

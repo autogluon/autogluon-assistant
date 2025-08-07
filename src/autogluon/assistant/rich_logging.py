@@ -44,7 +44,7 @@ def _configure_logging(console_level: int, output_dir: Path = None) -> None:
     root_level = logging.DEBUG
 
     if sys.stdout.isatty():
-        console = Console(file=sys.stderr)
+        console = Console(file=sys.stdout)
         console_handler = RichHandler(console=console, markup=True, rich_tracebacks=True)
         console_handler.setLevel(console_level)
         console_handler.name = CONSOLE_HANDLER
@@ -113,17 +113,16 @@ def _configure_logging(console_level: int, output_dir: Path = None) -> None:
 
 
 def configure_logging(verbosity: int, output_dir: Path = None) -> None:
-    match verbosity:
-        case 0:
-            level = logging.ERROR  # Only errors
-        case 1:
-            level = BRIEF_LEVEL  # Brief summaries
-        case 2:
-            level = logging.INFO  # Standard info
-        case 3:
-            level = DETAIL_LEVEL  # Model details
-        case _:  # 4+
-            level = logging.DEBUG  # Full debug info
+    if verbosity == 0:
+        level = logging.ERROR  # Only errors
+    elif verbosity == 1:
+        level = BRIEF_LEVEL  # Brief summaries
+    elif verbosity == 2:
+        level = logging.INFO  # Standard info
+    elif verbosity == 3:
+        level = DETAIL_LEVEL  # Model details
+    else:  # 4+
+        level = logging.DEBUG  # Full debug info
     _configure_logging(console_level=level, output_dir=output_dir)
 
 

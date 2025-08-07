@@ -31,7 +31,7 @@ Please optimize your code to efficiently utilize the available hardware resource
    - If a model is trained, save it in a folder with random timestamp within {output_folder}
 
 3. Prediction:
-   - Make predictions on the test data. Always preserve and use the original indexing column from the test data to maintain exact row correspondence - do not generate new indices or rely on assumed ordering.
+   - Make predictions on the test data. Always preserve and use the ORIGINAL INDICES from the test data to maintain exact row correspondence - DO NOT generate new indices or rely on assumed ordering.
    - Save the predicted results to {output_folder}, result file name should be "results", the format and extension should be same as the test data file
    - Output column names must exactly match those in the training or sample submission files without adding "predicted_" prefixes or creating any new columns.
 
@@ -47,6 +47,8 @@ Please optimize your code to efficiently utilize the available hardware resource
 6. Others:
    - To avoid DDP errors, wrap the code in: if __name__ == "__main__":
    - Ensure errors are propagated up and not silently caught - do not use try/except blocks unless you explicitly re-raise the exception.
+
+{validation_prompt}
 
 {tool_prompt}
 
@@ -88,6 +90,7 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
         prompt = self.template.format(
             output_folder=self.manager.per_iteration_output_folder,
             selected_tool=self.manager.selected_tool,
+            validation_prompt=self._generate_validation_prompt(),
             tool_prompt=self.manager.tool_prompt,
             task_description=self.manager.task_description,
             data_prompt=self.manager.data_prompt,
@@ -95,8 +98,6 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             error_prompt=self.manager.all_previous_error_prompts,
             tutorial_prompt=self.manager.tutorial_prompt,
             best_code_prompt=best_code_prompt,
-            cpu_count=get_cpu_count(),
-            gpu_count=get_gpu_count(),
         )
 
         # Add format instruction if configured
@@ -126,6 +127,23 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
 
         return prompt
 
+    def _generate_validation_prompt(self) -> str:
+        if self.manager.config.continuous_improvement:
+            return """6. Validation:
+   - If no validation data is given, hold out a validation dataset (10 percent of the data) at the start , train only on the remaining data.
+   - At the end compute and print the final evaluation metric score on the validation set.
+   - Use a try-except block for the validation step - if validation fails, it's acceptable to continue.
+"""
+        else:
+            return ""
+
+    def _generate_system_resources_prompt(self) -> str:
+        return f"""### System Resources
+Available CPUs: {get_cpu_count()}
+Available GPUs: {get_gpu_count()}
+Please optimize your code to efficiently utilize the available hardware resources. 
+"""
+
     def _generate_best_code_prompt(self) -> str:
         """Generate prompt section about best/successful previous code."""
         if self.manager.time_step == 0:
@@ -146,10 +164,14 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             best_code_prompt.append(best_code)
             best_code_prompt.append("```")
             best_code_prompt.append("")
+            best_code_prompt.append(
+                "Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority."
+            )
+            if self.manager.config.optimize_system_resources:
+                best_code_prompt.append(self._generate_system_resources_prompt())
         # Check if we have a last successful step (different from best step)
         elif self.manager.last_successful_step >= 0 and self.manager.last_successful_step < self.manager.time_step:
             successful_code = self.manager.python_codes[self.manager.last_successful_step]
-            successful_score = self.manager.val_scores[self.manager.last_successful_step]
 
             best_code_prompt.append("### Previous Successful Code")
             best_code_prompt.append("The following code executed successfully:")
@@ -157,10 +179,14 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             best_code_prompt.append(successful_code)
             best_code_prompt.append("```")
             best_code_prompt.append("")
-
-        best_code_prompt.append(
-            "Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority."
-        )
+            best_code_prompt.append(
+                "Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority."
+            )
+            if self.manager.config.optimize_system_resources:
+                best_code_prompt.append(self._generate_system_resources_prompt())
+        # Do nothing if there's no successful code
+        else:
+            best_code_prompt = []
 
         return "\n".join(best_code_prompt)
 

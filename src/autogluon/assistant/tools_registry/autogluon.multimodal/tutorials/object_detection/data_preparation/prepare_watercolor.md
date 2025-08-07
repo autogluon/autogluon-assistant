@@ -1,32 +1,4 @@
-Summary: This tutorial provides implementation guidance for preparing the Watercolor dataset for object detection tasks using AutoMM. It covers two installation methods (Python CLI and Bash script), dataset structure, and format requirements. The tutorial helps with dataset setup tasks, including downloading and organizing 2,000 watercolor images (1,000 each for training/testing) in the correct directory structure. Key features include cross-platform installation options, COCO format conversion recommendations, and system requirements specification (7.5GB disk space, SSD preferred). It's particularly useful for developers setting up object detection pipelines with AutoMM MultiModalPredictor and those needing to handle VOC to COCO format conversions.
-
-# AutoMM Detection - Prepare Watercolor Dataset
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/object_detection/data_preparation/prepare_watercolor.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/object_detection/data_preparation/prepare_watercolor.ipynb)
-
-
-
-[Watercolor](https://naoto0804.github.io/cross_domain_detection/) is a small object detection dataset with 1,000 training images and 1,000 testing images,
-and has a specific domain, i.e. watercolor images. This dataset will be used to show how to \[Fast Finetune on Custom Dataset].
-
-You need 7.5 GB disk space to download and extract this dataset. SSD is preferred over HDD because of its better performance.
-The total time to prepare the dataset depends on your Internet speed and disk performance. For example, it often takes 8 min on AWS EC2 with EBS.
-
-You can download the dataset from its [official project page](https://naoto0804.github.io/cross_domain_detection/).
-We also prepared a bash script for one-step downloading the dataset: 
-[download_watercolor.sh](https://raw.githubusercontent.com/autogluon/autogluon/master/examples/automm/object_detection/download_watercolor.sh).
-Or you can also use our cli tool `prepare_detection_dataset` that can download all datasets mentioned in our tutorials.
-This python script is in our code: 
-[prepare_detection_dataset.py](https://raw.githubusercontent.com/autogluon/autogluon/master/multimodal/src/autogluon/multimodal/cli/prepare_detection_dataset.py),
-and you can also run it as a cli: `python3 -m autogluon.multimodal.cli.prepare_detection_dataset`.
-
-## Download with Python Script
-
-The python script does not show progress bar, but is promised to work on all major platforms.
-If you are working on a Unix system and needs a progress bar, try the bash script!
-
-You could either extract it in coco17 folder under current directory by running:
+Summary: This tutorial demonstrates how to prepare the Watercolor object detection dataset using AutoGluon. It covers two implementation methods: using AutoGluon CLI commands or a bash script, with options for specifying output paths. The tutorial explains that Watercolor uses VOC format but recommends converting to COCO format for use with AutoGluon MultiModalPredictor. It references additional resources for COCO format conversion and customization. This knowledge helps with dataset preparation tasks for object detection models, specifically working with the Watercolor dataset in AutoGluon's ecosystem.
 
 ```
 python3 -m autogluon.multimodal.cli.prepare_detection_dataset --dataset_name watercolor

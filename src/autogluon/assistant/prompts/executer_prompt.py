@@ -32,9 +32,10 @@ class ExecuterPrompt(BasePrompt):
 {stderr}
 
 Evaluate the execution results and decide on one of the following actions:
-1. SUCCESS - If the execution was completely successful and met all requirements.
-2. FIX - If there were errors, issues, or performance problems that need to be addressed but the task initialization is correct.
-3. RESTART - If the error is caused by wrong task initialization such as incorrect problem type inference, wrong ML library selection, file reading errors, or other fundamental task misunderstanding.
+1. SUCCESS - Final output is correct, regardless of the approach.
+2. FIX - Final output has errors or performance problems, but the overall approach is correct.
+3. RESTART - Final output has errors or performance problems due to fundamental misunderstanding of the task.
+Only choose FIX or RESTART if the final result contains actual errors or performance problems.
 
 Provide your decision in the following format:
 DECISION: [SUCCESS, FIX, or RESTART]
@@ -44,7 +45,7 @@ VALIDATION_SCORE: [If there is a validation score for the solution, provide it a
 The error summary should be brief but informative enough for another agent to understand what needs to be fixed.
 Even if the code executed without throwing errors, it might still have issues with logic or not meet all requirements.
 
-For RESTART decisions, the ERROR_SUMMARY will be appended to the initial instruction provided to agents after restart, so it should clearly describe the initialization problem that caused the failure.
+For RESTART decisions, the ERROR_SUMMARY will be appended to the initial instruction provided to agents after restart, so it should clearly describe the initialization problem that caused the failure precisely and concisely.
 
 For validation scores:
 - If there is a validation score present in the execution results, extract it
@@ -126,6 +127,9 @@ For validation scores:
                 except ValueError:
                     logger.warning(f"Could not parse validation score: {validation_score_text}")
                     validation_score = None
+        # The Validation score is only meaningful if this is a success run
+        if decision != "SUCCESS":
+            validation_score = None
 
         self.manager.save_and_log_states(
             content=response, save_name="executer_response.txt", per_iteration=True, add_uuid=True

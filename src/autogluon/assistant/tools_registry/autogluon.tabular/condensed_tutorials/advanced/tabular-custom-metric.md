@@ -1,50 +1,28 @@
-# Condensed: Adding a custom metric to AutoGluon
+# Condensed: ```python
 
-Summary: This tutorial demonstrates how to implement custom evaluation metrics in AutoGluon using the make_scorer() function. It covers the technical implementation of creating serializable custom metrics for different types of machine learning tasks (classification, regression, probability-based) through detailed examples. The tutorial helps with tasks like defining custom accuracy, MSE, and ROC AUC metrics, integrating them into model training and evaluation workflows. Key features include the essential parameters for make_scorer(), proper metric serialization requirements, handling different prediction types (class, probability, threshold-based), and best practices for implementing custom metric functions that are compatible with AutoGluon's framework.
+Summary: This tutorial demonstrates how to create and use custom evaluation metrics in AutoGluon, focusing on what makes them better for model optimization. It covers the implementation of custom metrics for classification, regression, and probability-based tasks, with examples of accuracy, ROC AUC, and MSE. The metrics are defined using make_scorer and can be used for model evaluation and comparison.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on essential implementation details:
+# Custom Metrics in AutoGluon
 
-# Adding Custom Metrics to AutoGluon
-
-## Key Implementation Details
-
-### Creating a Custom Metric
-Custom metrics must be defined in a separate Python file and imported to ensure they are serializable (pickleable).
-
+## Setup
 ```python
+!pip install autogluon.tabular[all]
+import numpy as np
 from autogluon.core.metrics import make_scorer
-
-# Basic structure for creating a custom scorer
-custom_scorer = make_scorer(
-    name='metric_name',
-    score_func=function_that_calculates_metric,
-    optimum=optimal_value,
-    greater_is_better=True/False,
-    needs_pred/needs_proba/needs_class/needs_threshold/needs_quantile=True
-)
+import sklearn.metrics
 ```
 
-### Critical Parameters for make_scorer()
+## Important: Ensuring Metric is Serializable
+Custom metrics must be defined in a separate Python file and imported to be pickled properly. If not serializable, you'll get `_pickle.PicklingError: Can't pickle` errors when using parallel training.
 
-- `name`: Identifier for the scorer
-- `score_func`: Function that calculates the metric
-- `optimum`: Best possible value for the metric
-- `greater_is_better`: Whether higher scores are better
-- `needs_*`: Specify type of predictions required:
-  - `needs_pred`: For regression metrics
-  - `needs_proba`: For probability estimates
-  - `needs_class`: For classification predictions
-  - `needs_threshold`: For binary classification metrics using decision certainty
-  - `needs_quantile`: For quantile regression metrics
+**Best Practice:** Create a file like `my_metrics.py` with your metric definitions, then import with `from my_metrics import ag_accuracy_scorer`.
 
-## Implementation Examples
+## Creating Custom Metrics
 
-### 1. Custom Accuracy Metric
+### Custom Accuracy Metric
 ```python
-import sklearn.metrics
-
 ag_accuracy_scorer = make_scorer(
     name='accuracy',
     score_func=sklearn.metrics.accuracy_score,
@@ -54,9 +32,9 @@ ag_accuracy_scorer = make_scorer(
 )
 ```
 
-### 2. Custom Mean Squared Error
+### Custom Mean Squared Error Metric
 ```python
-ag_mse_scorer = make_scorer(
+ag_mean_squared_error_scorer = make_scorer(
     name='mean_squared_error',
     score_func=sklearn.metrics.mean_squared_error,
     optimum=0,
@@ -64,7 +42,20 @@ ag_mse_scorer = make_scorer(
 )
 ```
 
-### 3. Custom ROC AUC
+### Custom Function Example
+```python
+def mse_func(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    return ((y_true - y_pred) ** 2).mean()
+
+ag_mean_squared_error_custom_scorer = make_scorer(
+    name='mean_squared_error',
+    score_func=mse_func,
+    optimum=0,
+    greater_is_better=False
+)
+```
+
+### Custom ROC AUC Metric
 ```python
 ag_roc_auc_scorer = make_scorer(
     name='roc_auc',
@@ -75,25 +66,34 @@ ag_roc_auc_scorer = make_scorer(
 )
 ```
 
-## Using Custom Metrics
+## Key Parameters for `make_scorer`
+- `name`: Name for the scorer (used in logs)
+- `score_func`: The function to wrap
+- `optimum`: Best possible value from the original metric
+- `greater_is_better`: Whether higher values are better
+- `needs_*`: Specify the type of predictions required:
+  - `needs_pred`: For regression metrics (default if no others specified)
+  - `needs_proba`: For probability estimates
+  - `needs_class`: For classification predictions
+  - `needs_threshold`: For continuous decision certainty (binary classification)
+  - `needs_quantile`: For quantile regression
 
-### With Leaderboard
+## Using Custom Metrics in TabularPredictor
+
+### With leaderboard
 ```python
-predictor.leaderboard(test_data, extra_metrics=[custom_scorer1, custom_scorer2])
+predictor = TabularPredictor(label=label).fit(train_data, hyperparameters='toy')
+predictor.leaderboard(test_data, extra_metrics=[ag_roc_auc_scorer, ag_accuracy_scorer])
 ```
 
-### During Training
+### As evaluation metric
 ```python
-predictor = TabularPredictor(
-    label=label, 
-    eval_metric=custom_scorer
-).fit(train_data)
+predictor_custom = TabularPredictor(label=label, eval_metric=ag_roc_auc_scorer).fit(train_data, hyperparameters='toy')
+predictor_custom.leaderboard(test_data)
 ```
 
-## Important Warnings and Best Practices
-
-1. Custom metrics must be defined in separate Python files to be serializable
-2. Non-serializable metrics will crash during training with `_pickle.PicklingError`
-3. Ensure `greater_is_better` is set correctly to avoid optimizing for worst models
-4. AutoGluon Scorers internally convert all metrics to `greater_is_better=True` format
-5. Custom metric functions must accept `y_true` and `y_pred` as numpy arrays and return a float
+## Important Notes
+- AutoGluon Scorers always report scores in `greater_is_better=True` form internally
+- For metrics where `greater_is_better=False`, AutoGluon flips the value
+- Error is calculated as `sign * optimum - score` where `sign=1` if `greater_is_better=True`, else `sign=-1`
+- Error is always in `lower_is_better` format (0 = perfect prediction)

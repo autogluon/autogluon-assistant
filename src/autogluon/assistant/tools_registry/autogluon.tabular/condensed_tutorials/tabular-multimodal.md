@@ -1,22 +1,17 @@
-# Condensed: Multimodal Data Tables: Tabular, Text, and Image
+# Condensed: ```python
 
-Summary: This tutorial demonstrates how to implement multimodal machine learning using AutoGluon, specifically combining tabular, text, and image data for prediction tasks. It provides implementation details for dataset preparation (including handling multiple images), feature metadata configuration, and model training with multimodal hyperparameter presets. The tutorial helps with tasks involving image path preprocessing, feature type specification, and unified model training across different data modalities. Key functionalities covered include handling multiple images per row (selecting first image), path expansion for image files, feature metadata customization, and training configuration using AutoGluon's multimodal preset that incorporates tabular models, BERT for text, and ResNet for images.
+Summary: This tutorial demonstrates using AutoGluon Multimodal for multimodal classification on the PetFinder dataset. It covers: (1) implementing multimodal machine learning with images and tabular data, including proper image path handling and feature metadata configuration; (2) solving pet adoption prediction tasks by integrating different data types; and (3) key functionalities including data preparation for multimodal inputs, configuring feature metadata to identify image columns, creating appropriate hyperparameter configurations, and training a TabularPredictor that automatically handles mixed data types. The tutorial showcases how to process image paths, configure models for multimodal inputs, and evaluate performance on test data.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on key implementation details:
+# AutoGluon Multimodal Tutorial: PetFinder Dataset
 
-# Multimodal Data Tables: Tabular, Text, and Image Tutorial
+## Setup and Data Preparation
 
-## Key Requirements
-- GPU required for image and text models
-- Appropriate CUDA versions for Torch installations
-
-## Implementation Steps
-
-### 1. Dataset Preparation
 ```python
-# Download and unzip dataset
+!pip install autogluon
+
+# Download and extract dataset
 download_dir = './ag_petfinder_tutorial'
 zip_file = 'https://automl-mm-bench.s3.amazonaws.com/petfinder_kaggle.zip'
 
@@ -25,20 +20,23 @@ load_zip.unzip(zip_file, unzip_dir=download_dir)
 
 # Load data
 import pandas as pd
+dataset_path = download_dir + '/petfinder_processed'
 train_data = pd.read_csv(f'{dataset_path}/train.csv', index_col=0)
 test_data = pd.read_csv(f'{dataset_path}/dev.csv', index_col=0)
 
-label = 'AdoptionSpeed'
+# Define key columns
+label = 'AdoptionSpeed'  # Target variable (multi-class classification)
 image_col = 'Images'
 ```
 
-### 2. Image Column Preprocessing
+## Image Column Preprocessing
+
 ```python
-# Handle multiple images (keep only first image)
+# Extract only the first image per row (AutoGluon supports one image per row)
 train_data[image_col] = train_data[image_col].apply(lambda ele: ele.split(';')[0])
 test_data[image_col] = test_data[image_col].apply(lambda ele: ele.split(';')[0])
 
-# Update image paths
+# Update image paths to absolute paths
 def path_expander(path, base_folder):
     path_l = path.split(';')
     return ';'.join([os.path.abspath(os.path.join(base_folder, path)) for path in path_l])
@@ -47,48 +45,46 @@ train_data[image_col] = train_data[image_col].apply(lambda ele: path_expander(el
 test_data[image_col] = test_data[image_col].apply(lambda ele: path_expander(ele, base_folder=dataset_path))
 ```
 
-### 3. Feature Metadata Configuration
+## Sample Data for Faster Prototyping
+
+```python
+# For tutorial purposes - use smaller dataset
+train_data = train_data.sample(500, random_state=0)
+```
+
+## Feature Metadata Configuration
+
 ```python
 from autogluon.tabular import FeatureMetadata
-# Create and customize feature metadata
+# Create feature metadata and specify image column
 feature_metadata = FeatureMetadata.from_df(train_data)
 feature_metadata = feature_metadata.add_special_types({image_col: ['image_path']})
 ```
 
-### 4. Hyperparameter Configuration
+## Model Configuration and Training
+
 ```python
+# Get multimodal hyperparameter configuration
 from autogluon.tabular.configs.hyperparameter_configs import get_hyperparameter_config
 hyperparameters = get_hyperparameter_config('multimodal')
-```
+# This config includes tabular models, Electra BERT text model, and ResNet image model
 
-### 5. Model Training
-```python
+# Train the predictor
 from autogluon.tabular import TabularPredictor
 predictor = TabularPredictor(label=label).fit(
     train_data=train_data,
     hyperparameters=hyperparameters,
     feature_metadata=feature_metadata,
-    time_limit=900,
+    time_limit=900,  # 15 minutes time limit
 )
-```
 
-## Important Best Practices
-1. When prototyping, sample data to identify effective models before scaling up
-2. For large multimodal datasets, start with smaller samples and gradually increase data size
-3. Adjust time limits based on dataset size and computational resources
-4. AutoGluon currently supports only one image per row
-
-## Key Configurations
-- Uses 'multimodal' preset configuration
-- Includes:
-  - Tabular models
-  - Electra BERT text model
-  - ResNet image model
-- Default time limit: 900 seconds
-
-## Model Evaluation
-```python
+# Evaluate on test data
 leaderboard = predictor.leaderboard(test_data)
 ```
 
-This implementation handles multimodal data combining tabular, text, and image features in a single prediction task.
+## Key Notes
+
+- AutoGluon automatically identifies text columns but requires manual specification of image columns
+- When prototyping with large multimodal datasets, start with a small sample to identify promising models
+- The 'multimodal' preset handles tabular, text, and image data simultaneously
+- Training on multimodal data can be computationally intensive, especially with 'best_quality' preset

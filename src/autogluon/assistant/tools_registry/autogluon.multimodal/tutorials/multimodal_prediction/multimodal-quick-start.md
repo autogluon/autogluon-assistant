@@ -1,14 +1,4 @@
-Summary: This tutorial demonstrates the implementation of AutoGluon's MultiModalPredictor for multimodal machine learning tasks, specifically focusing on combining image, text, and tabular data for classification problems. It provides code for data preparation (handling image paths and DataFrame formatting), model initialization, training, and prediction workflows. Key functionalities covered include automatic problem type detection, feature modality detection, model selection, and late-fusion model addition. The tutorial is particularly useful for tasks requiring unified processing of multiple data types, offering implementation details for prediction, probability scoring, and performance evaluation, while also highlighting advanced features like embedding extraction and model distillation.
-
-# AutoGluon Multimodal - Quick Start
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/multimodal_prediction/multimodal-quick-start.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/multimodal_prediction/multimodal-quick-start.ipynb)
-
-AutoGluon's `MultiModalPredictor` is a deep learning model zoo of model zoos that can automatically build state-of-the-art deep learning models for inputs including images, text, and tabular data. Convert your data into AutoGluon's multimodal dataframe format, and `MultiModalPredictor` can predict the values of one column based on the other features.
-
-Begin by making sure AutoGluon is installed, and then import the required modules.
-
+Summary: This tutorial demonstrates AutoGluon MultiModal for multimodal machine learning, focusing on image-text classification with the PetFinder dataset. It covers implementation techniques for preparing multimodal data (handling image paths and text features), training a MultiModalPredictor with automatic modality detection and model selection, and making predictions. Key functionalities include automatic problem type inference, multimodal feature handling, time-constrained training, classification prediction, probability estimation, and performance evaluation using metrics like ROC-AUC. This knowledge helps with tasks requiring combined processing of images and tabular data for classification problems.
 
 ```python
 !python -m pip install --upgrade pip

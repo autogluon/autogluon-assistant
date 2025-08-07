@@ -1,14 +1,10 @@
 {
   "name": "autogluon.tabular",
-  "version": "1.2.0",
+  "version": "1.4.1.dev",
   "description": "AutoGluon Tabular automates ML model training for tabular data, excelling at numerical and categorical data processing. It doesn't support NLP or image-based tasks.",
-  "features": [
-  ],
   "requirements": [],
   "prompt_template": [
-    "time_limit: 1800 (seconds)",
-    "presets: medium_quality",
-    "tuning_data: only use validation if there is a validation dataset.",
+    "DO NOT create validation dataset from training data. Validation score is provided during the training process.",
     "AutoGluon Tabular requires converting multiple label columns into either a single combined label for mutually exclusive cases or training separate predictors for each label in non-exclusive scenarios."
   ]
 }

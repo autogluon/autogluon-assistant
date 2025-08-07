@@ -42,7 +42,7 @@ if [ -z "$AGENTS" ] || [ -z "$DATASETS" ]; then
 fi
 
 # Set the base directory for MAAB
-MAAB_DIR="$(pwd)"
+MAAB_DIR="$(dirname "$(realpath "$0")")"
 
 # Generate a timestamp for the evaluation run
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -70,7 +70,7 @@ run_agent() {
     bash "${MAAB_DIR}/agents/${agent}/${agent}.sh" \
         -training_path "$training_path" \
         -output_dir "$agent_output_dir"
-    
+
     # Record end time and calculate duration
     local end_time=$(date +%s)
     local duration=$((end_time - start_time))

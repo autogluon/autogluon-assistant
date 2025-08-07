@@ -1,15 +1,4 @@
-Summary: This tutorial demonstrates implementing few-shot learning using AutoGluon's MultiModalPredictor for both text and image classification tasks. It provides code examples for setting up few-shot classifiers with essential configurations like problem_type="few_shot_classification", label specification, and evaluation metrics. The implementation combines foundation model features with SVM classifiers, making it particularly effective for small datasets with limited samples per class. Key functionalities include comparing few-shot vs. standard classification approaches, handling both text and image modalities, and configuring the classifier with best practices for optimal performance on small datasets.
-
-# Few Shot Learning with AutoMM
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/few_shot_learning.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/few_shot_learning.ipynb)
-
-
-In this tutorial we introduce a simple but effective way for few shot classification problems. 
-We present the functionality which leverages the high-quality features from foundation models and uses SVM for few shot classification tasks.
-Specifically, we extract sample features with pretrained models, and use the features for SVM learning.
-We show the effectiveness of the foundation-model-followed-by-SVM on a text classification dataset and an image classification dataset.
+Summary: This tutorial demonstrates few-shot classification implementation using AutoGluon's MultiModalPredictor for both text and image data. It covers techniques for training classifiers with limited samples by setting problem_type="few_shot_classification" versus standard classification approaches. Key functionalities include: preparing text/image datasets, configuring few-shot learning parameters, evaluating model performance with accuracy and F1 metrics, and comparing few-shot versus traditional classification approaches. The tutorial shows how to implement models that perform significantly better on limited training data, which is valuable for scenarios with scarce labeled examples.
 
 ## Few Shot Text Classification
 ### Prepare Text Data

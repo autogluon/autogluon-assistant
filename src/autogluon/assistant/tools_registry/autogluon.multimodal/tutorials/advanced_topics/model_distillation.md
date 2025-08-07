@@ -1,26 +1,4 @@
-Summary: This tutorial demonstrates knowledge distillation implementation in AutoMM, specifically focusing on transferring knowledge from large BERT teacher models to smaller student models. It covers essential techniques for model compression using the AutoGluon framework, including data preparation with QNLI dataset, teacher model setup, and student model training configuration. Key functionalities include working with MultiModalPredictor, handling train/valid/test splits, and configuring model architectures (12-layer BERT teacher to 6-layer BERT student). The tutorial is particularly useful for tasks involving model compression, deployment optimization, and maintaining performance while reducing model size through distillation techniques.
-
-# Knowledge Distillation in AutoMM
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/model_distillation.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/model_distillation.ipynb)
-
-
-
-Pretrained foundation models are becoming increasingly large. However, these models are difficult to deploy due to 
-limited resources available in deployment scenarios. To benefit from large models under this constraint, 
-you transfer the knowledge from the large-scale teacher models to the student model, with knowledge distillation.
-In this way, the small student model can be practically deployed under real-world scenarios,
-while the performance will be better than training the student model from scratch thanks to the teacher.
-
-In this tutorial, we introduce how to adopt `MultiModalPredictor` for knowledge distillation. For the purpose of demonstration, we use the [Question-answering NLI](https://paperswithcode.com/dataset/qnli) dataset, 
-which comprises 104,743 question, answer pairs sampled from question answering datasets. We will demonstrate how to use a large model to guide the learning and improve the performance of a small model in AutoGluon.
-
-## Load Dataset
-
-The [Question-answering NLI](https://paperswithcode.com/dataset/qnli) dataset contains 
-sentence pairs in English. In the label column, `0` means that the sentence is not related to the question and `1` means that the sentence is related to the question.
-
+Summary: This tutorial demonstrates knowledge distillation in AutoGluon MultiModal, showing how to transfer knowledge from a larger teacher model to a smaller student model. It covers implementation techniques for loading pre-trained models, configuring distillation, and evaluating performance. The code helps with creating efficient, smaller models that maintain accuracy by learning from larger ones. Key features include: simple distillation activation via the teacher_predictor parameter, working with BERT models of different sizes (12-layer to 6-layer), dataset preparation for NLP tasks, and model evaluation. The implementation focuses on practical application with minimal configuration requirements.
 
 ```python
 !pip install autogluon.multimodal
@@ -83,7 +61,7 @@ student_predictor.fit(
     teacher_predictor=teacher_predictor,
     hyperparameters={
         "model.hf_text.checkpoint_name": "google/bert_uncased_L-6_H-768_A-12",
-        "optimization.max_epochs": 2,
+        "optim.max_epochs": 2,
     }
 )
 ```

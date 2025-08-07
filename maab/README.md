@@ -19,7 +19,7 @@ cd maab
 
 2. Download and extract the benchmark datasets (an 140GiB archive file, 159GiB after unzip):
 ```bash
-wget s3://automl-mm-bench/MAAB/maabdatasets20250504.zip
+wget https://automl-mm-bench.s3.us-east-1.amazonaws.com/MAAB/maabdatasets20250504.zip
 unzip maabdatasets20250504.zip
 ```
 

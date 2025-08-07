@@ -1,182 +1,176 @@
-# Condensed: Adding a custom model to AutoGluon
+# Condensed: ```python
 
-Summary: This tutorial provides implementation guidance for adding custom models to AutoGluon, focusing on inheriting from the AbstractModel class and following AutoGluon's API patterns. It covers essential techniques for model preprocessing, fitting, and integration with TabularPredictor, including handling feature cleaning, model serialization, and hyperparameter tuning. Key functionalities include implementing custom RandomForest models, bagged ensembles, feature generation, and optimizing model performance through hyperparameter search spaces. The tutorial serves as a reference for tasks involving custom model integration, ensemble creation, and automated machine learning pipeline development within the AutoGluon framework, with specific examples of time limits, GPU support, and special data type handling.
+Summary: This tutorial demonstrates how to implement custom models in AutoGluon by extending the AbstractModel class, specifically creating a custom RandomForest implementation. It covers preprocessing with label encoding, dynamic model selection based on problem type, and proper integration with AutoGluon's ecosystem. Key functionalities include custom model training, feature preprocessing, model saving/loading, bagged ensembles for improved performance, and hyperparameter tuning using search spaces. The tutorial helps with tasks like implementing custom ML algorithms within AutoGluon, integrating models with TabularPredictor, and optimizing model performance through bagging and hyperparameter optimization.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed version focusing on the essential implementation details:
-
-# Adding a Custom Model to AutoGluon
-
-## Key Points
-- Custom models must inherit from `AbstractModel` class
-- Models need to follow AutoGluon's API to work with other models
-- Implementation requires understanding of core functionality patterns
-
-## Important Reference Models
-
-| Feature | Reference Model |
-|---------|----------------|
-| Time limits & early stopping | `LGBModel`, `RFModel` |
-| Memory usage limits | `LGBModel`, `RFModel` |
-| Sample weights | `LGBModel` |
-| GPU support | `LGBModel` |
-| Non-serializable models | `NNFastAiTabularModel` |
-| Special problem types | `RFModel` |
-| Text features | `TextPredictorModel` |
-| Image features | `ImagePredictorModel` |
-| Custom HPO | `LGBModel` |
-
-## Best Practices
-1. Review base implementation in `AbstractModel` class
-2. Study reference implementations for specific features
-3. Ensure compatibility with AutoGluon's API
-4. Follow proper inheritance patterns
-
-## Implementation Prerequisites
-- Understand AutoGluon basics from "Predicting Columns in a Table - Quick Start"
-- Familiarity with model integration patterns
-- Knowledge of desired model functionality requirements
-
-```python
-# Base import pattern
-from autogluon.core.models.abstract.abstract_model import AbstractModel
-```
-
-## Reference Links
-- AbstractModel source: `auto.gluon.ai/stable/_modules/autogluon/core/models/abstract/abstract_model.html`
-- Default models documentation: `autogluon.tabular.models`
-
-This condensed version maintains the critical implementation details while removing unnecessary explanatory text and focusing on the practical aspects of custom model implementation.
-
-Here's the condensed tutorial content focusing on key implementation details:
-
 # Custom Model Implementation in AutoGluon
 
-## Key Implementation Details
-
-### CustomRandomForestModel Class
+## Installation and Setup
 ```python
+!pip install autogluon.tabular[all]
+```
+
+## Creating a Custom Random Forest Model
+
+```python
+import numpy as np
+import pandas as pd
+from autogluon.core.models import AbstractModel
+from autogluon.features.generators import LabelEncoderFeatureGenerator
+
 class CustomRandomForestModel(AbstractModel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._feature_generator = None
+
+    def _preprocess(self, X: pd.DataFrame, is_train=False, **kwargs) -> np.ndarray:
+        print(f'Entering the `_preprocess` method: {len(X)} rows of data (is_train={is_train})')
+        X = super()._preprocess(X, **kwargs)
+
+        if is_train:
+            self._feature_generator = LabelEncoderFeatureGenerator(verbosity=0)
+            self._feature_generator.fit(X=X)
+        if self._feature_generator.features_in:
+            X = X.copy()
+            X[self._feature_generator.features_in] = self._feature_generator.transform(X=X)
+        return X.fillna(0).to_numpy(dtype=np.float32)
+
+    def _fit(self, X: pd.DataFrame, y: pd.Series, **kwargs):
+        print('Entering the `_fit` method')
+        from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+
+        if self.problem_type in ['regression', 'softclass']:
+            model_cls = RandomForestRegressor
+        else:
+            model_cls = RandomForestClassifier
+
+        X = self.preprocess(X, is_train=True)
+        params = self._get_model_params()
+        print(f'Hyperparameters: {params}')
+        self.model = model_cls(**params)
+        self.model.fit(X, y)
+        print('Exiting the `_fit` method')
+
+    def _set_default_params(self):
+        default_params = {
+            'n_estimators': 300,
+            'n_jobs': -1,
+            'random_state': 0,
+        }
+        for param, val in default_params.items():
+            self._set_default_param_value(param, val)
+
+    def _get_default_auxiliary_params(self) -> dict:
+        default_auxiliary_params = super()._get_default_auxiliary_params()
+        extra_auxiliary_params = dict(
+            valid_raw_types=['int', 'float', 'category'],
+        )
+        default_auxiliary_params.update(extra_auxiliary_params)
+        return default_auxiliary_params
 ```
 
-### Critical Methods
-
-1. **_preprocess**
+## Loading the Data
 ```python
-def _preprocess(self, X: pd.DataFrame, is_train=False, **kwargs) -> np.ndarray:
-    X = super()._preprocess(X, **kwargs)
-    if is_train:
-        self._feature_generator = LabelEncoderFeatureGenerator(verbosity=0)
-        self._feature_generator.fit(X=X)
-    if self._feature_generator.features_in:
-        X = X.copy()
-        X[self._feature_generator.features_in] = self._feature_generator.transform(X=X)
-    return X.fillna(0).to_numpy(dtype=np.float32)
-```
+from autogluon.tabular import TabularDataset
 
-2. **_fit**
-```python
-def _fit(self, X: pd.DataFrame, y: pd.Series, **kwargs):
-    from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-    
-    model_cls = RandomForestRegressor if self.problem_type in ['regression', 'softclass'] else RandomForestClassifier
-    X = self.preprocess(X, is_train=True)
-    params = self._get_model_params()
-    self.model = model_cls(**params)
-    self.model.fit(X, y)
-```
-
-### Important Configurations
-
-1. **Default Parameters**
-```python
-def _set_default_params(self):
-    default_params = {
-        'n_estimators': 300,
-        'n_jobs': -1,
-        'random_state': 0,
-    }
-```
-
-2. **Auxiliary Parameters**
-```python
-def _get_default_auxiliary_params(self):
-    return {
-        'valid_raw_types': ['int', 'float', 'category']
-    }
-```
-
-## Data Preparation
-
-```python
-# Load and clean data
 train_data = TabularDataset('https://autogluon.s3.amazonaws.com/datasets/Inc/train.csv')
+test_data = TabularDataset('https://autogluon.s3.amazonaws.com/datasets/Inc/test.csv')
+label = 'class'
+train_data = train_data.sample(n=1000, random_state=0)  # subsample for faster demo
+```
+
+## Training Without TabularPredictor
+
+### Cleaning Labels
+```python
+# Separate features and labels
 X = train_data.drop(columns=[label])
 y = train_data[label]
+X_test = test_data.drop(columns=[label])
+y_test = test_data[label]
 
-# Clean labels
+from autogluon.core.data import LabelCleaner
+from autogluon.core.utils import infer_problem_type
+
+# Convert labels to appropriate numeric format
 problem_type = infer_problem_type(y=y)
 label_cleaner = LabelCleaner.construct(problem_type=problem_type, y=y)
 y_clean = label_cleaner.transform(y)
 ```
 
-## Best Practices
-1. Import dependencies inside methods for modularity
-2. Always call preprocess on data during fit and predict
-3. Handle missing values appropriately (using fillna or model-specific handling)
-4. Implement proper label cleaning for classification tasks
-5. Specify valid data types in auxiliary parameters
+The implementation creates a custom Random Forest model by extending AutoGluon's AbstractModel class. Key components include:
 
-Here's the condensed tutorial focusing on key implementation details and practices:
+1. **Preprocessing**: Handles categorical features via label encoding and missing values
+2. **Model fitting**: Dynamically selects RandomForestClassifier or RandomForestRegressor based on problem type
+3. **Default parameters**: Sets sensible defaults for the Random Forest algorithm
+4. **Data type handling**: Specifies which data types the model can process
 
-# Custom Model Implementation in AutoGluon - Part 3
+The example demonstrates how to use the custom model outside TabularPredictor for debugging purposes, including proper label cleaning for binary classification.
+
+# Custom Model Integration in AutoGluon - Part 2
 
 ## Feature Cleaning
-```python
-from autogluon.features.generators import AutoMLPipelineFeatureGenerator
 
-# Clean features using AutoGluon's feature generator
+```python
+from autogluon.common.utils.log_utils import set_logger_verbosity
+from autogluon.features.generators import AutoMLPipelineFeatureGenerator
+set_logger_verbosity(2)
+
 feature_generator = AutoMLPipelineFeatureGenerator()
 X_clean = feature_generator.fit_transform(X)
 ```
 
-**Note**: AutoMLPipelineFeatureGenerator doesn't handle:
-- Missing value imputation for numeric features
-- Feature scaling
-- One-hot encoding for categoricals
+The `AutoMLPipelineFeatureGenerator` converts string features to categorical types but doesn't:
+- Fill missing values for numeric features
+- Rescale numeric features
+- One-hot encode categoricals
 
 ## Model Training and Prediction
 
 ```python
-# Train model
 custom_model = CustomRandomForestModel()
+# Optional: custom_model = CustomRandomForestModel(hyperparameters={'max_depth': 10})
 custom_model.fit(X=X_clean, y=y_clean)
 
-# Save/Load model
+# Save/load functionality
 # custom_model.save()
 # custom_model = CustomRandomForestModel.load(path=load_path)
+```
 
-# Prepare and predict test data
+### Making Predictions
+
+```python
+# Prepare test data
 X_test_clean = feature_generator.transform(X_test)
 y_test_clean = label_cleaner.transform(y_test)
+
+# Get predictions
 y_pred = custom_model.predict(X_test_clean)
 
-# Get interpretable predictions
+# Convert predictions back to original format
 y_pred_orig = label_cleaner.inverse_transform(y_pred)
 ```
 
-## Bagged Ensemble Implementation
+### Model Evaluation
+
+```python
+score = custom_model.score(X_test_clean, y_test_clean)
+print(f'Test score ({custom_model.eval_metric.name}) = {score}')
+```
+
+## Bagged Ensemble Model
 
 ```python
 from autogluon.core.models import BaggedEnsembleModel
-
 bagged_custom_model = BaggedEnsembleModel(CustomRandomForestModel())
-bagged_custom_model.params['fold_fitting_strategy'] = 'sequential_local'  # Required for class not in separate module
+
+# Required if custom model isn't in a separate module
+bagged_custom_model.params['fold_fitting_strategy'] = 'sequential_local'
 bagged_custom_model.fit(X=X_clean, y=y_clean, k_fold=10)
+
+bagged_score = bagged_custom_model.score(X_test_clean, y_test_clean)
+print(f'Bagging increased model accuracy by {round(bagged_score - score, 4) * 100}%!')
 ```
 
 ## Integration with TabularPredictor
@@ -184,7 +178,7 @@ bagged_custom_model.fit(X=X_clean, y=y_clean, k_fold=10)
 ```python
 from autogluon.tabular import TabularPredictor
 
-# Train multiple models with different hyperparameters
+# Train multiple versions with different hyperparameters
 custom_hyperparameters = {
     CustomRandomForestModel: [
         {}, 
@@ -193,14 +187,19 @@ custom_hyperparameters = {
     ]
 }
 predictor = TabularPredictor(label=label).fit(train_data, hyperparameters=custom_hyperparameters)
+
+# View model performance
+predictor.leaderboard(test_data)
+
+# Make predictions
+y_pred = predictor.predict(test_data)
+# Optional: y_pred = predictor.predict(test_data, model='CustomRandomForestModel_3')
 ```
 
 ## Hyperparameter Tuning
 
 ```python
 from autogluon.common import space
-
-# Define hyperparameter search space
 custom_hyperparameters_hpo = {
     CustomRandomForestModel: {
         'max_depth': space.Int(lower=5, upper=30),
@@ -209,67 +208,43 @@ custom_hyperparameters_hpo = {
     }
 }
 
-# Train with HPO
 predictor = TabularPredictor(label=label).fit(
     train_data,
     hyperparameters=custom_hyperparameters_hpo,
-    hyperparameter_tune_kwargs='auto',
+    hyperparameter_tune_kwargs='auto',  # enables HPO
     time_limit=20
 )
+
+# View best hyperparameters
+best_model_name = predictor.leaderboard()[predictor.leaderboard()['stack_level'] == 1]['model'].iloc[0]
+best_model_info = predictor.info()['model_info'][best_model_name]
+print(f'Best Model Hyperparameters: {best_model_info["hyperparameters"]}')
 ```
 
-### Key Best Practices:
-1. Use feature generators for consistent data preprocessing
-2. Implement model saving/loading for production use
-3. Consider using bagged ensembles for improved performance
-4. Leverage TabularPredictor for advanced functionality
-5. Use hyperparameter tuning for optimizing model performance
+The tutorial demonstrates how to integrate custom models with AutoGluon's ecosystem, including feature preprocessing, model training, bagging for improved performance, and hyperparameter tuning.
 
-Here's the condensed version of the final chunk focusing on key implementation details:
+# Custom Models in AutoGluon - Implementation Guide (Part 3/3)
 
-# Adding Custom Model with Tuned Hyperparameters
+## Adding Custom Models to AutoGluon
 
-## Key Implementation
+This section shows how to integrate a custom model with AutoGluon:
 
-1. Add tuned custom model to default models:
 ```python
-# Add custom model with optimized hyperparameters
+# Add a custom RandomForest model with tuned hyperparameters
 custom_hyperparameters = get_hyperparameter_config('default')
 custom_hyperparameters[CustomRandomForestModel] = best_model_info['hyperparameters']
-```
 
-2. Train predictor with custom configuration:
-```python
-predictor = TabularPredictor(label=label).fit(
-    train_data, 
-    hyperparameters=custom_hyperparameters
-)
-```
-
-## Important Variations
-
-- For enhanced performance, use with stack ensembles:
-```python
-predictor = TabularPredictor(label=label).fit(
-    train_data, 
-    hyperparameters=custom_hyperparameters,
-    presets='best_quality'  # Enables multi-layer stack ensemble
-)
-```
-
-## Best Practices
-
-1. Evaluate model performance:
-```python
+# Train with custom model alongside default models
+predictor = TabularPredictor(label=label).fit(train_data, hyperparameters=custom_hyperparameters)
 predictor.leaderboard(test_data)
 ```
 
-2. Consider contributing custom models via PR to AutoGluon's repository
+## Wrapping Up
 
-## Additional Resources
-- Basic tutorials: 
-  - "Predicting Columns in a Table - Quick Start"
-  - "Predicting Columns in a Table - In Depth"
-- Advanced custom models: "Adding a custom model to AutoGluon (Advanced)"
+To add a custom model to AutoGluon:
+1. Create a model class that inherits from AbstractModel
+2. Implement required methods (fit, predict, etc.)
+3. Add hyperparameter tuning capabilities
+4. Integrate with AutoGluon's training pipeline
 
-This concludes the implementation of custom models in AutoGluon, showing how to integrate optimized custom models with AutoGluon's existing framework.
+For advanced custom models, refer to the "Adding a custom model to AutoGluon (Advanced)" tutorial.

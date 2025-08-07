@@ -138,3 +138,28 @@ If you upload your own config file in advanced settings, it will override the pr
 - **Max Iterations**: MLZero stops when the task is successful or this limit is reached. Default is 5, adjustable as needed.
 - **Manual Prompts Between Iterations**: Choose whether to add iteration-specific prompts between iterations.
 - **Log Verbosity**: Select the level of detail for the logs you want to see. Three options are available: brief, info, and detail.
+
+### MCP (Model Context Protocol)
+
+#### Local Setup (All services on the same machine)
+
+1. `mlzero-backend`
+2. `mlzero-mcp-server` # default port 8000, you can specify a different port using --server-port or -s
+3. `mlzero-mcp-client` # default port 8005, you can specify a different port using --port or -p
+4. Add MCP server to LLM (e.g. `claude mcp add --transport http <your-server-name> http://localhost:<your-port-number>/mcp/`)
+5. Start and watch logs in mlzero-mcp-client terminal (tell LLM the input and output folders)
+
+#### Remote Setup (MCP tools on remote machine, calling from local)
+
+##### On the machine running MCP tools (e.g. EC2)
+
+1. `mlzero-backend`
+2. `mlzero-mcp-server`
+3. Tunnel for mlzero-mcp-server (e.g. `ngrok http 8000`)
+
+##### On the machine calling MCP (e.g. Mac)
+
+1. Set up SSH, ensure you can `ssh <username>@<ip-or-dns>` (e.g. ssh ubuntu@your-ec2-ip) without providing pem
+2. `mlzero-mcp-client --server <username>@<ip-or-dns>` # e.g.: mlzero-mcp-client --server ubuntu@your-ec2-ip
+3. Add MCP server to LLM (e.g. `claude mcp add --transport http <your-server-name> http://localhost:<your-port-number>/mcp/`)
+4. Start and watch logs in mlzero-mcp-client terminal (in this mode, besides input and output folders, also tell LLM the tunneled address of mlzero-mcp-server)

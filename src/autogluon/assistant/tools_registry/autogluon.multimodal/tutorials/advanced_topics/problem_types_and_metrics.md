@@ -1,13 +1,4 @@
-Summary: This tutorial provides implementation guidance for AutoMM's diverse problem types and metrics, covering classification (binary/multiclass), regression, computer vision (object detection, semantic segmentation), similarity matching, NLP tasks (NER), and feature extraction. It helps with tasks involving metric selection, modality support checking, and zero-shot prediction implementation. Key features include detailed metric configurations for each problem type, modality support specifications (text, image, numerical, categorical), zero-shot capability identification, and access to the PROBLEM_TYPES_REG registry for customization. The tutorial is particularly valuable for implementing multi-modal machine learning solutions and understanding which metrics and modalities are supported for different problem types.
-
-# AutoMM Problem Types And Metrics
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/problem_types_and_metrics.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/advanced_topics/problem_types_and_metrics.ipynb)
-
-
-AutoGluon Multimodal supports various problem types for different machine learning tasks. In this tutorial, we will introduce each problem type, its supported modalities, and evaluation metrics.
-
+Summary: This tutorial explains AutoGluon MultiModal's problem types for code implementation, covering classification (binary and multiclass), regression, object detection, semantic segmentation, similarity matching, NER, and feature extraction. It helps with implementing models that handle various data modalities (text, image, numerical, categorical) and specifies which problem types support training vs. zero-shot prediction. The tutorial details evaluation metrics for each problem type and provides implementation context for working with multimodal data. It's valuable for coding tasks involving multimodal machine learning, particularly when working with mixed data types and needing automated model training across different problem domains.
 
 ```python
 !pip install autogluon.multimodal
@@ -67,88 +58,6 @@ print_problem_type_info("Binary Classification", binary_props)
 print_problem_type_info("Multiclass Classification", multiclass_props)
 ```
 
-    
-    === Binary Classification ===
-    
-    Supported Input Modalities:
-    - categorical
-    - image
-    - image_base64_str
-    - image_bytearray
-    - numerical
-    - text
-    
-    Evaluation Metrics:
-    - acc
-    - accuracy
-    - average_precision
-    - balanced_accuracy
-    - f1
-    - f1_macro
-    - f1_micro
-    - f1_weighted
-    - log_loss
-    - mcc
-    - nll
-    - pac
-    - pac_score
-    - precision
-    - precision_macro
-    - precision_micro
-    - precision_weighted
-    - quadratic_kappa
-    - recall
-    - recall_macro
-    - recall_micro
-    - recall_weighted
-    - roc_auc (default)
-    
-    Special Capabilities:
-    - Zero-shot prediction: Not supported
-    - Training support: Supported
-    
-    === Multiclass Classification ===
-    
-    Supported Input Modalities:
-    - categorical
-    - image
-    - image_base64_str
-    - image_bytearray
-    - numerical
-    - text
-    
-    Evaluation Metrics:
-    - acc
-    - accuracy (default)
-    - balanced_accuracy
-    - f1_macro
-    - f1_micro
-    - f1_weighted
-    - log_loss
-    - mcc
-    - nll
-    - pac
-    - pac_score
-    - precision_macro
-    - precision_micro
-    - precision_weighted
-    - quadratic_kappa
-    - recall_macro
-    - recall_micro
-    - recall_weighted
-    - roc_auc_ovo
-    - roc_auc_ovo_macro
-    - roc_auc_ovo_weighted
-    - roc_auc_ovr
-    - roc_auc_ovr_macro
-    - roc_auc_ovr_micro
-    - roc_auc_ovr_weighted
-    
-    Special Capabilities:
-    - Zero-shot prediction: Not supported
-    - Training support: Supported
-
-
 ## Regression
 
 Regression problems support predicting numerical values from various input modalities.
@@ -159,38 +68,6 @@ Regression problems support predicting numerical values from various input modal
 regression_props = PROBLEM_TYPES_REG.get(REGRESSION)
 print_problem_type_info("Regression", regression_props)
 ```
-
-    
-    === Regression ===
-    
-    Supported Input Modalities:
-    - categorical
-    - image
-    - image_base64_str
-    - image_bytearray
-    - numerical
-    - text
-    
-    Evaluation Metrics:
-    - mae
-    - mape
-    - mean_absolute_error
-    - mean_absolute_percentage_error
-    - mean_squared_error
-    - median_absolute_error
-    - mse
-    - pearsonr
-    - r2
-    - rmse (default)
-    - root_mean_squared_error
-    - smape
-    - spearmanr
-    - symmetric_mean_absolute_percentage_error
-    
-    Special Capabilities:
-    - Zero-shot prediction: Not supported
-    - Training support: Supported
-
 
 ## Object Detection
 
@@ -203,32 +80,6 @@ object_detection_props = PROBLEM_TYPES_REG.get(OBJECT_DETECTION)
 print_problem_type_info("Object Detection", object_detection_props)
 ```
 
-    
-    === Object Detection ===
-    
-    Supported Input Modalities:
-    - image
-    
-    Evaluation Metrics:
-    - map (default)
-    - map_50
-    - map_75
-    - map_large
-    - map_medium
-    - map_small
-    - mar_1
-    - mar_10
-    - mar_100
-    - mar_large
-    - mar_medium
-    - mar_small
-    - mean_average_precision
-    
-    Special Capabilities:
-    - Zero-shot prediction: Supported
-    - Training support: Supported
-
-
 ## Semantic Segmentation
 
 Semantic segmentation performs pixel-level classification of images.
@@ -239,22 +90,6 @@ Semantic segmentation performs pixel-level classification of images.
 segmentation_props = PROBLEM_TYPES_REG.get(SEMANTIC_SEGMENTATION)
 print_problem_type_info("Semantic Segmentation", segmentation_props)
 ```
-
-    
-    === Semantic Segmentation ===
-    
-    Supported Input Modalities:
-    - image
-    
-    Evaluation Metrics:
-    - ber
-    - iou (default)
-    - sm
-    
-    Special Capabilities:
-    - Zero-shot prediction: Supported
-    - Training support: Supported
-
 
 ## Similarity Matching Problems
 
@@ -285,26 +120,6 @@ for type_key, type_name in similarity_types:
 
 ```
 
-    
-    === Similarity Matching ===
-    
-    Text Similarity:
-    Input Requirements:
-    - text
-    Zero-shot prediction: Supported
-    
-    Image Similarity:
-    Input Requirements:
-    - image
-    Zero-shot prediction: Supported
-    
-    Image-Text Similarity:
-    Input Requirements:
-    - text
-    - image
-    Zero-shot prediction: Supported
-
-
 ## Named Entity Recognition (NER)
 
 NER identifies and classifies named entities (like person names, locations, organizations) in text.
@@ -315,25 +130,6 @@ NER identifies and classifies named entities (like person names, locations, orga
 ner_props = PROBLEM_TYPES_REG.get(NER)
 print_problem_type_info("Named Entity Recognition", ner_props)
 ```
-
-    
-    === Named Entity Recognition ===
-    
-    Supported Input Modalities:
-    - categorical
-    - image
-    - numerical
-    - text
-    - text_ner
-    
-    Evaluation Metrics:
-    - ner_token_f1
-    - overall_f1 (default)
-    
-    Special Capabilities:
-    - Zero-shot prediction: Not supported
-    - Training support: Supported
-
 
 ## Feature Extraction
 
@@ -346,18 +142,6 @@ feature_extraction_props = PROBLEM_TYPES_REG.get(FEATURE_EXTRACTION)
 print_problem_type_info("Feature Extraction", feature_extraction_props)
 ```
 
-    
-    === Feature Extraction ===
-    
-    Supported Input Modalities:
-    - image
-    - text
-    
-    Special Capabilities:
-    - Zero-shot prediction: Supported
-    - Training support: Not supported
-
-
 ## Few-shot Classification
 
 Few-shot classification learns to classify from a small number of examples per class.
@@ -368,45 +152,6 @@ Few-shot classification learns to classify from a small number of examples per c
 few_shot_props = PROBLEM_TYPES_REG.get(FEW_SHOT_CLASSIFICATION)
 print_problem_type_info("Few-shot Classification", few_shot_props)
 ```
-
-    
-    === Few-shot Classification ===
-    
-    Supported Input Modalities:
-    - image
-    - text
-    
-    Evaluation Metrics:
-    - acc
-    - accuracy (default)
-    - balanced_accuracy
-    - f1_macro
-    - f1_micro
-    - f1_weighted
-    - log_loss
-    - mcc
-    - nll
-    - pac
-    - pac_score
-    - precision_macro
-    - precision_micro
-    - precision_weighted
-    - quadratic_kappa
-    - recall_macro
-    - recall_micro
-    - recall_weighted
-    - roc_auc_ovo
-    - roc_auc_ovo_macro
-    - roc_auc_ovo_weighted
-    - roc_auc_ovr
-    - roc_auc_ovr_macro
-    - roc_auc_ovr_micro
-    - roc_auc_ovr_weighted
-    
-    Special Capabilities:
-    - Zero-shot prediction: Not supported
-    - Training support: Supported
-
 
 ## Other Examples
 You may go to [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm) to explore other examples about AutoMM.

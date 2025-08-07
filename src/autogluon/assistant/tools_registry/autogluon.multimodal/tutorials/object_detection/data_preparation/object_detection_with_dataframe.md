@@ -1,4 +1,8 @@
-Summary: This tutorial demonstrates object detection implementation using AutoGluon's MultiModalPredictor, covering two key data formats: COCO JSON and DataFrame. It provides code for format conversion, model training configuration, and evaluation. The tutorial specifically helps with tasks like setting up object detection training pipelines, data format handling, and model evaluation. Key features include support for COCO-format annotations, DataFrame conversions, YOLOv3 model implementation, GPU utilization, learning rate configuration, and batch size optimization. The implementation details are particularly useful for understanding data structure requirements, model hyperparameter tuning, and essential dependencies setup for AutoGluon-based object detection systems.
+Summary: Summary: 
+
+Summary: Summary: This tutorial covers object detection data formats for AutoMM's AutoMM Detection, focusing on COCO and DataFrame formats for object detection. Supports both COCO and DataFrame formats for training and evaluation. Supports conversion between formats with utilities for object detection data formats. Supports training with AutoMM's MultiModalPrediagramming formats for object detection. Supports training with AutoMM's MultiModalPredictor. Supports object detection with AutoMM's MultiModalPredictor. Supports object detection with COCO and DataFrame formats for training and evaluation. Supports object detection with AutoMM's MultiModalPredictor. Supports object detection with AutoMM's MultiModalPredictor. Supports object detection with AutoMM's MultiModalPredictor. Supports object detection with AutoMM's MultiModalPredictor.
+
+Summary: This tutorial explains AutoMM's object detection data format handling, covering: 1) Implementation of COCO and DataFrame formats for object detection tasks, 2) Utility functions for converting between these formats (from_coco and object_detection_df_to_coco), 3) Training and evaluating object detection models using MultiModalPredictor with customizable hyperparameters. The tutorial demonstrates how to properly structure bounding box data, configure model checkpoints, and set training parameters for computer vision object detection tasks.
 
 # AutoMM Detection - Object detection data formats
 
@@ -200,8 +204,8 @@ predictor_df = MultiModalPredictor(
 predictor_df.fit(
     train_df,
     hyperparameters={
-        "optimization.learning_rate": 2e-4, # we use two stage and detection head has 100x lr
-        "optimization.max_epochs": 30,
+        "optim.lr": 2e-4, # we use two stage and detection head has 100x lr
+        "optim.max_epochs": 30,
         "env.per_gpu_batch_size": 32,  # decrease it when model is large
     },
 )

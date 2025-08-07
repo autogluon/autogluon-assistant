@@ -1,52 +1,57 @@
-# Condensed: AutoMM Detection - Prepare Pothole Dataset
+# Condensed: ```
 
-Summary: This tutorial demonstrates how to prepare a pothole detection dataset for AutoMM Detection, specifically focusing on implementing dataset preparation using CLI tools and understanding dataset structure. It helps with tasks related to setting up object detection training data, particularly for pothole detection use cases. Key features include CLI-based dataset preparation, COCO format conversion, and dataset splitting (3:1:1 ratio). The tutorial covers essential implementation details like storage requirements, execution time estimates, and best practices for using AutoMM MultiModalPredictor with COCO-formatted data, making it valuable for developers working on computer vision detection tasks.
+Summary: "Summary: "Summarize_: "
+
+Summary: "Summarized: "
+
+Summary: "
+
+Summarize: "
+
+Summary: This tutorial provides a tutorial on how to use the AutoGluaMM.multimodal.cli.
+
+Summary: This tutorial demonstrates how to prepare detection datasets for object detection datasets for AutoGludem.
+
+Summary: "
+
+Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "
+
+Summary: This tutorial demonstrates how to prepare object detection datasets using AutoGluon's MultiModal CLI. It covers downloading and preparing the pothole dataset in COCO format, which is the recommended format for AutoGluon's MultiModalPredictor. The tutorial explains command-line options for dataset preparation, including specifying output paths, and notes how the data is automatically split into train/validation/test sets. It warns that the original Kaggle dataset is in VOC format and provides links to additional resources for converting data to COCO format and customizing AutoMM. This knowledge helps with preparing datasets for object detection tasks in AutoGluon.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-Here's the condensed tutorial focusing on essential implementation details:
+# Preparing Detection Dataset
 
-# AutoMM Detection - Pothole Dataset Preparation
+## Download and Prepare Dataset
 
-## Key Requirements
-- Disk space: 1 GB
-- Preferred storage: SSD
-- Typical preparation time: ~3 min on AWS EC2 with EBS
+Download the pothole dataset in COCO format:
 
-## Dataset Overview
-- 665 images of potholes on roads
-- Used for AutoMM Detection fine-tuning demonstrations
-- Available formats: COCO (recommended) or VOC
-
-## Implementation Methods
-
-### 1. Using CLI Tool (Recommended)
 ```bash
-# Basic usage - current directory
+# Basic usage
 python3 -m autogluon.multimodal.cli.prepare_detection_dataset --dataset_name pothole
 
-# With custom output path
+# Specify output path
+python3 -m autogluon.multimodal.cli.prepare_detection_dataset --dataset_name pothole --output_path ~/data
+
+# Short form
 python3 -m autogluon.multimodal.cli.prepare_detection_dataset -d pothole -o ~/data
 ```
 
-### 2. Dataset Structure
-After preparation, COCO format annotations are split (3:1:1 ratio):
+The dataset is automatically split into train/validation/test sets (3:1:1 ratio) with annotation files at:
 ```
-pothole/Annotations/
-├── usersplit_train_cocoformat.json
-├── usersplit_val_cocoformat.json
-└── usersplit_test_cocoformat.json
+pothole/Annotations/usersplit_train_cocoformat.json
+pothole/Annotations/usersplit_val_cocoformat.json
+pothole/Annotations/usersplit_test_cocoformat.json
 ```
 
-## Important Notes
-- **Strongly recommended**: Use COCO format instead of VOC
-- For VOC to COCO conversion, refer to:
-  - "AutoMM Detection - Prepare COCO2017 Dataset"
-  - "Convert Data to COCO Format"
+## Important Note for Kaggle Downloads
 
-## Best Practices
-1. Always use COCO format for AutoMM MultiModalPredictor
-2. Verify dataset splits after preparation
-3. Use SSD for better performance
+**Warning:** The original Pothole dataset from Kaggle is in VOC format and not pre-split. It's strongly recommended to use COCO format with AutoGluon MultiModalPredictor.
 
-For customization options, refer to the "Customize AutoMM" documentation.
+For more information:
+- See [AutoMM Detection - Prepare COCO2017 Dataset](prepare_coco17.ipynb)
+- See [Convert Data to COCO Format](convert_data_to_coco_format.ipynb)
+
+## Additional Resources
+- For more examples: [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm)
+- For customization: [Customize AutoMM](../../advanced_topics/customization.ipynb)

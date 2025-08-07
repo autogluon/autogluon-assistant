@@ -1,71 +1,4 @@
-Summary: This tutorial covers implementing time series forecasting with AutoGluon, focusing on three key areas: (1) core probabilistic forecasting concepts and handling static features, (2) working with covariates (known and past) and holiday features, including data formatting requirements and missing value handling, and (3) model configuration and tuning. It provides code examples for implementing various forecasting models (local, global, and ensemble), managing irregular data, evaluating forecasts through train-test splits and backtesting, and configuring hyperparameters. The tutorial demonstrates how to use different quality presets, customize model selection, and perform hyperparameter optimization using Ray Tune, making it particularly useful for tasks involving time series prediction, model evaluation, and performance optimization.
-
-# Forecasting Time Series - In Depth
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/timeseries/forecasting-indepth.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/timeseries/forecasting-indepth.ipynb)
-
-
-This tutorial provides an in-depth overview of the time series forecasting capabilities in AutoGluon.
-Specifically, we will cover:
-
-- What is probabilistic time series forecasting?
-- Forecasting time series with additional information
-- What data format is expected by `TimeSeriesPredictor`?
-- How to evaluate forecast accuracy?
-- Which forecasting models are available in AutoGluon?
-- What functionality does `TimeSeriesPredictor` offer?
-    - Basic configuration with `presets` and `time_limit`
-    - Manually selecting what models to train
-    - Hyperparameter tuning
-
-This tutorial assumes that you are familiar with the contents of [Forecasting Time Series - Quick Start](forecasting-quick-start.ipynb).
-
-## What is probabilistic time series forecasting?
-A time series is a sequence of measurements made at regular intervals.
-The main objective of time series forecasting is to predict the future values of a time series given the past observations.
-A typical example of this task is demand forecasting.
-For example, we can represent the number of daily purchases of a certain product as a time series.
-The goal in this case could be predicting the demand for each of the next 14 days (i.e., the forecast horizon) given the historical purchase data.
-In AutoGluon, the `prediction_length` argument of the `TimeSeriesPredictor` determines the length of the forecast horizon.
-
-![Main goal of forecasting is to predict the future values of a time series given the past observations.](https://autogluon-timeseries-datasets.s3.us-west-2.amazonaws.com/public/figures/forecasting-indepth1.png)
-
-The objective of forecasting could be to predict future values of a given time series, as well as establishing prediction intervals within which the future values will likely lie.
-In AutoGluon, the `TimeSeriesPredictor` generates two types of forecasts:
-
-- **mean forecast** represents the expected value of the time series at each time step in the forecast horizon.
-- **quantile forecast** represents the quantiles of the forecast distribution.
-For example, if the `0.1` quantile (also known as P10, or the 10th percentile) is equal to `x`, it means that the time series value is predicted to be below `x` 10% of the time. As another example, the `0.5` quantile (P50) corresponds to the median forecast.
-Quantiles can be used to reason about the range of possible outcomes.
-For instance, by the definition of the quantiles, the time series is predicted to be between the P10 and P90 values with 80% probability.
-
-
-![Mean and quantile (P10 and P90) forecasts.](https://autogluon-timeseries-datasets.s3.us-west-2.amazonaws.com/public/figures/forecasting-indepth2.png)
-
-By default, the `TimeSeriesPredictor` outputs the quantiles `[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]`. Custom quantiles can be provided with the `quantile_levels` argument
-
-```python
-predictor = TimeSeriesPredictor(quantile_levels=[0.05, 0.5, 0.95])
-```
-
-## Forecasting time series with additional information
-In real-world forecasting problems we often have access to additional information, beyond just the raw time series values.
-AutoGluon supports two types of such additional information: static features and time-varying covariates.
-
-### Static features
-Static features are the time-independent attributes (metadata) of a time series.
-These may include information such as:
-
-- location, where the time series was recorded (country, state, city)
-- fixed properties of a product (brand name, color, size, weight)
-- store ID or product ID
-
-Providing this information may, for instance, help forecasting models generate similar demand forecasts for stores located in the same city.
-
-In AutoGluon, static features are stored as an attribute of a `TimeSeriesDataFrame` object.
-As an example, let's have a look at the M4 Daily dataset.
-
+Summary: This tutorial demonstrates AutoGluon TimeSeriesPredictor for time series forecasting with covariates and static features. It covers: (1) implementing time series forecasting with static features, known covariates, and holiday indicators; (2) handling irregular data, missing values, and proper data formatting; and (3) configuring models with different presets and hyperparameter tuning. Key functionalities include creating TimeSeriesDataFrame objects, adding custom covariates, generating future prediction frames, evaluating forecast accuracy, and selecting from local models (ETS, ARIMA), global models (DeepAR, PatchTST), and ensemble approaches for optimal forecasting performance.
 
 ```python
 # We use uv for faster installation
@@ -141,72 +74,6 @@ train_data.static_features = static_features_df
 ```
 
 
-If `static_features` doesn't contain some `item_id`s that are present in `train_data`, an exception will be raised.
-
-Now, when we fit the predictor, all models that support static features will automatically use the static features included in `train_data`.
-
-```python
-predictor = TimeSeriesPredictor(prediction_length=14).fit(train_data)
-```
-
-```
-...
-Following types of static features have been inferred:
-	categorical: ['domain']
-	continuous (float): []
-...
-```
-
-This message confirms that column `'domain'` was interpreted as a categorical feature.
-In general, AutoGluon-TimeSeries supports two types of static features:
-
-- `categorical`: columns of dtype `object`, `string` and `category` are interpreted as discrete categories
-- `continuous`: columns of dtype `int` and `float` are interpreted as continuous (real-valued) numbers
-- columns with other dtypes are ignored
-
-To override this logic, we need to manually change the columns dtype.
-For example, suppose the static features data frame contained an integer-valued column `"store_id"`.
-
-```python
-train_data.static_features["store_id"] = list(range(len(train_data.item_ids)))
-```
-
-By default, this column will be interpreted as a continuous number.
-We can force AutoGluon to interpret it a a categorical feature by changing the dtype to `category`.
-
-```python
-train_data.static_features["store_id"] = train_data.static_features["store_id"].astype("category")
-```
-
-**Note:** If training data contained static features, the predictor will expect that data passed to `predictor.predict()`, `predictor.leaderboard()`, and `predictor.evaluate()` also includes static features with the same column names and data types.
-
-
-### Time-varying covariates
-Covariates are the time-varying features that may influence the target time series.
-They are sometimes also referred to as dynamic features, exogenous regressors, or related time series.
-AutoGluon supports two types of covariates:
-
-- *known* covariates that are known for the entire forecast horizon, such as
-    - holidays
-    - day of the week, month, year
-    - promotions
-
-- *past* covariates that are only known up to the start of the forecast horizon, such as
-    - sales of other products
-    - temperature, precipitation
-    - transformed target time series
-
-
-![Target time series with one past covariate and one known covariate.](https://autogluon-timeseries-datasets.s3.us-west-2.amazonaws.com/public/figures/forecasting-indepth5.png)
-
-In AutoGluon, both `known_covariates` and `past_covariates` are stored as additional columns in the `TimeSeriesDataFrame`.
-
-We will again use the M4 Daily dataset as an example and generate both types of covariates:
-
-- a `past_covariate` equal to the logarithm of the target time series:
-- a `known_covariate` that equals to 1 if a given day is a weekend, and 0 otherwise.
-
-
 ```python
 import numpy as np
 train_data["log_target"] = np.log(train_data["target"])
@@ -246,12 +113,10 @@ Finally, to make predictions, we generate the known covariates for the forecast 
 
 
 ```python
-from autogluon.timeseries.utils.forecast import get_forecast_horizon_index_ts_dataframe
+predictor = TimeSeriesPredictor(prediction_length=14, freq=train_data.freq)
 
-future_index = get_forecast_horizon_index_ts_dataframe(train_data, prediction_length=14)
-future_timestamps = future_index.get_level_values("timestamp")
-known_covariates = pd.DataFrame(index=future_index)
-known_covariates["weekend"] = future_timestamps.weekday.isin(WEEKEND_INDICES).astype(float)
+known_covariates = predictor.make_future_data_frame(train_data)
+known_covariates["weekend"] = known_covariates["timestamp"].dt.weekday.isin(WEEKEND_INDICES).astype(float)
 
 known_covariates.head()
 
@@ -329,6 +194,8 @@ def add_holiday_features(
 ) -> TimeSeriesDataFrame:
     """Add holiday indicator columns to a TimeSeriesDataFrame."""
     ts_df = ts_df.copy()
+    if not isinstance(ts_df, TimeSeriesDataFrame):
+        ts_df = TimeSeriesDataFrame(ts_df)
     timestamps = ts_df.index.get_level_values("timestamp")
     country_holidays_df = pd.get_dummies(pd.Series(country_holidays)).astype(float)
     holidays_df = country_holidays_df.reindex(timestamps.date).fillna(0)
@@ -365,9 +232,8 @@ At prediction time, we need to provide future holiday values as `known_covariate
 
 
 ```python
-future_index = get_forecast_horizon_index_ts_dataframe(train_data, prediction_length=14)
-future_timestamps = future_index.get_level_values("timestamp")
-known_covariates = add_holiday_features(pd.DataFrame(index=future_index), country_holidays)
+known_covariates = predictor.make_future_data_frame(train_data)
+known_covariates = add_holiday_features(known_covariates, country_holidays)
 known_covariates.head()
 ```
 
@@ -473,8 +339,8 @@ train_data, test_data = data.train_test_split(prediction_length)
 ```
 
 We obtained two `TimeSeriesDataFrame`s from our original data:
-- `test_data` contains exactly the same data as the original `data` (i.e., it contains both historic data and the forecast horizon)
-- In `train_data`, the last `prediction_length` time steps are removed from the end of each time series (i.e., it contains only historic data)
+- `test_data` contains exactly the same data as the original `data` (i.e., it contains both historical data and the forecast horizon)
+- In `train_data`, the last `prediction_length` time steps are removed from the end of each time series (i.e., it contains only historical data)
 
 
 ```python
@@ -515,27 +381,6 @@ The crucial detail here is that `evaluate` always computes the score on the last
 The beginning of each time series (except the last `prediction_length` time steps) is only used to initialize the models before forecasting.
 
 For more details about the evaluation metrics, see [Forecasting Evaluation Metrics](forecasting-metrics.md).
-
-### Backtesting using multiple windows
-
-We can more accurately estimate the performance using **backtest** (i.e., evaluate performance on multiple forecast horizons generated from the same time series).
-This can be done using an `ExpandingWindowSplitter`.
-
-```python
-from autogluon.timeseries.splitter import ExpandingWindowSplitter
-
-splitter = ExpandingWindowSplitter(prediction_length=prediction_length, num_val_windows=3)
-for window_idx, (train_split, val_split) in enumerate(splitter.split(test_data)):
-    score = predictor.evaluate(val_split)
-    print(f"Window {window_idx}: score = {score}")
-```
-
-The `evaluate` method will measure the forecast accuracy using the last `prediction_length` time steps of each validation split as a hold-out set (marked in orange).
-
-![MultiWindowSplitter splits each original time series into multiple evaluation instances. Forecast is evaluated on the last `prediction_length` timesteps (orange).](https://autogluon-timeseries-datasets.s3.us-west-2.amazonaws.com/public/figures/forecasting-indepth6.png)
-
-Multi-window backtesting typically results in more accurate estimation of the forecast quality on unseen data.
-However, this strategy decreases the amount of training data available for fitting models, so we recommend using single-window backtesting if the training time series are short.
 
 ### How does AutoGluon perform validation?
 When we fit the predictor with `predictor.fit(train_data=train_data)`, under the hood AutoGluon further splits the original dataset `train_data` into train and validation parts.
@@ -585,7 +430,7 @@ These are neural-network algorithms implemented in PyTorch, such as:
 This category also includes pre-trained zero-shot forecasting models like [Chronos](forecasting-chronos.ipynb).
 
 AutoGluon also offers two tabular global models `RecursiveTabular` and `DirectTabular`.
-Under the hood, these models convert the forecasting task into a regression problem and use a [TabularPredictor](../../api/autogluon.tabular.TabularPredictor.rst) to fit regression algorithms like LightGBM.
+Under the hood, these models convert the forecasting task into a regression problem and fit models like LightGBM from the `autogluon.tabular` module.
 
 Finally, an **ensemble** model works by combining predictions of all other models.
 By default, `TimeSeriesPredictor` always fits a `WeightedEnsemble` on top of other models.

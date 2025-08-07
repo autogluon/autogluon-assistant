@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 import uuid
 from pathlib import Path
 from typing import List, Optional
@@ -15,6 +16,7 @@ from ..agents import (
     TaskDescriptorAgent,
     ToolSelectorAgent,
 )
+from ..constants import ENV_FOLDER_NAME
 from ..llm import ChatLLMFactory
 from ..tools_registry import registry
 from ..utils import get_user_input_webui
@@ -43,6 +45,7 @@ class Manager:
         self.time_step = -1
         self.best_step = -1
         self.last_successful_step = -1
+        self.best_step_saved = -1
 
         # Store required paths
         self.input_data_folder = input_data_folder
@@ -265,6 +268,15 @@ class Manager:
             return ""
 
     @property
+    def common_env_file(self) -> str:
+        return registry.registry_path / "_common" / "requirements.txt"
+
+    @property
+    def selected_tool_env_file(self) -> str:
+        tool_path = registry.get_tool(self.selected_tool)["path"]
+        return registry.registry_path / tool_path / "requirements.txt"
+
+    @property
     def iteration_folder(self) -> str:
         if self.time_step >= 0:
             iter_folder = os.path.join(self.output_folder, f"generation_iter_{self.time_step}")
@@ -306,23 +318,23 @@ class Manager:
         if self.need_user_input:
             if self.time_step > 0:
                 logger.brief(
-                    f"\n[bold green]Previous iteration info is stored in:[/bold green] {os.path.join(self.output_folder, f'iteration_{self.time_step - 1}')}"
+                    f"[bold green]Previous iteration info is stored in:[/bold green] {os.path.join(self.output_folder, f'iteration_{self.time_step - 1}')}"
                 )
             else:
                 logger.brief(
-                    f"\n[bold green]Initialization info is stored in:[/bold green] {os.path.join(self.output_folder, 'initialization')}"
+                    f"[bold green]Initialization info is stored in:[/bold green] {os.path.join(self.output_folder, 'initialization')}"
                 )
             if user_input is None:
                 user_input = ""
-                if os.environ.get("AUTOGLUON_WEBUI", "false").lower() == "true":
-                    # If running in WebUI, get user input from stdin
-                    user_input += "\n" + get_user_input_webui(
-                        f"Enter your inputs for current iteration (iter {self.time_step}) (press Enter to skip): "
-                    )
-                else:
-                    user_input += "\n" + input(
-                        f"Enter your inputs for current iteration (iter {self.time_step}) (press Enter to skip): "
-                    )
+            if os.environ.get("AUTOGLUON_WEBUI", "false").lower() == "true":
+                # If running in WebUI, get user input from stdin
+                user_input += "\n" + get_user_input_webui(
+                    f"Enter your inputs for current iteration (iter {self.time_step}) (press Enter to skip): "
+                )
+            else:
+                user_input += "\n" + input(
+                    f"Enter your inputs for current iteration (iter {self.time_step}) (press Enter to skip): "
+                )
 
         assert len(self.user_inputs) == self.time_step
         self.user_inputs.append(user_input)
@@ -403,6 +415,7 @@ class Manager:
                 logger.brief(
                     f"[bold yellow]Current validation score: {validation_score:.4f} (best: {self.val_scores[self.best_step]:.4f} at step {self.best_step})[/bold yellow]"
                 )
+                self.remove_env_folder(self.iteration_folder)
 
         # Save validation score information
         self.save_and_log_states(
@@ -420,6 +433,7 @@ class Manager:
                 f"Error summary from planner (the error can appear in stdout if it's catched): {planner_error_summary}"
             )
             self.update_error_message(error_message=error_message)
+            self.remove_env_folder(self.iteration_folder)
             return "FIX", planner_error_summary
         elif planner_decision == "SUCCESS":
             self.last_successful_step = self.time_step
@@ -441,6 +455,7 @@ class Manager:
         else:
             logger.warning(f"###INVALID Planner Output: {planner_decision}###")
             self.update_error_message(error_message="")
+            self.remove_env_folder(self.iteration_folder)
             return "INVALID", ""
 
     def update_error_message(self, error_message: str):
@@ -514,8 +529,6 @@ class Manager:
         If no best step is available, uses the last successful step.
         If neither is available, logs a warning and does nothing.
         """
-        import shutil
-
         # Determine which step to copy
         target_step = None
         copy_reason = ""
@@ -530,6 +543,10 @@ class Manager:
             logger.warning("No best step or successful step found. Cannot create best_run copy.")
             return
 
+        if target_step == self.best_step_saved:
+            logger.info(f"Skipping the saving process as step {target_step} has already been saved as best run.")
+            return
+
         # Create paths
         source_folder = os.path.join(self.output_folder, f"generation_iter_{target_step}")
         best_run_folder = os.path.join(self.output_folder, "best_run")
@@ -541,7 +558,7 @@ class Manager:
 
         # Check if source folder has an 'output' subdirectory
         source_output_folder = os.path.join(source_folder, "output")
-        if not os.path.exists(source_folder):
+        if not os.path.exists(source_output_folder):
             logger.warning(f"Source output folder does not exist: {source_output_folder}")
             return
 
@@ -565,8 +582,13 @@ class Manager:
                 elif os.path.isdir(source_item):
                     shutil.copytree(source_item, dest_item, dirs_exist_ok=True)
 
+            if self.config.cleanup_unused_env:
+                # Move conda_env folder from source to best_run folder
+                shutil.move(
+                    os.path.join(source_folder, ENV_FOLDER_NAME), os.path.join(best_run_folder, ENV_FOLDER_NAME)
+                )
             # Copy the entire source folder to best_run folder
-            shutil.copytree(source_folder, best_run_folder)
+            shutil.copytree(source_folder, best_run_folder, dirs_exist_ok=True)
 
             logger.brief(
                 f"[bold green]Created best_run folder (copied from step {target_step} - {copy_reason})[/bold green]"
@@ -590,9 +612,21 @@ class Manager:
                 content=summary_text, save_name="best_run_summary.txt", per_iteration=False, add_uuid=False
             )
 
+            self.best_step_saved = target_step
+
         except Exception as e:
             logger.error(f"Failed to copy folder: {e}")
             return
+
+    def remove_env_folder(self, iter_folder):
+        if not self.config.cleanup_unused_env:
+            return
+        try:
+            env_folder = os.path.join(iter_folder, ENV_FOLDER_NAME)
+            shutil.rmtree(env_folder)
+            logger.info(f"Removed unused env folder {env_folder}")
+        except Exception as e:
+            logger.error(f"Failed to remove env folder {env_folder}: {e}")
 
     def cleanup(self):
         """Clean up resources."""

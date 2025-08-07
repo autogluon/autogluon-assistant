@@ -4,6 +4,16 @@ runs/
 maab/runs/
 temp/
 
+# MCP specific
+src/autogluon/mcp/server/.flask.pid
+src/autogluon/mcp/server/.mcp.pid
+src/autogluon/mcp/server/test_output/
+src/autogluon/mcp/server/test_data/
+src/autogluon/mcp/server/nohup.out
+src/autogluon/mcp/**/uploads/
+src/autogluon/mcp/**/mlzero-*/
+src/autogluon/mcp/server_info.txt
+
 # OS specific
 *.DS_Store
 
@@ -27,9 +37,8 @@ runs/
 .mcp.pid
 mcp_output/
 mcp/__pycache__/
-mcp/examples/credentials_template.txt
-mcp/examples/example_config.yaml
 mcp/*.pyc
+mcp/server_info.txt
 
 # IDE specific
 .vscode/
@@ -205,14 +214,6 @@ output/
 
 # OS specific
 *.DS_Store
-
-src/autogluon/mcp/server/.flask.pid
-src/autogluon/mcp/server/.mcp.pid
-src/autogluon/mcp/server/test_output/
-src/autogluon/mcp/server/test_data/
-src/autogluon/mcp/server/nohup.out
-src/autogluon/mcp/**/uploads/
-src/autogluon/mcp/**/mlzero-*/
 
 # Credentials
 *.credentials

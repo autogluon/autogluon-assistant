@@ -1,17 +1,4 @@
-Summary: This tutorial provides comprehensive implementation guidance for AutoGluon's tabular machine learning capabilities, covering model training, optimization, and deployment. It demonstrates techniques for hyperparameter configuration, model ensembling, decision threshold calibration, inference acceleration, and memory optimization. Key functionalities include automated model stacking/bagging, feature importance analysis, model persistence, and various optimization strategies (refit_full, persist, infer_limit). The tutorial helps with tasks like efficient model training, prediction acceleration (up to 160x speedup), memory usage reduction, and deployment optimization. It's particularly useful for implementing production-ready AutoML solutions that balance accuracy, inference speed, and resource constraints.
-
-# AutoGluon Tabular - In Depth
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/tabular-indepth.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/tabular/tabular-indepth.ipynb)
-
-
-**Tip**: If you are new to AutoGluon, review [Predicting Columns in a Table - Quick Start](tabular-quick-start.ipynb) to learn the basics of the AutoGluon API. To learn how to add your own custom models to the set that AutoGluon trains, tunes, and ensembles, review [Adding a custom model to AutoGluon](advanced/tabular-custom-model.ipynb).
-
-This tutorial describes how you can exert greater control when using AutoGluon's `fit()` or `predict()`. Recall that to maximize predictive performance, you should first try `TabularPredictor()` and `fit()` with all default arguments.  Then, consider non-default arguments for `TabularPredictor(eval_metric=...)`, and `fit(presets=...)`.  Later, you can experiment with other arguments to fit() covered in this in-depth tutorial like `hyperparameter_tune_kwargs`, `hyperparameters`, `num_stack_levels`, `num_bag_folds`, `num_bag_sets`, etc.
-
-Using the same census data table as in the [Predicting Columns in a Table - Quick Start](tabular-quick-start.ipynb) tutorial, we'll now predict the `occupation` of an individual - a multiclass classification problem. Start by importing AutoGluon's TabularPredictor and TabularDataset, and loading the data.
-
+Summary: This tutorial demonstrates AutoGluon TabularPredictor for machine learning tasks, covering hyperparameter tuning with search spaces for neural networks and gradient boosting models, model ensembling through stacking/bagging, and decision threshold calibration for binary classification. It explains inference optimization techniques including model persistence, inference speed constraints, ensemble reduction, and model distillation. The tutorial provides practical code examples for accelerating predictions (up to 160x speedup), managing memory usage, and evaluating model performance. Key functionalities include feature importance analysis, loading/saving predictors, making batch and single-instance predictions, and optimizing deployment with techniques like refit_full, persist, and infer_limit parameters.
 
 ```python
 !pip install autogluon.tabular[all]
@@ -471,7 +458,7 @@ The resulting leaderboard will contain the most accurate model for a given infer
 ```python
 model_for_prediction = additional_ensembles[0]
 predictions = predictor.predict(test_data, model=model_for_prediction)
-predictor.delete_models(models_to_delete=additional_ensembles, dry_run=False)  # delete these extra models so they don't affect rest of tutorial
+predictor.delete_models(models_to_delete=additional_ensembles)  # delete these extra models so they don't affect rest of tutorial
 ```
 
 ### Collapsing bagged ensembles via refit_full
@@ -604,7 +591,7 @@ To reduce disk usage, you may try each of the following strategies individually 
 
 - Call `predictor.save_space()` to delete auxiliary files produced during `fit()`.
 
-- Call `predictor.delete_models(models_to_keep='best', dry_run=False)` if you only intend to use this predictor for inference going forward (will delete files required for non-prediction-related functionality like `fit_summary`).
+- Call `predictor.delete_models(models_to_keep='best')` if you only intend to use this predictor for inference going forward (will delete files required for non-prediction-related functionality like `fit_summary`).
 
 - In `fit()`, you can add `'optimize_for_deployment'` to the `presets` list, which will automatically invoke the previous two strategies after training.
 

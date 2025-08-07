@@ -1,22 +1,4 @@
-Summary: This tutorial demonstrates implementing text analysis tasks using AutoGluon's MultiModalPredictor, specifically focusing on sentiment analysis and sentence similarity. It provides code examples for model training, evaluation, prediction, and model management (save/load operations). Key implementation knowledge includes setting up the predictor with proper configurations (label columns, evaluation metrics, time limits), handling data in table format, and extracting embeddings. The tutorial helps with tasks like training text classifiers, generating predictions and probabilities, and managing trained models. Notable features covered include support for multiple text columns, integration with popular ML libraries (timm, huggingface, CLIP), and various evaluation metrics for both classification and regression tasks.
-
-# AutoMM for Text - Quick Start
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/text_prediction/beginner_text.ipynb)
-[![Open In SageMaker Studio Lab](https://studiolab.sagemaker.aws/studiolab.svg)](https://studiolab.sagemaker.aws/import/github/autogluon/autogluon/blob/master/docs/tutorials/multimodal/text_prediction/beginner_text.ipynb)
-
-
-
-`MultiModalPredictor` can solve problems where the data are either image, text, numerical values, or categorical features. 
-To get started, we first demonstrate how to use it to solve problems that only contain text. We pick two classical NLP problems for the purpose of demonstration:
-
-- [Sentiment Analysis](https://en.wikipedia.org/wiki/Sentiment_analysis)
-- [Sentence Similarity](https://arxiv.org/abs/1910.03940)
-
-Here, we format the NLP datasets as data tables where 
-the feature columns contain text fields and the label column contain numerical (regression) / categorical (classification) values. 
-Each row in the table corresponds to one training sample.
-
+Summary: This tutorial demonstrates using AutoGluon MultiModal for sentiment analysis and sentence similarity tasks. It covers implementation techniques for training models with MultiModalPredictor, evaluating performance with multiple metrics, making predictions on text data, extracting embeddings for visualization, and saving/loading models. The tutorial helps with text classification, regression for semantic similarity, and embedding extraction tasks. Key features include automatic problem type detection, fine-tuning of deep learning models, integration with transformer models, customizable evaluation metrics, and visualization of embeddings using TSNE. The code provides a complete workflow from data loading to model deployment for NLP tasks.
 
 ```python
 !pip install autogluon.multimodal
