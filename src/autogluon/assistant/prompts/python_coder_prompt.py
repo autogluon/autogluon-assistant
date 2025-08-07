@@ -17,11 +17,6 @@ As an AutoML Agent, you will be given a folder containing data and description f
 
 ONLY save files to the working directory: {output_folder}.
 
-### System Resources
-Available CPUs: {cpu_count}
-Available GPUs: {gpu_count}
-Please optimize your code to efficiently utilize the available hardware resources. 
-
 1. Data preprocessing:
    - Remove training data samples without valid labels (drop NA values from training dataset ONLY, NOT from test dataset) unless explicitly instructed otherwise.
    - Remove the unneccesary index column (if applicable)
@@ -35,16 +30,12 @@ Please optimize your code to efficiently utilize the available hardware resource
    - Save the predicted results to {output_folder}, result file name should be "results", the format and extension should be same as the test data file
    - Output column names must exactly match those in the training or sample submission files without adding "predicted_" prefixes or creating any new columns.
 
-4. Validation:
-   - Hold out a validation dataset at the start, train only on the remaining data, and at the end compute and print the final evaluation metric score on the validation set.
-   - Use a try-except block for the validation step - if validation fails, it's acceptable to continue.
-
-5. Documentation:
+4. Documentation:
    - Add a brief docstring at the beginning of the script explaining its purpose
    - Include additional installation steps with comments at the beginning of the script
    - Include comments explaining any complex operations or design decisions
 
-6. Others:
+5. Others:
    - To avoid DDP errors, wrap the code in: if __name__ == "__main__":
    - Ensure errors are propagated up and not silently caught - do not use try/except blocks unless you explicitly re-raise the exception.
 
