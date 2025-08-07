@@ -148,7 +148,7 @@ class Manager:
             executer_prompt_template=None,
         )  # TODO: Add prompt_template to argument
 
-    def generate_initial_prompts(self):
+    def task_perception(self):
         self.data_prompt = self.dp_agent()
 
         self.description_files = self.dfr_agent()
@@ -305,7 +305,7 @@ class Manager:
             return self.val_scores[self.best_step]
         return None
 
-    def set_initial_user_input(self, need_user_input, initial_user_input):
+    def update_user_input(self, need_user_input, initial_user_input):
         self.need_user_input = need_user_input
         self.initial_user_input = initial_user_input
 

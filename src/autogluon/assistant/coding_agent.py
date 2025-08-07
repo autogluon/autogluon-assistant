@@ -103,8 +103,8 @@ def run_agent(
             config=config,
         )
 
-    manager.set_initial_user_input(need_user_input=need_user_input, initial_user_input=initial_user_input)
-    manager.generate_initial_prompts()
+    manager.update_user_input(need_user_input=need_user_input, initial_user_input=initial_user_input)
+    manager.task_perception()
 
     while manager.time_step + 1 < max_iterations:
         logger.brief(f"Starting iteration {manager.time_step + 1}!")
@@ -128,8 +128,8 @@ def run_agent(
                 initial_user_input += f"\n\nIMPORTANT - Previous attempt failed due to: {error_summary}"
 
             # Regenerate initial prompts with updated context
-            manager.set_initial_user_input(need_user_input=need_user_input, initial_user_input=initial_user_input)
-            manager.generate_initial_prompts()
+            manager.update_user_input(need_user_input=need_user_input, initial_user_input=initial_user_input)
+            manager.task_perception()
             logger.brief(f"[bold yellow]Task restarted with updated instruction: {initial_user_input}[/bold yellow]")
 
         if manager.time_step + 1 >= max_iterations:
