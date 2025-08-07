@@ -88,21 +88,13 @@ Only proceed with official release after successful test release verification.
    * Verify documentation is up-to-date
    * Test installation and core features one final time
 
-<<<<<<< HEAD
 2. **Prepare Release Notes**
-=======
-2. **Release Branch**
-   * Create a branch with format `0.x.y` (no v prefix) from main
-   * Update version in `pyproject.toml` (remove any dev/rc suffix)
-   * Push the branch
->>>>>>> 6302a5b (chore: add PyPI release workflows and project metadata)
    * Prepare the release notes located in docs/whats_new/v0.x.y.md:
      * This will be copy-pasted into GitHub when you release.
      * Include all merged PRs into the notes and mention all PR authors / contributors (refer to past releases for examples).
      * Prioritize major features before minor features when ordering, otherwise order by merge date.
      * Review with at least 2 core maintainers to ensure release notes are correct.
 
-<<<<<<< HEAD
    * Push the release notes to the main branch.
 
 3. **Release Branch**
@@ -110,9 +102,6 @@ Only proceed with official release after successful test release verification.
    * Push the branch
 
 4. **Create GitHub Release**
-=======
-3. **Create GitHub Release**
->>>>>>> 6302a5b (chore: add PyPI release workflows and project metadata)
    * Tag: `v{version}` (e.g., `v0.1.0`)
    * Title: Same as tag
    * Description: Include:
@@ -126,11 +115,7 @@ Only proceed with official release after successful test release verification.
    * Ensure release notes look correct and make any final formatting fixes.
    * Click 'Publish release' and the release will go live.
 
-<<<<<<< HEAD
 5. **PyPI Release**
-=======
-4. **PyPI Release**
->>>>>>> 6302a5b (chore: add PyPI release workflows and project metadata)
    * Release will be automatically triggered by GitHub release
    * Monitor the `pypi_release.yml` workflow
    * Verify package appears on PyPI
