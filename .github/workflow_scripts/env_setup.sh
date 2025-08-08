@@ -52,3 +52,23 @@ function install_coverage_test {
     python3 -m pip install pytest-cov
     python3 -m pip install coverage-threshold
 }
+
+# Documentation-specific functions
+function setup_build_contrib_env {
+    python3 -m pip install --upgrade pip
+    # Find the docs directory relative to the script location
+    SCRIPT_DIR=$(dirname "$0")
+    if [ -f "$SCRIPT_DIR/../../docs/requirements_doc.txt" ]; then
+        python3 -m pip install -r "$SCRIPT_DIR/../../docs/requirements_doc.txt"
+    elif [ -f "docs/requirements_doc.txt" ]; then
+        python3 -m pip install -r docs/requirements_doc.txt
+    else
+        echo "Warning: Could not find docs/requirements_doc.txt"
+    fi
+    python3 -m pip install awscli
+    export AG_DOCS=1
+}
+
+function install_assistant {
+    python3 -m pip install --upgrade -e .
+}
