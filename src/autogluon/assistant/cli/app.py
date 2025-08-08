@@ -7,7 +7,7 @@ from pathlib import Path
 import typer
 
 from autogluon.assistant.coding_agent import run_agent
-from autogluon.assistant.constants import DEFAULT_CONFIG_PATH, PROVIDER_DEFAULTS
+from autogluon.assistant.constants import DEFAULT_CONFIG_PATH
 
 
 def _noop(*args, **kwargs):
@@ -93,7 +93,7 @@ def main(
         provider_config_path = Path(DEFAULT_CONFIG_PATH).parent / f"{llm_provider}.yaml"
         if not provider_config_path.exists():
             provider_config_path = DEFAULT_CONFIG_PATH
-    
+
     run_agent(
         input_data_folder=input_data_folder,
         output_folder=output_dir,

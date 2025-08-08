@@ -7,7 +7,6 @@ from pathlib import Path
 from omegaconf import OmegaConf
 
 from .constants import DEFAULT_CONFIG_PATH
-
 from .rich_logging import configure_logging
 from .utils import extract_archives
 
