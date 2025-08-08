@@ -38,25 +38,31 @@ AutoGluon-Assistant is an AI-powered assistant that helps users with AutoML task
 
 ## Key Features
 
-- **Intelligent AutoML Guidance**: Get expert advice on AutoML workflows and best practices
+- **Intelligent ML Guidance**: Get expert advice on ML/DL workflows and best practices
 - **Multiple Interfaces**: Use through CLI, Python API, WebUI, or MCP integration
 - **Flexible LLM Providers**: Choose from AWS Bedrock, Anthropic, OpenAI, or SageMaker
-- **Code Generation**: Automatically generate AutoGluon code for your specific use cases
-- **Multi-modal Support**: Handle various data types including tabular, text, and image data
+- **Code Generation**: Generate code for any registered machine learning or deep learning framework (for unregistered frameworks, performance may be reduced due to limited framework-specific knowledge)
+- **Multi-modal Support**: Handle various data types including tabular, text, image, and multimodal data
 - **Customizable Configuration**: Extensive configuration options for tailoring to your needs
 
 ## Quick Start
 
+### CLI Interface
+
 ```bash
 # Using CLI
-mlzero -i <input_data_folder> -t "Train a classification model for this dataset"
+mlzero -i <input_data_folder> -t "Train a classification model for this dataset" --provider bedrock
+```
 
+### Python API
+
+```python
 # Using Python API
 from autogluon.assistant import run_agent
 
 run_agent(
     input_data_folder="./my_data",
-    initial_user_input="Train a classification model"
+    initial_user_input="Train a classification model for image data using PyTorch"
 )
 ```
 

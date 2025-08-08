@@ -1,275 +1,157 @@
 # Configuration Customization
 
-AutoGluon Assistant uses YAML configuration files to control its behavior. This tutorial explains how to customize these configurations for your specific needs.
+AutoGluon Assistant uses YAML configuration files to control its behavior. This tutorial explains the configuration system and how to customize it for your specific needs.
 
 ## Configuration Overview
 
 The configuration system is based on hierarchical YAML files that control:
 
-1. LLM provider settings
-2. Agent behaviors and parameters
-3. Resource utilization
-4. Data handling preferences
-5. Runtime parameters
+1. General execution settings
+2. LLM provider settings
+3. Agent behaviors and parameters
+4. Resource utilization
+5. Data handling preferences
 
-## Default Configuration Structure
+## Basic Structure
 
-The default configuration (`default.yaml`) serves as the base for all other configurations:
+A configuration file has this general structure:
 
 ```yaml
-# Basic settings
+# General settings
 per_execution_timeout: 86400
-max_file_group_size_to_show: 5
-num_example_files_to_show: 1
-max_chars_per_file: 768
-num_tutorial_retrievals: 30
-max_num_tutorials: 5
-max_user_input_length: 2048
-max_error_message_length: 2048
-max_tutorial_length: 32768
 create_venv: false
-condense_tutorials: True
-use_tutorial_summary: True
-continuous_improvement: False
-optimize_system_resources: False
-cleanup_unused_env: True
+# ... other general settings
 
 # Default LLM Configuration
-llm: &default_llm
+llm: &default_llm  # The anchor defines reusable settings
   provider: bedrock
   model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
-  max_tokens: 65535
-  proxy_url: null
-  temperature: 0.1
-  top_p: 0.9
-  verbose: True
-  multi_turn: False
-  template: null
-  add_coding_format_instruction: false
+  # ... other LLM settings
 
 # Agent-specific configurations
 coder:
-  <<: *default_llm  # Inherit from default_llm
-  multi_turn: True
-
-executer:
-  <<: *default_llm  # Inherit from default_llm
-  max_stdout_length: 8192
-  max_stderr_length: 2048
-
-reader:
-  <<: *default_llm  # Inherit from default_llm
-  details: False
-
-# ...other agents
+  <<: *default_llm  # This merges all settings from default_llm
+  multi_turn: True  # Override specific settings
 ```
 
-## Creating a Custom Configuration
-
-You can create a custom configuration file to override specific settings:
-
-1. Create a new YAML file, e.g., `my_custom_config.yaml`
-2. Include only the settings you want to override
-3. Run with your custom config: `mlzero -i <input_folder> -c my_custom_config.yaml`
-
-Example custom configuration:
-
-```yaml
-# Customize LLM settings
-llm: &default_llm
-  provider: anthropic
-  model: "claude-3-opus-20240229"
-  temperature: 0.2
-  max_tokens: 100000
-
-# Customize specific agent
-coder:
-  <<: *default_llm
-  temperature: 0.3
-  multi_turn: True
-
-# Override runtime settings
-continuous_improvement: True
-max_file_group_size_to_show: 10
-```
-
-## Key Configuration Parameters
+## Configuration Parameters
 
 ### General Settings
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `per_execution_timeout` | Maximum execution time in seconds | 86400 (24 hours) |
-| `create_venv` | Whether to create virtual environments | false |
-| `continuous_improvement` | Continue optimizing after success | false |
-| `optimize_system_resources` | Optimize resource usage | false |
+| `per_execution_timeout` | Maximum execution time (seconds) for code execution | 86400 |
+| `create_venv` | Whether to create a virtual environment for code execution | false |
+| `condense_tutorials` | Whether to condense retrieved tutorials | true |
+| `use_tutorial_summary` | Whether to use summarized tutorials | true |
+| `continuous_improvement` | Continue iterations after finding a valid solution | false |
+| `optimize_system_resources` | Optimize resource usage during execution | false |
+| `cleanup_unused_env` | Remove unused environments after execution | true |
+
+### Data Perception Settings
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `max_file_group_size_to_show` | Maximum number of files to show in each file group | 5 |
+| `num_example_files_to_show` | Number of example files to display for each type | 1 |
+| `max_chars_per_file` | Maximum characters to display per file | 768 |
+| `max_user_input_length` | Maximum length of user input to process | 2048 |
+| `max_error_message_length` | Maximum length of error messages to include | 2048 |
+
+### Tutorial Settings
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `num_tutorial_retrievals` | Number of tutorial segments to retrieve | 30 |
+| `max_num_tutorials` | Maximum number of tutorials to include | 5 |
+| `max_tutorial_length` | Maximum length of tutorial content | 32768 |
 
 ### LLM Settings
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `provider` | LLM provider (bedrock, openai, anthropic, sagemaker) | bedrock |
-| `model` | Specific model name | provider-dependent |
-| `max_tokens` | Maximum token limit | 65535 |
-| `temperature` | Model temperature (randomness) | 0.1 |
-| `top_p` | Nucleus sampling parameter | 0.9 |
-| `proxy_url` | Optional proxy URL | null |
+| `provider` | LLM provider to use (bedrock, openai, anthropic, sagemaker) | bedrock |
+| `model` | Specific model name for the selected provider | provider-specific |
+| `max_tokens` | Maximum token limit for model responses | 65535 |
+| `proxy_url` | Optional proxy URL for API requests | null |
+| `temperature` | Controls randomness (0.0-1.0, lower = more deterministic) | 0.1 |
+| `top_p` | Nucleus sampling parameter for token selection | 0.9 |
+| `verbose` | Whether to log detailed information about LLM interactions | true |
+| `multi_turn` | Whether to use multi-turn conversation with the LLM | false |
+| `template` | Optional custom prompt template | null |
+| `add_coding_format_instruction` | Add explicit coding format instructions | false |
 
-### Agent-Specific Settings
+## Agent-Specific Settings
 
-Each agent can have custom settings that override the default LLM configuration:
+AutoGluon Assistant uses specialized agents for different tasks. Each inherits the default LLM settings but can have custom overrides:
 
-```yaml
-coder:
-  <<: *default_llm  # Inherit all default settings
-  temperature: 0.3  # Override specific parameters
-  multi_turn: True
-```
+### Coder Agent
 
-Available agents:
-- `coder`: Generates code
-- `executer`: Runs code and evaluates results
-- `reader`: Analyzes and understands input data
-- `error_analyzer`: Analyzes errors in execution
-- `retriever`: Retrieves relevant information
-- `reranker`: Re-ranks retrieved information
-- `task_descriptor`: Describes tasks
-- `tool_selector`: Selects appropriate tools
-
-## Advanced Configuration Techniques
-
-### YAML Anchors and Aliases
-
-YAML anchors (`&`) and aliases (`*`) allow you to define a set of parameters once and reuse them:
+Generates code based on requirements and context.
 
 ```yaml
-# Define common settings
-common: &common_settings
-  temperature: 0.2
-  top_p: 0.9
-  verbose: True
-
-# Use common settings with specific overrides
-llm:
-  <<: *common_settings  # Include all common settings
-  provider: openai
-  model: "gpt-4o-2024-08-06"
-
-coder:
-  <<: *common_settings
-  temperature: 0.3  # Override a specific setting
-```
-
-### Environment Variable Expansion
-
-Some configurations support environment variable expansion:
-
-```yaml
-llm:
-  provider: anthropic
-  api_key: ${ANTHROPIC_API_KEY}  # Will be replaced with env var value
-```
-
-## Configuration Examples
-
-### High-Performance Configuration
-
-```yaml
-# Configuration for high-performance tasks
-llm: &default_llm
-  provider: bedrock
-  model: "us.anthropic.claude-3-opus-20240229-v1:0"
-  temperature: 0.1
-  max_tokens: 100000
-
-optimize_system_resources: True
-continuous_improvement: True
-max_iterations: 10
-```
-
-### Fast-Iteration Configuration
-
-```yaml
-# Configuration for quick iterations
-llm: &default_llm
-  provider: anthropic
-  model: "claude-3-haiku-20240307"
-  temperature: 0.2
-  max_tokens: 32768
-
-optimize_system_resources: True
-continuous_improvement: False
-max_iterations: 3
-```
-
-### Multi-Provider Configuration
-
-```yaml
-# Define different providers for different agents
-llm: &default_llm
-  provider: bedrock
-  model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
-  temperature: 0.1
-
 coder:
   <<: *default_llm
-  
-executer:
-  provider: anthropic
-  model: "claude-3-sonnet-20240229"
-  temperature: 0.1
-  
-reader:
-  provider: openai
-  model: "gpt-4o-2024-08-06"
-  temperature: 0.1
+  multi_turn: True  # Enable multi-turn conversation for iterative coding
 ```
+
+### Executer Agent
+
+Runs code and evaluates execution results.
+
+```yaml
+executer:
+  <<: *default_llm
+  max_stdout_length: 8192  # Maximum length of stdout to capture
+  max_stderr_length: 2048  # Maximum length of stderr to capture
+```
+
+### Reader Agent
+
+Analyzes and understands input data files.
+
+```yaml
+reader:
+  <<: *default_llm
+  details: False  # Whether to include detailed file information
+```
+
+### Task Descriptor Agent
+
+Describes tasks based on input data.
+
+```yaml
+task_descriptor:
+  <<: *default_llm
+  max_description_files_length_to_show: 1024         # Max length to show
+  max_description_files_length_for_summarization: 16384  # Max length for summarization
+```
+
+### Other Specialized Agents
+
+- `error_analyzer`: Analyzes execution errors and suggests fixes
+- `retriever`: Retrieves relevant information from tutorials
+- `reranker`: Re-ranks retrieved information for relevance
+- `description_file_retriever`: Retrieves information from description files
+- `tool_selector`: Selects appropriate tools based on requirements
+
+## Use a Custom Configuration
+
+You can create and use a custom configuration file by:
+
+1. Create a new YAML file, e.g., `my_custom_config.yaml`
+2. Run with your custom config: `mlzero -i <input_folder> -c my_custom_config.yaml`
 
 ## Best Practices
 
 1. **Start Simple**: Begin with minimal customizations and add more as needed
 2. **Test Incrementally**: Test changes one at a time to understand their impact
-3. **Document Your Configs**: Add comments to explain why you've made specific changes
+3. **Document Your Configs**: Add comments to explain your specific changes
 4. **Version Control**: Keep your configurations in version control
-5. **Use Environment Variables**: Store sensitive information like API keys in environment variables
+5. **Use Environment Variables**: Store sensitive information in environment variables
 
-## Common Configuration Scenarios
+## Troubleshooting
 
-### Adjusting Model Creativity
-
-```yaml
-# For more creative solutions
-llm:
-  temperature: 0.5  # Higher temperature for more randomness
-  top_p: 0.95       # Broader token selection
-```
-
-### Managing Resource Usage
-
-```yaml
-# For resource-constrained environments
-optimize_system_resources: True
-cleanup_unused_env: True
-create_venv: False
-```
-
-### Debugging Configuration
-
-```yaml
-# For troubleshooting
-llm:
-  verbose: True
-  
-# Increase logging detail  
-# (Can be set via CLI with -v 4)
-verbosity: 4
-```
-
-## Troubleshooting Configuration Issues
-
-- **Validation Errors**: Check for YAML syntax errors and invalid parameter values
+- **Validation Errors**: Check for YAML syntax errors and invalid parameters
 - **Inconsistent Behavior**: Ensure all necessary settings are properly overridden
-- **Provider Issues**: Verify API keys and model availability for your provider
-- **File Paths**: Use absolute paths when referencing external files
-
-When in doubt, try running with the default configuration first, then gradually add your customizations.
+- **Provider Issues**: Verify API keys and model availability for your chosen provider
