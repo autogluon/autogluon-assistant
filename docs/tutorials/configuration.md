@@ -41,9 +41,9 @@ coder:
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `per_execution_timeout` | Maximum execution time (seconds) for code execution | 86400 |
-| `create_venv` | Whether to create a virtual environment for code execution | false |
-| `condense_tutorials` | Whether to condense retrieved tutorials | true |
-| `use_tutorial_summary` | Whether to use summarized tutorials | true |
+| `create_venv` | Whether to install additional packages in created conda environment | false |
+| `condense_tutorials` | Whether to use condensed tutorials | true |
+| `use_tutorial_summary` | Whether to use tutorial summary as retrieval key | true |
 | `continuous_improvement` | Continue iterations after finding a valid solution | false |
 | `optimize_system_resources` | Optimize resource usage during execution | false |
 | `cleanup_unused_env` | Remove unused environments after execution | true |
@@ -52,7 +52,7 @@ coder:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `max_file_group_size_to_show` | Maximum number of files to show in each file group | 5 |
+| `max_file_group_size_to_show` | Minimum number of similar files to show as a group | 5 |
 | `num_example_files_to_show` | Number of example files to display for each type | 1 |
 | `max_chars_per_file` | Maximum characters to display per file | 768 |
 | `max_user_input_length` | Maximum length of user input to process | 2048 |
@@ -64,20 +64,20 @@ coder:
 |-----------|-------------|---------|
 | `num_tutorial_retrievals` | Number of tutorial segments to retrieve | 30 |
 | `max_num_tutorials` | Maximum number of tutorials to include | 5 |
-| `max_tutorial_length` | Maximum length of tutorial content | 32768 |
+| `max_tutorial_length` | Maximum length of all tutorial contents | 32768 |
 
 ### LLM Settings
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `provider` | LLM provider to use (bedrock, openai, anthropic, sagemaker) | bedrock |
-| `model` | Specific model name for the selected provider | provider-specific |
+| `model` | Specific model name for the selected provider | <provider-specific> |
 | `max_tokens` | Maximum token limit for model responses | 65535 |
 | `proxy_url` | Optional proxy URL for API requests | null |
 | `temperature` | Controls randomness (0.0-1.0, lower = more deterministic) | 0.1 |
 | `top_p` | Nucleus sampling parameter for token selection | 0.9 |
 | `verbose` | Whether to log detailed information about LLM interactions | true |
-| `multi_turn` | Whether to use multi-turn conversation with the LLM | false |
+| `multi_turn` | Whether to use multi-turn conversation with the LLM across different iterations | false |
 | `template` | Optional custom prompt template | null |
 | `add_coding_format_instruction` | Add explicit coding format instructions | false |
 
@@ -92,7 +92,7 @@ Generates code based on requirements and context.
 ```yaml
 coder:
   <<: *default_llm
-  multi_turn: True  # Enable multi-turn conversation for iterative coding
+  multi_turn: True  # Enable multi-turn conversation across iterations for iterative coding
 ```
 
 ### Executer Agent
