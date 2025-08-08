@@ -129,7 +129,7 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::369469875935:role/AutoGluonRAGCIDocRole
+          role-to-assume: ${{ secrets.AWS_CI_ROLE_ARN }}
           role-duration-seconds: 3600
           aws-region: us-east-1
       - name: Build Doc(For push)
