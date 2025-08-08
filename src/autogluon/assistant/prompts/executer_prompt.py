@@ -33,8 +33,8 @@ class ExecuterPrompt(BasePrompt):
 
 Evaluate the execution results and decide on one of the following actions:
 1. SUCCESS - Final output is correct, regardless of the approach.
-2. FIX - Final output has errors or performance problems, but the overall approach is correct.
-3. RESTART - Final output has errors or performance problems due to fundamental misunderstanding of the task.
+2. RESTART - Final output has errors or performance problems due to wrong or incomplete task perception, i.e. in ### Task Descriptions or ### Data Structure sections (e.g. error reading data files).
+3. FIX - Final output has errors or performance problems, but the task perception is good.
 Only choose FIX or RESTART if the final result contains actual errors or performance problems.
 
 Provide your decision in the following format:
