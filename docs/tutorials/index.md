@@ -8,6 +8,9 @@ Welcome to the AutoGluon-Assistant tutorials! These step-by-step guides will hel
 :maxdepth: 1
 
 quickstart
+llm_providers
+interfaces
+configuration
 ```
 
 ## Basic Usage
@@ -15,8 +18,9 @@ quickstart
 Learn the fundamentals of using AutoGluon-Assistant:
 
 - **Quickstart**: Get up and running with AutoGluon-Assistant in minutes
-- **Basic Chat Interface**: Learn how to interact with the assistant
-- **Code Generation**: Understand how to generate AutoGluon code automatically
+- **LLM Providers**: Learn how to use different AI providers (Bedrock, OpenAI, Anthropic, SageMaker)
+- **Interfaces**: Understand the different ways to interact with AutoGluon Assistant (CLI, Python API, WebUI, MCP)
+- **Configuration**: Master customizing AutoGluon Assistant for your specific needs
 
 ## Advanced Topics
 

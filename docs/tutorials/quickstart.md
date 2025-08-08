@@ -1,70 +1,44 @@
-# Quickstart Guide
+# Quickstart
 
-This quickstart guide will help you get up and running with AutoGluon-Assistant in just a few minutes.
+This quickstart guide will help you get up and running with AutoGluon Assistant (MLZero) in just a few minutes.
 
-## Installation
+## Installation and Prerequisites
 
-First, install AutoGluon-Assistant:
+First, install AutoGluon Assistant:
 
 ```bash
-pip install autogluon.assistant
+pip install uv && uv pip install autogluon.assistant>=1.0
 ```
 
-## Basic Usage
+If you don't have conda installed, follow conda's [official installation guide](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) to install it.
 
-Here's a simple example to get you started:
+MLZero uses AWS Bedrock by default. Configure your AWS credentials:
 
-```python
-from autogluon.assistant import Assistant
-
-# Initialize the assistant
-assistant = Assistant()
-
-# Ask for help with AutoML
-response = assistant.chat("How do I train a tabular model with AutoGluon?")
-print(response)
+```bash
+export AWS_DEFAULT_REGION="<your-region>"
+export AWS_ACCESS_KEY_ID="<your-access-key>"
+export AWS_SECRET_ACCESS_KEY="<your-secret-key>"
 ```
 
-## Interactive Chat
+We also support Anthropic, OpenAI, and SageMaker. See our [LLM Providers](llm_providers.md) guide for details on configuring these providers.
 
-You can have an interactive conversation with the assistant:
+## Basic Usage (CLI)
 
-```python
-# Start a conversation
-assistant = Assistant()
+Here's a simple example to get you started with our command line interface:
 
-# Ask multiple questions
-questions = [
-    "What is AutoGluon?",
-    "How do I prepare my data for training?",
-    "What are the best practices for hyperparameter tuning?"
-]
-
-for question in questions:
-    response = assistant.chat(question)
-    print(f"Q: {question}")
-    print(f"A: {response}")
-    print("-" * 50)
+```bash
+mlzero -i <input_data_folder> [-t <optional_user_instructions>] [--provider <bedrock|openai|anthropic|sagemaker>]
 ```
 
-## Code Generation
-
-AutoGluon-Assistant can generate code for your specific use cases:
-
-```python
-# Request code generation
-prompt = "Generate code to train a binary classification model on a CSV file"
-code = assistant.generate_code(prompt)
-print(code)
-```
+For more detailed options and interfaces, see our [Interfaces](interfaces.md) guide.
 
 ## Next Steps
 
 Now that you've got the basics down, explore more advanced features:
 
-- Learn about custom configurations (coming soon)
-- Explore integration patterns (coming soon)
-- Check out real-world examples (coming soon)
+- [LLM Providers](llm_providers.md): Learn how to use different AI providers (Bedrock, OpenAI, Anthropic, SageMaker)
+- [Interfaces](interfaces.md): Understand the different ways to interact with AutoGluon Assistant (CLI, Python API, WebUI, MCP)
+- [Configuration](configuration.md): Master customizing AutoGluon Assistant for your specific needs
 
 ## Need Help?
 

@@ -34,27 +34,30 @@ AutoGluon-Assistant: AI-Powered Assistant for AutoML and Beyond
 
 ---
 
-AutoGluon-Assistant is an AI-powered assistant that helps users with AutoML tasks and provides intelligent guidance for machine learning workflows. It combines the power of AutoGluon's automated machine learning capabilities with conversational AI to make machine learning more accessible and efficient.
+AutoGluon-Assistant is an AI-powered assistant that helps users with AutoML tasks and provides intelligent guidance for machine learning automation. It combines the power of AutoGluon's automated machine learning capabilities with conversational AI to make machine learning more accessible and efficient.
 
 ## Key Features
 
 - **Intelligent AutoML Guidance**: Get expert advice on AutoML workflows and best practices
-- **Interactive Assistant**: Chat-based interface for seamless interaction
+- **Multiple Interfaces**: Use through CLI, Python API, WebUI, or MCP integration
+- **Flexible LLM Providers**: Choose from AWS Bedrock, Anthropic, OpenAI, or SageMaker
 - **Code Generation**: Automatically generate AutoGluon code for your specific use cases
 - **Multi-modal Support**: Handle various data types including tabular, text, and image data
-- **Integration Ready**: Easy integration with existing AutoGluon workflows
+- **Customizable Configuration**: Extensive configuration options for tailoring to your needs
 
 ## Quick Start
 
-```python
-from autogluon.assistant import Assistant
+```bash
+# Using CLI
+mlzero -i <input_data_folder> -t "Train a classification model for this dataset"
 
-# Initialize the assistant
-assistant = Assistant()
+# Using Python API
+from autogluon.assistant import run_agent
 
-# Get help with your AutoML task
-response = assistant.chat("How do I train a model on my tabular data?")
-print(response)
+run_agent(
+    input_data_folder="./my_data",
+    initial_user_input="Train a classification model"
+)
 ```
 
 ## Documentation Structure

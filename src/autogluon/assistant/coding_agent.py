@@ -6,6 +6,8 @@ from pathlib import Path
 
 from omegaconf import OmegaConf
 
+from .constants import DEFAULT_CONFIG_PATH
+
 from .rich_logging import configure_logging
 from .utils import extract_archives
 
@@ -79,11 +81,10 @@ def run_agent(
             extract_archives(input_data_folder)
 
     # Always load default config first
-    default_config_path = current_file_dir / "configs" / "default.yaml"
-    if not default_config_path.exists():
-        raise FileNotFoundError(f"Default config file not found: {default_config_path}")
+    if not DEFAULT_CONFIG_PATH.exists():
+        raise FileNotFoundError(f"Default config file not found: {DEFAULT_CONFIG_PATH}")
 
-    config = OmegaConf.load(default_config_path)
+    config = OmegaConf.load(DEFAULT_CONFIG_PATH)
 
     # If config_path is provided, merge it with the default config
     if config_path is not None:
