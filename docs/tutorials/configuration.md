@@ -130,10 +130,10 @@ task_descriptor:
 ### Other Specialized Agents
 
 - `error_analyzer`: Analyzes execution errors and suggests fixes
-- `retriever`: Retrieves relevant information from tutorials
-- `reranker`: Re-ranks retrieved information for relevance
+- `retriever`: Retrieves relevant tutorials
+- `reranker`: Re-ranks and selects top retrieved tutorials
 - `description_file_retriever`: Retrieves information from description files
-- `tool_selector`: Selects appropriate tools based on requirements
+- `tool_selector`: Selects the appropriate ML Library based on requirements
 
 ## Use a Custom Configuration
 
@@ -146,12 +146,12 @@ You can create and use a custom configuration file by:
 
 1. **Start Simple**: Begin with minimal customizations and add more as needed
 2. **Test Incrementally**: Test changes one at a time to understand their impact
-3. **Document Your Configs**: Add comments to explain your specific changes
-4. **Version Control**: Keep your configurations in version control
-5. **Use Environment Variables**: Store sensitive information in environment variables
+3. **Inheritance Issues**: If you modify settings in the `llm` section, you must update agent references to it. The YAML anchor/alias inheritance (`<<: *default_llm`) is a one-time static reference, not dynamic. When you change the main `llm` config, agents won't automatically inherit these changes unless you explicitly update their references.
 
-## Troubleshooting
+## Need Help?
 
-- **Validation Errors**: Check for YAML syntax errors and invalid parameters
-- **Inconsistent Behavior**: Ensure all necessary settings are properly overridden
-- **Provider Issues**: Verify API keys and model availability for your chosen provider
+If you run into any issues:
+
+1. Check the [API Reference](../api/index.rst) for detailed documentation
+2. Browse the examples for common use cases (coming soon)
+3. Visit our [GitHub repository](https://github.com/autogluon/autogluon-assistant) for support
