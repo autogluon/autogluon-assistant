@@ -103,7 +103,8 @@ def run_agent(
             config=config,
         )
 
-    manager.set_initial_user_input(need_user_input=need_user_input, initial_user_input=initial_user_input)
+    manager.update_user_input(need_user_input=need_user_input, initial_user_input=initial_user_input)
+    manager.task_perception()
 
     while manager.time_step + 1 < max_iterations:
         logger.brief(f"Starting iteration {manager.time_step + 1}!")
@@ -114,9 +115,22 @@ def run_agent(
         manager.update_python_code()
         manager.update_bash_script()
 
-        successful = manager.execute_code()
-        if not config.continuous_improvement and successful:
-            break
+        decision, error_summary = manager.execute_code()
+
+        if decision == "SUCCESS":
+            if not config.continuous_improvement:
+                break
+        elif decision in ["FIX", "INVALID"]:
+            # Continue to next iteration with current setup
+            pass
+        elif decision == "RESTART":
+            if error_summary:
+                initial_user_input += f"\n\nIMPORTANT - Previous attempt failed due to: {error_summary}"
+
+            # Regenerate initial prompts with updated context
+            manager.update_user_input(need_user_input=need_user_input, initial_user_input=initial_user_input)
+            manager.task_perception()
+            logger.brief(f"[bold yellow]Task restarted with updated instruction: {initial_user_input}[/bold yellow]")
 
         if manager.time_step + 1 >= max_iterations:
             logger.warning(f"[bold red]Warning: Reached maximum iterations ({max_iterations})[/bold red]")

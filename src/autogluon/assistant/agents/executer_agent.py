@@ -127,9 +127,10 @@ class ExecuterAgent(BaseAgent):
     """
     Execute the code and give analysis.
 
-    Agent Input:
-
-    Agent Output:
+    Returns one of three decisions: SUCCESS, FIX, or RESTART
+    - SUCCESS: Code executed successfully and met requirements
+    - FIX: Code has issues that can be fixed with current task setup
+    - RESTART: Fundamental task initialization problems require restart
     """
 
     def __init__(self, config, manager, language, timeout, executer_llm_config, executer_prompt_template):

@@ -32,16 +32,20 @@ class ExecuterPrompt(BasePrompt):
 {stderr}
 
 Evaluate the execution results and decide on one of the following actions:
-1. SUCCESS - If the execution was completely successful and met all requirements.
-2. FIX - If there were errors, issues, or performance problems that need to be addressed.
+1. SUCCESS - Final output is correct, regardless of the approach.
+2. RESTART - Final output has errors or performance problems due to wrong or incomplete task perception, i.e. in Task Descriptions, Data Structure sections (e.g. error reading data files), or selecting the wrong ML library.
+3. FIX - Final output has errors or performance problems, but the task perception is good.
+Only choose FIX or RESTART if the final result contains actual errors or performance problems.
 
 Provide your decision in the following format:
-DECISION: [SUCCESS or FIX]
+DECISION: [SUCCESS, FIX, or RESTART]
 ERROR_SUMMARY: [Brief summary of errors if any, or "None" if no errors]
 VALIDATION_SCORE: [If there is a validation score for the solution, provide it as a number, otherwise "None"]
 
 The error summary should be brief but informative enough for another agent to understand what needs to be fixed.
 Even if the code executed without throwing errors, it might still have issues with logic or not meet all requirements.
+
+For RESTART decisions, the ERROR_SUMMARY will be appended to the initial instruction provided to agents after restart, so it should clearly describe the initialization problem that caused the failure precisely and concisely.
 
 For validation scores:
 - If there is a validation score present in the execution results, extract it
@@ -99,6 +103,8 @@ For validation scores:
                 decision_text = decision_line[0].split("DECISION:")[1].strip()
                 if "SUCCESS" in decision_text.upper():
                     decision = "SUCCESS"
+                elif "RESTART" in decision_text.upper():
+                    decision = "RESTART"
                 elif "FIX" in decision_text.upper():
                     decision = "FIX"
 
