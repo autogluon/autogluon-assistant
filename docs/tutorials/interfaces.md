@@ -52,6 +52,41 @@ mlzero -i ./data                        # Path to input data folder (required)
        -c ./my_config.yaml              # Use custom configuration
 ```
 
+## Web UI
+
+The Web UI provides a user-friendly graphical interface for interacting with AutoGluon Assistant.
+
+![Demo](https://github.com/autogluon/autogluon-assistant/blob/main/docs/assets/web_demo.gif)
+
+### Starting the Web UI
+
+```bash
+# Start the backend server
+mlzero-backend
+
+# In a separate terminal, start the frontend
+mlzero-frontend
+```
+
+By default, the Web UI will be available at http://localhost:8509.
+
+### Advanced Settings of WebUI
+#### Model Execution Settings
+The settings above the divider line control how the model runs, while the settings below the divider line relate to the model being used (including provider, credentials, and model parameters).
+#### Model Execution Configuration
+**Max Iterations**: The number of rounds the model will run. The program automatically stops when this limit is reached. Default is 5, adjustable as needed.
+Manual Prompts Between Iterations: Choose whether to add iteration-specific prompts between iterations or not.
+**Log Verbosity**: Select the level of detail for the logs you want to see. Three options are available: brief, info, and detail. Brief is recommended.
+**Brief**: Contains key essential information
+**Info**: Includes brief information plus detailed information such as file save locations
+**Detail**: Includes info-level information plus all model training related information
+#### Model Configuration
+You can select the LLM provider, model, and credentials to use. If using Bedrock as the provider, you can use EC2 defaults. You can also upload your own config file, which will override the provider and model name settings. Provided credentials will be validated.
+#### Chat Input Box
+**Initial Task Submission**: When starting a task for the first time, drag the input folder into this chat input box, enter any description or requirements about the task, then press Enter or click the submit button on the right. Note: Submitting larger files may sometimes fail - you can try multiple times if needed.
+**Manual Prompts**: If you selected "Manual prompts between iterations" in settings, you can input prompts here.
+**Task Cancellation**: After submitting a task, if you want to cancel it, submit "cancel" in this input box.
+
 ## Python API
 
 The Python API allows you to integrate AutoGluon Assistant directly into your Python code or notebooks.
@@ -87,24 +122,6 @@ run_agent(
     verbosity=2                            # More detailed logging
 )
 ```
-
-## Web UI
-
-The Web UI provides a user-friendly graphical interface for interacting with AutoGluon Assistant.
-
-### Starting the Web UI
-
-```bash
-# Start the backend server
-mlzero-backend
-
-# In a separate terminal, start the frontend
-mlzero-frontend
-```
-
-By default, the Web UI will be available at http://localhost:8509.
-
-The Web UI provides a clean, intuitive interface for working with AutoGluon Assistant. See [Image #3] for a screenshot of the interface.
 
 ## MCP (Model Context Protocol)
 
@@ -174,6 +191,6 @@ claude mcp add --transport http autogluon https://<ngrok-url>/mcp/
 Each interface has specific advantages:
 
 - **CLI**: Best for quick tasks, automation, and scripting
-- **Python API**: Ideal for integration into existing Python workflows and notebooks
 - **Web UI**: Perfect for beginners and those who prefer visual interfaces
+- **Python API**: Ideal for integration into existing Python workflows and notebooks
 - **MCP**: Great for users already working with LLMs who want to extend capabilities
