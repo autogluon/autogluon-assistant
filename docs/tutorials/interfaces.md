@@ -23,36 +23,33 @@ mlzero -i <input_data_folder> [-o <output_dir>] [-t "<initial_instruction>"]
 
 ### Key CLI Options
 
-```bash
-# Required
--i, --input            Path to data folder
-
-# Optional
--o, --output           Output directory (default: auto-generated under runs/)
--c, --config           Path to YAML config file
--n, --max-iterations   Maximum iteration count (default: 5)
---provider             LLM provider to use (bedrock, openai, anthropic, sagemaker)
--t, --initial-instruction  Initial user instruction
--v, --verbosity        Logging verbosity (0-4)
--e, --extract-to       Extract archives to this directory
---continuous_improvement  Continue optimizing after finding a valid solution
---enable-per-iteration-instruction  Enable user input between iterations
+| Option | Description |
+|--------|-------------|
+| **Required** | |
+| `-i, --input` | Path to data folder |
+| **Optional** | |
+| `-o, --output` | Output directory (default: auto-generated under runs/) |
+| `-c, --config` | Path to YAML config file |
+| `-n, --max-iterations` | Maximum iteration count (default: 5) |
+| `--provider` | LLM provider to use (bedrock, openai, anthropic, sagemaker) |
+| `-t, --initial-instruction` | Initial user instruction |
+| `-v, --verbosity` | Logging verbosity (0-4) |
+| `-e, --extract-to` | Copy input data to specified directory and extract all .zip archives |
+| `--continuous_improvement` | Continue optimizing after finding a valid solution |
+| `--enable-per-iteration-instruction` | Enable user input between iterations
 ```
 
-### CLI Examples
+### CLI Example
 
 ```bash
-# Basic usage with an instruction
-mlzero -i ./data -t "Create a classification model using AutoGluon"
-
-# Specify output directory and use OpenAI
-mlzero -i ./data -o ./my_output --provider openai
-
-# Use custom config and verbose logging
-mlzero -i ./data -c ./my_config.yaml -v 3
-
-# Extract archives and limit to 3 iterations
-mlzero -i ./data -e ./extracted_data -n 3
+mlzero -i ./data                        # Path to input data folder (required)
+       -o ./my_output                   # Custom output directory
+       -t "Train a tabular classifier"   # Initial instruction
+       --provider anthropic             # Use Anthropic's Claude models
+       -n 3                             # Run maximum 3 iterations
+       -v 2                             # More detailed logging
+       -e ./extracted_data              # Extract archives and copy data here
+       -c ./my_config.yaml              # Use custom configuration
 ```
 
 ## Python API
@@ -76,45 +73,19 @@ run_agent(
 
 ```python
 from autogluon.assistant import run_agent
-from pathlib import Path
-import yaml
-
-# Load custom config
-with open("my_config.yaml", "r") as f:
-    custom_config = yaml.safe_load(f)
 
 # Run with custom settings
 run_agent(
-    input_data_folder="./data",
-    output_folder="./output",
-    config_path="./my_config.yaml",
-    max_iterations=3,
-    continuous_improvement=True,
-    need_user_input=True,
-    initial_user_input="Create a classification model",
-    verbosity=2
+    input_data_folder="./data",              # Path to input data folder (required)
+    output_folder="./output",               # Custom output directory
+    config_path="./my_config.yaml",         # Custom configuration file
+    max_iterations=3,                      # Maximum number of iterations
+    continuous_improvement=True,           # Continue after success for better solutions
+    need_user_input=True,                  # Enable prompts between iterations
+    initial_user_input="Create a multi-modal classification model",  # Initial instruction
+    extract_archives_to="./extracted_data",  # Extract archives and copy data here
+    verbosity=2                            # More detailed logging
 )
-```
-
-### Integration Example
-
-```python
-import pandas as pd
-from autogluon.assistant import run_agent
-
-# Process data
-data = pd.read_csv("raw_data.csv")
-data.to_csv("processed_data/train.csv", index=False)
-
-# Run AutoGluon Assistant
-result = run_agent(
-    input_data_folder="./processed_data",
-    output_folder="./model_output",
-    initial_user_input="Train a classification model and evaluate performance"
-)
-
-# Continue your workflow with the generated model
-# ...
 ```
 
 ## Web UI
@@ -133,22 +104,7 @@ mlzero-frontend
 
 By default, the Web UI will be available at http://localhost:8509.
 
-### Web UI Features
-
-1. **Chat Interface**: Interact with the assistant conversationally
-2. **File Upload**: Drag and drop input data folders
-3. **Settings Panel**: Configure LLM providers and parameters
-4. **Execution History**: View past runs and their outputs
-5. **Real-time Logs**: See detailed execution logs
-
-### Configuration in Web UI
-
-The Web UI allows you to:
-
-1. Select your LLM provider and model
-2. Set API credentials
-3. Configure advanced settings like max iterations and verbosity
-4. Upload custom configuration files
+The Web UI provides a clean, intuitive interface for working with AutoGluon Assistant. See [Image #3] for a screenshot of the interface.
 
 ## MCP (Model Context Protocol)
 
@@ -221,17 +177,3 @@ Each interface has specific advantages:
 - **Python API**: Ideal for integration into existing Python workflows and notebooks
 - **Web UI**: Perfect for beginners and those who prefer visual interfaces
 - **MCP**: Great for users already working with LLMs who want to extend capabilities
-
-## Best Practices
-
-- **Data Preparation**: Organize your data well regardless of interface
-- **Error Handling**: The CLI and Python API provide more detailed error information
-- **Resource Monitoring**: For large jobs, the Web UI makes it easier to monitor progress
-- **Configuration**: Use YAML files for consistent configuration across interfaces
-
-## Troubleshooting Common Issues
-
-- **Port Conflicts**: If WebUI or MCP ports are already in use, specify alternative ports
-- **File Permissions**: Ensure your user has read/write access to input/output directories
-- **Environment Variables**: Check that API keys are properly set in your environment
-- **Network Issues**: For remote setups, verify firewalls allow necessary connections

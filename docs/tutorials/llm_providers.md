@@ -115,53 +115,10 @@ You can create a custom configuration based on any provider's template:
    mlzero -i <input_data_folder> -c my_custom_config.yaml
    ```
 
-## Provider-Specific Models
-
-Each provider supports different models:
-
-### Bedrock Models
-
-```yaml
-provider: bedrock
-model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0"  # Default
-# Other options:
-# model: "us.anthropic.claude-3-haiku-20240307-v1:0"
-# model: "us.anthropic.claude-3-opus-20240229-v1:0"
-```
-
-### Anthropic Models
-
-```yaml
-provider: anthropic
-model: "claude-3-7-sonnet-20250219"  # Default for Anthropic
-# Other options:
-# model: "claude-3-opus-20240229"
-# model: "claude-3-sonnet-20240229"
-# model: "claude-3-haiku-20240307"
-```
-
-### OpenAI Models
-
-```yaml
-provider: openai
-model: "gpt-4o-2024-08-06"  # Default for OpenAI
-# Other options:
-# model: "gpt-4"
-# model: "gpt-4-turbo"
-# model: "gpt-4o"
-```
-
-### SageMaker Models
-
-```yaml
-provider: sagemaker
-endpoint_name: "autogluon-llm-endpoint"  # Replace with your endpoint name
-region_name: "us-west-2"  # Replace with your SageMaker endpoint region
-```
 
 ## Best Practices
 
-- **Performance vs. Cost**: Larger models like Claude-3-Opus or GPT-4 offer better performance but cost more. Choose based on your needs.
+- **Performance vs. Cost**: Larger models like Claude-4-Opus or GPT-5 offer better performance but cost more. Choose based on your needs.
 - **Regional Availability**: Some providers have regional restrictions. Check their documentation for details.
 - **Rate Limiting**: Be aware of provider rate limits, especially on free tiers.
 - **Model Updates**: Providers regularly update their models. Check their documentation for the latest available models.
@@ -174,4 +131,4 @@ If you encounter issues with a provider:
 2. Check that you have access to the specific model
 3. Ensure you've properly formatted the model name
 4. Verify the region supports your chosen model (for AWS services)
-5. Check your network connection and any proxy settings
+5. **Inheritance Issues**: If you modify settings in the `llm` section, you must update agent references to it. The YAML anchor/alias inheritance (`<<: *default_llm`) is a one-time static reference, not dynamic. When you change the main `llm` config, agents won't automatically inherit these changes unless you explicitly update their references.
