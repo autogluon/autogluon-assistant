@@ -7,7 +7,7 @@ name = "autogluon.assistant"
 version = "1.0.0"
 description = "Multi Agent System for Multimodal ML Automation"
 readme = "README.md"
-requires-python = ">=3.8,<3.12"
+requires-python = ">=3.8,<=3.12"
 authors = [
   { name = "AutoGluon Community" }
 ]
