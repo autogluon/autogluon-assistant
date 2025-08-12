@@ -47,16 +47,12 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
             output=self.manager.previous_error_message, max_length=self.manager.config.max_error_message_length
         )
 
-        # Format the prompt using the template
-        prompt = self.template.format(
-            error_message=previous_error_message,
-            task_description=self.manager.task_description,
-            data_prompt=self.manager.data_prompt,
-            user_input=self.manager.user_input,
-            python_code=self.manager.previous_python_code,
-            bash_script=self.manager.previous_bash_script,
-            tutorial_prompt=self.manager.previous_tutorial_prompt,
-        )
+        # Render the prompt using the variable provider with additional variables
+        additional_vars = {
+            "error_message": previous_error_message
+        }
+        
+        prompt = self.render(additional_vars)
 
         self.manager.save_and_log_states(
             content=prompt, save_name="error_analyzer_prompt.txt", per_iteration=True, add_uuid=False

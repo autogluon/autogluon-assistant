@@ -38,14 +38,12 @@ Notes:
 
         environment_prompt = self.get_env_prompt()
 
-        # Format the prompt using the template
-        prompt = self.template.format(
-            environment_prompt=environment_prompt,
-            python_file_path=self.manager.python_file_path,
-            current_python=self.manager.python_code,
-            error_prompt=self.manager.all_previous_error_prompts,
-            previous_bash=self.manager.previous_bash_script,
-        )
+        # Render the prompt using the variable provider with additional variables
+        additional_vars = {
+            "environment_prompt": environment_prompt
+        }
+        
+        prompt = self.render(additional_vars)
 
         # Add format instruction if configured
         if self.llm_config.add_coding_format_instruction:

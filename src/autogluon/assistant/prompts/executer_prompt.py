@@ -64,14 +64,16 @@ For validation scores:
             content=stderr, save_name="stderr(truncated).txt", per_iteration=True, add_uuid=True
         )
 
-        # Format the prompt using the template
-        prompt = self.template.format(
-            task_description=task_description,
-            data_prompt=data_prompt,
-            python_code=python_code,
-            stdout=stdout or "No standard output",
-            stderr=stderr or "No standard error",
-        )
+        # Render the prompt using the variable provider with additional variables
+        additional_vars = {
+            "task_description": task_description,
+            "data_prompt": data_prompt,
+            "python_code": python_code,
+            "stdout": stdout or "No standard output",
+            "stderr": stderr or "No standard error"
+        }
+        
+        prompt = self.render(additional_vars)
 
         self.manager.save_and_log_states(
             content=prompt, save_name="executer_prompt.txt", per_iteration=True, add_uuid=True

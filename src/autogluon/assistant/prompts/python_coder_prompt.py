@@ -1,3 +1,10 @@
+"""
+Python code generation prompt.
+
+This module provides the PythonCoderPrompt class for generating Python code
+based on task description, data structure, and other context.
+"""
+
 import logging
 from typing import Dict, Optional, Tuple
 
@@ -9,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class PythonCoderPrompt(BasePrompt):
-    """Handles prompts for code execution evaluation"""
+    """Handles prompts for Python code generation"""
 
     def default_template(self) -> str:
         return """
@@ -54,7 +61,7 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
 {data_prompt}
 
 ### User Instruction
-{user_prompt}
+{user_input}
 
 ### Previous Errors
 {error_prompt}
@@ -63,40 +70,32 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
 {tutorial_prompt}
 """
 
-    def build(self) -> str:
-        """Build a prompt for the LLM to evaluate execution logs."""
+    def get_format_instruction(self) -> str:
+        """Get the format instruction to append to the prompt."""
+        return "Please format your response with the code in a ```python``` code block to make it easily extractable."
 
-        assert self.manager.time_step >= 0, "run manager.step(user_input) before retriving the prompt"
+    def build(self) -> str:
+        """Build a prompt for the LLM to generate Python code."""
+        assert self.manager.time_step >= 0, "run manager.step(user_input) before retrieving the prompt"
 
         # Truncate outputs if they exceed max length
         if self.manager.user_input:
-            user_prompt = self._truncate_output_end(self.manager.user_input, self.manager.config.max_user_input_length)
+            user_input = self._truncate_output_end(self.manager.user_input, self.manager.config.max_user_input_length)
         else:
-            user_prompt = "N/A"
+            user_input = "N/A"
 
-        # Generate best code prompt
+        # Generate best code prompt and validation prompt
         best_code_prompt = self._generate_best_code_prompt()
+        validation_prompt = self._generate_validation_prompt()
 
-        # Format the prompt using the template
-        prompt = self.template.format(
-            output_folder=self.manager.per_iteration_output_folder,
-            selected_tool=self.manager.selected_tool,
-            validation_prompt=self._generate_validation_prompt(),
-            tool_prompt=self.manager.tool_prompt,
-            task_description=self.manager.task_description,
-            data_prompt=self.manager.data_prompt,
-            user_prompt=user_prompt,
-            error_prompt=self.manager.all_previous_error_prompts,
-            tutorial_prompt=self.manager.tutorial_prompt,
-            best_code_prompt=best_code_prompt,
-        )
-
-        # Add format instruction if configured
-        if self.llm_config.add_coding_format_instruction:
-            format_instruction = (
-                "Please format your response with the code in a ```python``` code block to make it easily extractable."
-            )
-            prompt = f"{prompt}\n\n{format_instruction}"
+        # Render the prompt using the variable provider with additional variables
+        additional_vars = {
+            "user_input": user_input,  # Override with truncated version
+            "best_code_prompt": best_code_prompt,  # Dynamically generated
+            "validation_prompt": validation_prompt,  # Dynamically generated
+        }
+        
+        prompt = self.render(additional_vars)
 
         # TODO: Remove hardcoding. And add this safeguard for other prompts.
         if len(prompt) > 80000:
@@ -119,9 +118,10 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
         return prompt
 
     def _generate_validation_prompt(self) -> str:
+        """Generate the validation section of the prompt."""
         if self.manager.config.continuous_improvement:
             return """6. Validation:
-   - If no validation data is given, hold out a validation dataset (10 percent of the data) at the start , train only on the remaining data.
+   - If no validation data is given, hold out a validation dataset (10 percent of the data) at the start, train only on the remaining data.
    - At the end compute and print the final evaluation metric score on the validation set.
    - Use a try-except block for the validation step - if validation fails, it's acceptable to continue.
 """
@@ -129,6 +129,7 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             return ""
 
     def _generate_system_resources_prompt(self) -> str:
+        """Generate information about available system resources."""
         return f"""### System Resources
 Available CPUs: {get_cpu_count()}
 Available GPUs: {get_gpu_count()}
