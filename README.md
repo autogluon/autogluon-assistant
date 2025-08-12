@@ -35,7 +35,7 @@ For the latest features, install from source:
 pip install uv && uv pip install git+https://github.com/autogluon/autogluon-assistant.git
 ```
 
-*Note: If you don't have conda installed, follow conda's [official installation guide](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) to install it.*
+*Note: If you don't have conda installed, follow conda's [official installation guide]([https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html](https://www.anaconda.com/docs/getting-started/miniconda/install#linux-2)) to install it.*
 
 ## Quick Start
 
