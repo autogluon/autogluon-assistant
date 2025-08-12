@@ -31,7 +31,7 @@ For detailed usage instructions and advanced options, please refer to our tutori
 ## 💾 Installation
 Linux-only support at present. macOS version coming in a future update.
 
-*Note: If you don't have conda installed, follow conda's [official installation guide]([https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html](https://www.anaconda.com/docs/getting-started/miniconda/install#linux-2)) to install it.*
+*Note: If you don't have conda installed, follow conda's [official installation guide](https://www.anaconda.com/docs/getting-started/miniconda/install#linux-2) to install it.*
 
 For the latest features, install from source:
 
