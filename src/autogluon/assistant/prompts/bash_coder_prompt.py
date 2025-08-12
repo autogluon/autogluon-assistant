@@ -39,10 +39,8 @@ Notes:
         environment_prompt = self.get_env_prompt()
 
         # Render the prompt using the variable provider with additional variables
-        additional_vars = {
-            "environment_prompt": environment_prompt
-        }
-        
+        additional_vars = {"environment_prompt": environment_prompt}
+
         prompt = self.render(additional_vars)
 
         # Add format instruction if configured

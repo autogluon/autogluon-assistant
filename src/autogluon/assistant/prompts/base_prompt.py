@@ -7,7 +7,7 @@ for all prompt types in the system.
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 from .variable_provider import VariableProvider
 
@@ -45,7 +45,7 @@ class BasePrompt(ABC):
                 self.template = self.default_template()
         else:
             self.template = template_str_or_path
-            
+
         # Validate the template
         errors = self.variable_provider.validate_template(self.template)
         if errors:
@@ -82,14 +82,14 @@ class BasePrompt(ABC):
             truncated_text = f"\n[...TRUNCATED ({len(output) - max_length} characters)...]\n"
             return start_part + truncated_text + end_part
         return output
-        
+
     def render(self, additional_vars: Optional[Dict[str, Any]] = None) -> str:
         """
         Render the prompt template with the current variable values.
-        
+
         Args:
             additional_vars: Additional variables to use for this rendering only
-            
+
         Returns:
             The rendered prompt
         """
@@ -102,23 +102,23 @@ class BasePrompt(ABC):
                     self.additional_vars = additional_vars
                     # Keep a reference to the manager for method calls
                     self.manager = parent_provider.manager
-                    
+
                 def get_value(self, var_name):
                     if var_name in self.additional_vars:
                         return self.additional_vars[var_name]
                     return self.parent_provider.get_value(var_name)
-            
+
             temp_provider = TempProvider(self.variable_provider, additional_vars)
             rendered = temp_provider.render_template(self.template)
         else:
             rendered = self.variable_provider.render_template(self.template)
-            
+
         # Add format instructions if configured
-        if hasattr(self.llm_config, 'add_coding_format_instruction') and self.llm_config.add_coding_format_instruction:
-            if hasattr(self, 'get_format_instruction'):
+        if hasattr(self.llm_config, "add_coding_format_instruction") and self.llm_config.add_coding_format_instruction:
+            if hasattr(self, "get_format_instruction"):
                 format_instruction = self.get_format_instruction()
                 rendered = f"{rendered}\n\n{format_instruction}"
-                
+
         return rendered
 
     @abstractmethod

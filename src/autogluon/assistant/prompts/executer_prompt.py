@@ -70,9 +70,9 @@ For validation scores:
             "data_prompt": data_prompt,
             "python_code": python_code,
             "stdout": stdout or "No standard output",
-            "stderr": stderr or "No standard error"
+            "stderr": stderr or "No standard error",
         }
-        
+
         prompt = self.render(additional_vars)
 
         self.manager.save_and_log_states(

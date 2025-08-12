@@ -62,10 +62,8 @@ Be very clear about the problem type (e.g. audio classification/image regression
         description_file_contents = self.get_description_files_contents()
 
         # Render the prompt using the variable provider with additional variables
-        additional_vars = {
-            "description_file_contents": description_file_contents
-        }
-        
+        additional_vars = {"description_file_contents": description_file_contents}
+
         prompt = self.render(additional_vars)
 
         self.manager.save_and_log_states(

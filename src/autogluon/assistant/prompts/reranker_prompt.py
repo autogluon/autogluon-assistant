@@ -99,9 +99,9 @@ DO NOT include any other text, explanation, or formatting in your response.
         # Render the prompt using the variable provider with additional variables
         additional_vars = {
             "tutorials_info": tutorials_info,
-            "max_num_tutorials": self.manager.config.max_num_tutorials
+            "max_num_tutorials": self.manager.config.max_num_tutorials,
         }
-        
+
         prompt = self.render(additional_vars)
 
         self.manager.save_and_log_states(

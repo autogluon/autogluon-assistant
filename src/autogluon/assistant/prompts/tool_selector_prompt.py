@@ -61,12 +61,10 @@ Do not include any other formatting or additional sections in your response.
 
     def build(self) -> str:
         """Build a prompt for the LLM to select appropriate library."""
-        
+
         # Render the prompt using the variable provider with additional variables
-        additional_vars = {
-            "tools_info": _format_tools_info(registry.tools)
-        }
-        
+        additional_vars = {"tools_info": _format_tools_info(registry.tools)}
+
         prompt = self.render(additional_vars)
 
         self.manager.save_and_log_states(

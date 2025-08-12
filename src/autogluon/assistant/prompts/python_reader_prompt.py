@@ -41,12 +41,8 @@ Return ONLY the Python code, no explanations. The code should be self-contained 
         file_size_mb = file_size / (1024 * 1024)
 
         # Render the prompt using the variable provider with additional variables
-        additional_vars = {
-            "file_path": file_path,
-            "file_size_mb": file_size_mb,
-            "max_chars": max_chars
-        }
-        
+        additional_vars = {"file_path": file_path, "file_size_mb": file_size_mb, "max_chars": max_chars}
+
         prompt = self.render(additional_vars)
 
         # Add format instruction if configured

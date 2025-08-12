@@ -48,10 +48,8 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
         )
 
         # Render the prompt using the variable provider with additional variables
-        additional_vars = {
-            "error_message": previous_error_message
-        }
-        
+        additional_vars = {"error_message": previous_error_message}
+
         prompt = self.render(additional_vars)
 
         self.manager.save_and_log_states(

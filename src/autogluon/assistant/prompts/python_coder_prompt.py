@@ -94,7 +94,7 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
             "best_code_prompt": best_code_prompt,  # Dynamically generated
             "validation_prompt": validation_prompt,  # Dynamically generated
         }
-        
+
         prompt = self.render(additional_vars)
 
         # TODO: Remove hardcoding. And add this safeguard for other prompts.
