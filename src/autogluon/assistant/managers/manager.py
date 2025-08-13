@@ -91,9 +91,6 @@ class Manager:
             prompt_template=None,  # TODO: add it to argument
         )
 
-        # Initialize prompts
-        self.generate_initial_prompts()
-
         self.user_inputs: List[str] = []
         self.error_messages: List[str] = []
         self.error_prompts: List[str] = []
@@ -151,7 +148,7 @@ class Manager:
             executer_prompt_template=None,
         )  # TODO: Add prompt_template to argument
 
-    def generate_initial_prompts(self):
+    def task_perception(self):
         self.data_prompt = self.dp_agent()
 
         self.description_files = self.dfr_agent()
@@ -308,7 +305,7 @@ class Manager:
             return self.val_scores[self.best_step]
         return None
 
-    def set_initial_user_input(self, need_user_input, initial_user_input):
+    def update_user_input(self, need_user_input, initial_user_input):
         self.need_user_input = need_user_input
         self.initial_user_input = initial_user_input
 
@@ -387,6 +384,12 @@ class Manager:
         self.bash_scripts.append(bash_script)
 
     def execute_code(self):
+        """Execute code and analyze results.
+        Returns:
+            tuple: (decision, error_summary) where:
+                - decision: "SUCCESS", "FIX", "RESTART", or "INVALID"
+                - error_summary: Error description for FIX/RESTART, empty string otherwise
+        """
         planner_decision, planner_error_summary, validation_score, planner_prompt, stderr, stdout = self.executer(
             code_to_execute=self.bash_script,
             code_to_analyze=self.python_code,
@@ -431,7 +434,7 @@ class Manager:
             )
             self.update_error_message(error_message=error_message)
             self.remove_env_folder(self.iteration_folder)
-            return False
+            return "FIX", planner_error_summary
         elif planner_decision == "SUCCESS":
             self.last_successful_step = self.time_step
             logger.brief(f"[bold green]Code generation successful at iteration[/bold green] {self.time_step}")
@@ -442,12 +445,18 @@ class Manager:
                     f"[bold green]Best validation score achieved: {self.best_validation_score:.4f} at step {self.best_step}[/bold green]"
                 )
             self.update_error_message(error_message="")
-            return True
+            return "SUCCESS", ""
+        elif planner_decision == "RESTART":
+            logger.warning(f"[bold yellow]Task restart required at iteration {self.time_step}![/bold yellow]")
+            logger.warning(f"[bold yellow]Restart reason: {planner_error_summary}[/bold yellow]")
+            # Store the restart error summary to be appended to initial instruction
+            self.update_error_message(error_message=f"Restart the task due to the error: {planner_error_summary}")
+            return "RESTART", planner_error_summary  # Return special value to indicate restart needed
         else:
             logger.warning(f"###INVALID Planner Output: {planner_decision}###")
             self.update_error_message(error_message="")
             self.remove_env_folder(self.iteration_folder)
-            return False
+            return "INVALID", ""
 
     def update_error_message(self, error_message: str):
         """Update the current error message."""
@@ -520,7 +529,6 @@ class Manager:
         If no best step is available, uses the last successful step.
         If neither is available, logs a warning and does nothing.
         """
-
         # Determine which step to copy
         target_step = None
         copy_reason = ""
