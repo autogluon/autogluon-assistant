@@ -91,20 +91,24 @@ class VariableRegistry:
         # Error-related variables
         self.register(
             VariableDefinition(
-                name="error_message",
-                description="Detailed error message",
-                deprecated_aliases=["error_analysis"],
+                name="previous_error_message",
+                description="Error message in the previous iteration",
+            )
+        )
+
+        # Error-related variables
+        self.register(
+            VariableDefinition(
+                name="all_error_analyses",
+                description="Error analysis in all completed iterations",
             )
         )
 
         # Code-related variables
-        self.register(
-            VariableDefinition(
-                name="python_code",
-                description="Python code content",
-                aliases=["current_python"],
-            )
-        )
+        self.register(VariableDefinition(name="python_code", description="Python code of current iteration"))
+
+        # Code-related variables
+        self.register(VariableDefinition(name="previous_python_code", description="Python code of previous iteration"))
 
         self.register(
             VariableDefinition(
@@ -116,8 +120,14 @@ class VariableRegistry:
         self.register(
             VariableDefinition(
                 name="bash_script",
-                description="Bash script that was executed",
-                aliases=["previous_bash"],
+                description="Bash script of current iter",
+            )
+        )
+
+        self.register(
+            VariableDefinition(
+                name="previous_bash_script",
+                description="Bash script of previous iter",
             )
         )
 
@@ -149,8 +159,15 @@ class VariableRegistry:
         self.register(
             VariableDefinition(
                 name="tutorial_prompt",
-                description="Relevant tutorial information",
-                aliases=["tutorials_info"],
+                description="Relevant tutorial information of current iteration",
+            )
+        )
+
+        # Tutorial-related variables
+        self.register(
+            VariableDefinition(
+                name="previous_tutorial_prompt",
+                description="Relevant tutorial information in previous iteration",
             )
         )
 
@@ -223,15 +240,6 @@ class VariableRegistry:
             )
         )
 
-        # Previous error specific variables
-        self.register(
-            VariableDefinition(
-                name="all_previous_error_prompts",
-                description="All error prompts from previous iterations",
-                aliases=["previous_error_prompt", "error_prompt"],
-            )
-        )
-
     def register(self, var_def: VariableDefinition):
         """Register a variable definition."""
         self.variables[var_def.name] = var_def
@@ -279,38 +287,6 @@ class VariableRegistry:
         """
         canonical_name = self.get_canonical_name(name)
         return self.variables[canonical_name]
-
-    def get_variables_by_category(self) -> Dict[str, List[VariableDefinition]]:
-        """
-        Get variables grouped by category (based on naming conventions).
-
-        Returns:
-            Dictionary of category -> list of variables
-        """
-        categories = {}
-
-        # Define categories based on naming patterns
-        for var_name, var_def in self.variables.items():
-            if "_prompt" in var_name:
-                category = "prompts"
-            elif "_code" in var_name or var_name.endswith("_script"):
-                category = "code"
-            elif "error" in var_name:
-                category = "errors"
-            elif "file" in var_name:
-                category = "files"
-            elif "tool" in var_name:
-                category = "tools"
-            elif var_name in ["stdout", "stderr"]:
-                category = "execution"
-            else:
-                category = "general"
-
-            if category not in categories:
-                categories[category] = []
-            categories[category].append(var_def)
-
-        return categories
 
 
 # Singleton instance of the registry

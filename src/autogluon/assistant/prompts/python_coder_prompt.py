@@ -61,10 +61,10 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
 {data_prompt}
 
 ### User Instruction
-{user_input}
+{user_input_truncate_end_2048}
 
 ### Previous Errors
-{error_prompt}
+{all_error_analyses}
 
 ### Tutorials for Reference
 {tutorial_prompt}
@@ -78,19 +78,12 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
         """Build a prompt for the LLM to generate Python code."""
         assert self.manager.time_step >= 0, "run manager.step(user_input) before retrieving the prompt"
 
-        # Truncate outputs if they exceed max length
-        if self.manager.user_input:
-            user_input = self._truncate_output_end(self.manager.user_input, self.manager.config.max_user_input_length)
-        else:
-            user_input = "N/A"
-
         # Generate best code prompt and validation prompt
         best_code_prompt = self._generate_best_code_prompt()
         validation_prompt = self._generate_validation_prompt()
 
         # Render the prompt using the variable provider with additional variables
         additional_vars = {
-            "user_input": user_input,  # Override with truncated version
             "best_code_prompt": best_code_prompt,  # Dynamically generated
             "validation_prompt": validation_prompt,  # Dynamically generated
         }

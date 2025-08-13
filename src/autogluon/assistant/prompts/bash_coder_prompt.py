@@ -17,13 +17,13 @@ class BashCoderPrompt(BasePrompt):
 Execute the Python script: {python_file_path}
 
 ### Python code in the script:
-{current_python}
+{python_code}
 
 ### Previous Error
-{error_prompt}
+{all_error_analyses}
 
 ### Previous failed bash script:
-{previous_bash}
+{previous_bash_script}
 
 Notes:
 - Generate a minimal, executable bash script

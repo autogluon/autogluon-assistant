@@ -23,7 +23,7 @@ You are an expert at generating search queries to find relevant machine learning
 {user_input}
 
 ### Previous Error Analysis
-{error_analysis}
+{all_error_analyses}
 
 ### Selected Tool/Library
 {selected_tool}

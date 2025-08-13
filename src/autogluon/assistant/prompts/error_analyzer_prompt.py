@@ -19,7 +19,7 @@ ERROR_SUMMARY: [Brief technical description of the root cause in 1-3 sentences]
 SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
 
 ### Error Message
-{error_message}
+{previous_error_message_truncate_mid_8192}
 
 ### Task Description
 {task_description}
@@ -31,26 +31,20 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
 {user_input}
 
 ### Previous Python Code:
-{python_code}
+{previous_python_code}
 
 ### Previous Bash Script to Execute the Python Code:
-{bash_script}
+{previous_bash_script}
 
 ### Relevant Tutorials
-{tutorial_prompt}
+{previous_tutorial_prompt}
 """
 
     def build(self) -> str:
         """Build a prompt for the LLM to analyze errors."""
 
-        previous_error_message = self._truncate_output_mid(
-            output=self.manager.previous_error_message, max_length=self.manager.config.max_error_message_length
-        )
-
-        # Render the prompt using the variable provider with additional variables
-        additional_vars = {"error_message": previous_error_message}
-
-        prompt = self.render(additional_vars)
+        # Render the prompt using the variable provider
+        prompt = self.render()
 
         self.manager.save_and_log_states(
             content=prompt, save_name="error_analyzer_prompt.txt", per_iteration=True, add_uuid=False

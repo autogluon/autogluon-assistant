@@ -7,7 +7,7 @@ and rendering templates with those values.
 
 import logging
 import re
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Set, Tuple
 
 from .variables import registry
 
@@ -65,11 +65,14 @@ class VariableProvider:
                 "data_prompt": lambda: self.manager.data_prompt,
                 "output_folder": lambda: self.manager.per_iteration_output_folder,
                 "python_code": lambda: self.manager.python_code,
+                "previous_python_code": lambda: self.manager.previous_python_code,
                 "python_file_path": lambda: self.manager.python_file_path,
                 "bash_script": lambda: self.manager.bash_script,
-                "error_message": lambda: self.manager.previous_error_message,
-                "all_previous_error_prompts": lambda: self.manager.all_previous_error_prompts,
+                "previous_bash_script": lambda: self.manager.previous_bash_script,
+                "previous_error_message": lambda: self.manager.previous_error_message,
+                "all_error_analyses": lambda: self.manager.all_previous_error_analyses,
                 "tutorial_prompt": lambda: self.manager.tutorial_prompt,
+                "previous_tutorial_prompt": lambda: self.manager.previous_tutorial_prompt,
                 "selected_tool": lambda: self.manager.selected_tool,
                 "tool_prompt": lambda: self.manager.tool_prompt,
                 # Add more mappings as needed
@@ -138,9 +141,72 @@ class VariableProvider:
 
         return errors
 
+    def _parse_variable_with_truncation(self, var_name: str) -> Tuple[str, str, int]:
+        """
+        Parse variable name to extract truncation directive if present.
+        Format: variable_name_truncate_mode_length
+        Examples:
+        - xxx_truncate_mid_2048 -> truncate in middle to 2048 chars
+        - xxx_truncate_start_4096 -> truncate from start to 4096 chars
+        - xxx_truncate_end_1024 -> truncate from end to 1024 chars
+
+        Args:
+            var_name: The variable name to parse
+
+        Returns:
+            Tuple of (base_var_name, truncate_mode, max_length)
+            - truncate_mode is one of 'start', 'mid', 'end' or None
+            - max_length is an integer or None
+        """
+        # Check for truncation directive pattern
+        pattern = r"^(.+)_truncate_(start|mid|end)_(\d+)$"
+        match = re.match(pattern, var_name)
+
+        if match:
+            base_var_name = match.group(1)
+            truncate_mode = match.group(2)
+            max_length = int(match.group(3))
+            return base_var_name, truncate_mode, max_length
+
+        return var_name, None, None
+
+    def _truncate_value(self, value: str, truncate_mode: str, max_length: int) -> str:
+        """
+        Truncate a string value according to the specified mode and length.
+
+        Args:
+            value: The string value to truncate
+            truncate_mode: One of 'start', 'mid', 'end'
+            max_length: Maximum length to truncate to
+
+        Returns:
+            Truncated string
+        """
+        if not isinstance(value, str):
+            value = str(value)
+
+        if len(value) <= max_length:
+            return value
+
+        truncated_text = f"\n[...TRUNCATED ({len(value) - max_length} characters)...]\n"
+
+        if truncate_mode == "start":
+            return truncated_text + value[-max_length:]
+        elif truncate_mode == "end":
+            return value[:max_length] + truncated_text
+        elif truncate_mode == "mid":
+            half_size = max_length // 2
+            start_part = value[:half_size]
+            end_part = value[-half_size:]
+            return start_part + truncated_text + end_part
+        else:
+            logger.warning(f"Unknown truncation mode: {truncate_mode}")
+            return value
+
     def render_template(self, template: str) -> str:
         """
         Render a template by replacing variables with their values.
+        Supports truncation syntax: {variable_name_truncate_mode_length}
 
         Args:
             template: The template string
@@ -156,7 +222,16 @@ class VariableProvider:
 
         for var in template_vars:
             try:
-                value = self.get_value(var)
+                # Parse variable name for possible truncation directive
+                base_var_name, truncate_mode, max_length = self._parse_variable_with_truncation(var)
+
+                # Get the value for the base variable name
+                value = self.get_value(base_var_name)
+
+                # Apply truncation if specified
+                if truncate_mode and max_length and isinstance(value, str):
+                    value = self._truncate_value(value, truncate_mode, max_length)
+
                 # Replace {var} with the actual value
                 rendered = rendered.replace(f"{{{var}}}", str(value or ""))
             except Exception as e:
