@@ -22,7 +22,7 @@ class PythonCoderPrompt(BasePrompt):
         return """
 As an AutoML Agent, you will be given a folder containing data and description files. Please generate Python code using {selected_tool} to train a predictor and make predictions on test data. Follow these specifications:
 
-ONLY save files to the working directory: {output_folder}.
+ONLY save files to the working directory: {per_iteration_output_folder}.
 
 1. Data preprocessing:
    - Remove training data samples without valid labels (drop NA values from training dataset ONLY, NOT from test dataset) unless explicitly instructed otherwise.
@@ -30,11 +30,11 @@ ONLY save files to the working directory: {output_folder}.
 
 2. Model training:
    - Use {selected_tool} with appropriate parameters for the task
-   - If a model is trained, save it in a folder with random timestamp within {output_folder}
+   - If a model is trained, save it in a folder with random timestamp within {per_iteration_output_folder}
 
 3. Prediction:
    - Make predictions on the test data. Always preserve and use the ORIGINAL INDICES from the test data to maintain exact row correspondence - DO NOT generate new indices or rely on assumed ordering.
-   - Save the predicted results to {output_folder}, result file name should be "results", the format and extension should be same as the test data file
+   - Save the predicted results to {per_iteration_output_folder}, result file name should be "results", the format and extension should be same as the test data file
    - Output column names must exactly match those in the training or sample submission files without adding "predicted_" prefixes or creating any new columns.
 
 4. Documentation:

@@ -83,8 +83,8 @@ class VariableRegistry:
         # Output-related variables
         self.register(
             VariableDefinition(
-                name="output_folder",
-                description="Output directory for generated code",
+                name="per_iteration_output_folder",
+                description="Output directory for generated code at current iteration",
             )
         )
 

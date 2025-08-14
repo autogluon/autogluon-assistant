@@ -63,7 +63,7 @@ class VariableProvider:
                 "user_input": lambda: self.manager.user_input,
                 "task_description": lambda: self.manager.task_description,
                 "data_prompt": lambda: self.manager.data_prompt,
-                "output_folder": lambda: self.manager.per_iteration_output_folder,
+                "per_iteration_output_folder": lambda: self.manager.per_iteration_output_folder,
                 "python_code": lambda: self.manager.python_code,
                 "previous_python_code": lambda: self.manager.previous_python_code,
                 "python_file_path": lambda: self.manager.python_file_path,
