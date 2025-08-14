@@ -36,6 +36,7 @@ ONLY save files to the working directory: {per_iteration_output_folder}.
    - Make predictions on the test data. Always preserve and use the ORIGINAL INDICES from the test data to maintain exact row correspondence - DO NOT generate new indices or rely on assumed ordering.
    - Save the predicted results to {per_iteration_output_folder}, result file name should be "results", the format and extension should be same as the test data file
    - Output column names must exactly match those in the training or sample submission files without adding "predicted_" prefixes or creating any new columns.
+   - At the end, implement validation checks that assert the prediction file maintains exact test data indices, verify correct column names match requirements, and confirm proper output format.
 
 4. Documentation:
    - Add a brief docstring at the beginning of the script explaining its purpose
