@@ -38,6 +38,11 @@ def main(
         "--config",
         help=f"YAML config file (default: {DEFAULT_CONFIG_PATH})",
     ),
+    llm_provider: str = typer.Option(
+        "bedrock",
+        "--provider",
+        help="LLM provider to use (bedrock, openai, anthropic, sagemaker). Overrides config file.",
+    ),
     max_iterations: int = typer.Option(
         5,
         "-n",
@@ -82,10 +87,17 @@ def main(
     """
 
     # 3) Invoke the core run_agent function
+    # Override config path if provider is specified and config path is default
+    provider_config_path = config_path
+    if llm_provider in ["bedrock", "openai", "anthropic", "sagemaker"] and config_path == DEFAULT_CONFIG_PATH:
+        provider_config_path = Path(DEFAULT_CONFIG_PATH).parent / f"{llm_provider}.yaml"
+        if not provider_config_path.exists():
+            provider_config_path = DEFAULT_CONFIG_PATH
+
     run_agent(
         input_data_folder=input_data_folder,
         output_folder=output_dir,
-        config_path=str(config_path),
+        config_path=str(provider_config_path),
         max_iterations=max_iterations,
         continuous_improvement=continuous_improvement,
         need_user_input=need_user_input,
