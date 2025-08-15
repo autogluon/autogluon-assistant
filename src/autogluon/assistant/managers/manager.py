@@ -96,7 +96,7 @@ class Manager:
 
         self.user_inputs: List[str] = []
         self.error_messages: List[str] = []
-        self.error_prompts: List[str] = []
+        self.error_analyses: List[str] = []
         self.python_codes: List[str] = []
         self.python_file_paths: List[str] = []
         self.bash_scripts: List[str] = []
@@ -225,22 +225,22 @@ class Manager:
             return ""
 
     @property
-    def error_prompt(self) -> str:
+    def error_analysis(self) -> str:
         assert self.time_step >= 0, "No error prompt because the prompt generator is not stepped yet."
-        assert len(self.error_prompts) == self.time_step + 1, "error prompt is not updated yet"
-        return self.error_prompts[self.time_step]
+        assert len(self.error_analyses) == self.time_step + 1, "error prompt is not updated yet"
+        return self.error_analyses[self.time_step]
 
     @property
-    def previous_error_prompt(self) -> str:
+    def previous_error_analysis(self) -> str:
         if self.time_step >= 1:
-            return self.error_prompts[self.time_step - 1]
+            return self.error_analyses[self.time_step - 1]
         else:
             return ""
 
     @property
-    def all_previous_error_prompts(self) -> str:
+    def all_previous_error_analyses(self) -> str:
         if self.time_step >= 1:
-            return "\n\n".join(self.error_prompts[: self.time_step])
+            return "\n\n".join(self.error_analyses[: self.time_step])
         else:
             return ""
 
@@ -343,10 +343,10 @@ class Manager:
         self.user_inputs.append(user_input)
 
         if self.time_step > 0:
-            previous_error_prompt = self.error_analyzer()
+            previous_error_analysis = self.error_analyzer()
 
-            assert len(self.error_prompts) == self.time_step - 1
-            self.error_prompts.append(previous_error_prompt)
+            assert len(self.error_analyses) == self.time_step - 1
+            self.error_analyses.append(previous_error_analysis)
 
         retrieved_tutorials = self.retriever()
         assert len(self.tutorial_retrievals) == self.time_step

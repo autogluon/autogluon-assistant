@@ -57,9 +57,9 @@ fi
 mlzero \
     -i "$TRAINING_PATH" \
     -o "$OUTPUT_DIR" \
-    -n 10 \
+    -n 8 \
     -v 1 \
-    --initial-instruction "complete the task in 10 minutes"
+    --initial-instruction "complete the task in 30 minutes"
 
 # Check if the process was successful
 if [ $? -ne 0 ]; then

@@ -21,12 +21,12 @@ Be very clear about the problem type (e.g. audio classification/image regression
 {data_prompt}
 
 ### Description File Contents:
-{description_file_contents}
+{description_file_contents_truncate_end_16384}
 """
 
     def get_description_files_contents(self, to_show=False):
-        # if to show is false, it is used by LLM for summarization, and we use max_description_files_length_for_summarization and do not truncate the final output
-        # if to show is true, it is shown in prompts for coder, etc., then we keep only the file contents and truncate the final result
+        # if to show is false, it is used by LLM for summarization
+        # if to show is true, it is shown in prompts for coder, etc., then we keep only the file contents
 
         file_contents = []
         for filename in self.manager.description_files:
@@ -44,16 +44,6 @@ Be very clear about the problem type (e.g. audio classification/image regression
         description_file_contents = (
             "\n\n".join(file_contents) if file_contents else "No description file contents could be read."
         )
-        if to_show:
-            description_file_contents = self._truncate_output_end(
-                output=file_contents,
-                max_length=self.manager.config.task_descriptor.max_description_files_length_to_show,
-            )
-        else:
-            description_file_contents = self._truncate_output_end(
-                output=file_contents,
-                max_length=self.manager.config.task_descriptor.max_description_files_length_for_summarization,
-            )
         return description_file_contents
 
     def build(self) -> str:
@@ -61,11 +51,10 @@ Be very clear about the problem type (e.g. audio classification/image regression
 
         description_file_contents = self.get_description_files_contents()
 
-        # Format the prompt using the template
-        prompt = self.template.format(
-            data_prompt=self.manager.data_prompt,
-            description_file_contents=description_file_contents,
-        )
+        # Render the prompt using the variable provider with additional variables
+        additional_vars = {"description_file_contents": description_file_contents}
+
+        prompt = self.render(additional_vars)
 
         self.manager.save_and_log_states(
             content=prompt, save_name="task_descriptor_prompt.txt", per_iteration=False, add_uuid=False

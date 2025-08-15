@@ -25,11 +25,11 @@ class ExecuterPrompt(BasePrompt):
 ## Execution Results
 ### Standard Output (stdout)
 
-{stdout}
+{stdout_truncate_mid_8192}
 
 ### Standard Error (stderr)
 
-{stderr}
+{stderr_truncate_mid_2048}
 
 Evaluate the execution results and decide on one of the following actions:
 1. SUCCESS - If the execution was completely successful and met all requirements.
@@ -53,25 +53,24 @@ For validation scores:
         self.manager.save_and_log_states(content=stdout, save_name="stdout.txt", per_iteration=True, add_uuid=True)
         self.manager.save_and_log_states(content=stderr, save_name="stderr.txt", per_iteration=True, add_uuid=True)
 
-        # Truncate outputs if they exceed max length
-        stdout = self._truncate_output_mid(stdout, self.llm_config.max_stdout_length)
-        stderr = self._truncate_output_mid(stderr, self.llm_config.max_stderr_length)
-
+        # Save original stdout and stderr
         self.manager.save_and_log_states(
-            content=stdout, save_name="stdout(truncated).txt", per_iteration=True, add_uuid=True
+            content=stdout, save_name="stdout.orig.txt", per_iteration=True, add_uuid=True
         )
         self.manager.save_and_log_states(
-            content=stderr, save_name="stderr(truncated).txt", per_iteration=True, add_uuid=True
+            content=stderr, save_name="stderr.orig.txt", per_iteration=True, add_uuid=True
         )
 
-        # Format the prompt using the template
-        prompt = self.template.format(
-            task_description=task_description,
-            data_prompt=data_prompt,
-            python_code=python_code,
-            stdout=stdout or "No standard output",
-            stderr=stderr or "No standard error",
-        )
+        # Render the prompt using the variable provider with additional variables
+        additional_vars = {
+            "task_description": task_description,
+            "data_prompt": data_prompt,
+            "python_code": python_code,
+            "stdout": stdout or "No standard output",
+            "stderr": stderr or "No standard error",
+        }
+
+        prompt = self.render(additional_vars)
 
         self.manager.save_and_log_states(
             content=prompt, save_name="executer_prompt.txt", per_iteration=True, add_uuid=True

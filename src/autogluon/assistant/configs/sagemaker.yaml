@@ -10,7 +10,6 @@ max_chars_per_file: 768
 num_tutorial_retrievals: 30
 max_num_tutorials: 5
 max_user_input_length: 2048
-max_error_message_length: 2048
 max_tutorial_length: 32768
 create_venv: false
 condense_tutorials: True

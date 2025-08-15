@@ -25,10 +25,8 @@ Description Files: [list ONLY the absolute path, one per line]
     def build(self) -> str:
         """Build a prompt for the LLM to identify description files."""
 
-        # Format the prompt using the template
-        prompt = self.template.format(
-            data_prompt=self.manager.data_prompt,
-        )
+        # Render the prompt using the variable provider
+        prompt = self.render()
 
         self.manager.save_and_log_states(
             content=prompt, save_name="description_file_retriever_prompt.txt", per_iteration=False, add_uuid=False

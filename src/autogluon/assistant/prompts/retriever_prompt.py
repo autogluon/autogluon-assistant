@@ -23,7 +23,7 @@ You are an expert at generating search queries to find relevant machine learning
 {user_input}
 
 ### Previous Error Analysis
-{error_analysis}
+{all_error_analyses}
 
 ### Selected Tool/Library
 {selected_tool}
@@ -40,14 +40,8 @@ IMPORTANT: Respond ONLY with the search query text. Do not include explanations,
     def build(self) -> str:
         """Build a prompt for the LLM to generate a search query."""
 
-        # Format the prompt using the template
-        prompt = self.template.format(
-            task_description=self.manager.task_description,
-            selected_tool=self.manager.selected_tool,
-            data_prompt=self.manager.data_prompt,
-            user_input=self.manager.user_input,
-            error_analysis=self.manager.all_previous_error_prompts,
-        )
+        # Render the prompt using the variable provider
+        prompt = self.render()
 
         self.manager.save_and_log_states(
             content=prompt, save_name="retriever_prompt.txt", per_iteration=True, add_uuid=False

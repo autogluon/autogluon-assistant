@@ -15,7 +15,7 @@ class PythonReaderPrompt(BasePrompt):
         return """
 Generate Python code to read and analyze the file: "{file_path}"
 
-File Size: {file_size_mb:.2f} MB
+File Size: {file_size_mb} MB
 
 Your code should:
 1. Import all modules used (e.g. import os).
@@ -40,12 +40,12 @@ Return ONLY the Python code, no explanations. The code should be self-contained 
         file_size = os.path.getsize(file_path)
         file_size_mb = file_size / (1024 * 1024)
 
-        # Format the prompt using the template
-        prompt = self.template.format(
-            file_path=file_path,
-            file_size_mb=file_size_mb,
-            max_chars=max_chars,
-        )
+        # Render the prompt using the variable provider with additional variables
+        # Format file size with 2 decimal places
+        formatted_file_size_mb = f"{file_size_mb:.2f}"
+        additional_vars = {"file_path": file_path, "file_size_mb": formatted_file_size_mb, "max_chars": max_chars}
+
+        prompt = self.render(additional_vars)
 
         # Add format instruction if configured
         if self.llm_config.add_coding_format_instruction:
