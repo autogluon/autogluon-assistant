@@ -89,7 +89,7 @@ Create and configure a conda environment in "{ENV_FOLDER_NAME}" folder under {it
  - Install required packages from {common_env_file} and {selected_tool_env_file} using uv pip install -r {selected_tool_env_file} -r {common_env_file}"""
 
         if not create_venv:
-            env_prompt += f"\n - Do not install or update any package unless there is an error due to the missing package.\n - Do NOT upgrade {selected_tool} which is already installed."
+            env_prompt += f"\n - Do not install or update any package unless there is an error due to the missing package.\n"
         else:
             env_prompt += "\n - Install any packages that are needed in the python script"
 
