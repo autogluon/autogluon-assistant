@@ -77,7 +77,6 @@ Notes:
     def get_env_prompt(self):
         create_venv = self.manager.config.create_venv
         iteration_folder = self.manager.iteration_folder
-        selected_tool = self.manager.selected_tool
         common_env_file = self.manager.common_env_file
         selected_tool_env_file = self.manager.selected_tool_env_file
 
@@ -86,10 +85,12 @@ Create and configure a conda environment in "{ENV_FOLDER_NAME}" folder under {it
  - Python version: 3.11
  - Activate the environment
  - pip install uv
- - Install required packages from {common_env_file} and {selected_tool_env_file} using uv pip install -r {selected_tool_env_file} -r {common_env_file}"""
+ - uv pip install -r {selected_tool_env_file} -r {common_env_file}"""
 
         if not create_venv:
-            env_prompt += f"\n - Do not install or update any package unless there is an error due to the missing package.\n - Do NOT upgrade {selected_tool} which is already installed."
+            env_prompt += (
+                "\n - Do not install or update any package unless there is an error due to the missing package.\n"
+            )
         else:
             env_prompt += "\n - Install any packages that are needed in the python script"
 
