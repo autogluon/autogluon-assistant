@@ -123,10 +123,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
-      - name: Debug directory content
-        run: |
-          ls -la .github/actions/
-          ls -la .github/actions/setup-env-vars/
       - name: Setup Env Vars
         uses: ./.github/actions/setup-env-vars
       - uses: actions/setup-python@v5
