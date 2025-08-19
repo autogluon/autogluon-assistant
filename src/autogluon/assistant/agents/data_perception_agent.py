@@ -183,8 +183,8 @@ class DataPerceptionAgent(BaseAgent):
         planner_decision, planner_error_summary, _, planner_prompt, stderr, stdout = self.executer(
             code_to_execute=generated_python_code,
             code_to_analyze=generated_python_code,
-            task_description=prompt,  # use reader's task
-            data_prompt=f"file location: {file_path}",
+            execution_task=prompt,  # use reader's task
+            execution_data=f"file location: {file_path}",
         )
 
         if stdout:

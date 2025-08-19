@@ -390,8 +390,8 @@ class Manager:
         planner_decision, planner_error_summary, validation_score, planner_prompt, stderr, stdout = self.executer(
             code_to_execute=self.bash_script,
             code_to_analyze=self.python_code,
-            task_description=self.task_description,
-            data_prompt=self.data_prompt,
+            execution_task=self.task_description,
+            execution_data=self.data_prompt,
         )
 
         self.save_and_log_states(stderr, "stderr", per_iteration=True, add_uuid=False)

@@ -158,7 +158,7 @@ class ExecuterAgent(BaseAgent):
             llm_config=self.executer_llm_config, manager=manager, template=self.executer_prompt_template
         )
 
-    def __call__(self, code_to_execute, code_to_analyze=None, task_description=None, data_prompt=None):
+    def __call__(self, code_to_execute, code_to_analyze=None, execution_task=None, execution_data=None):
 
         self.manager.log_agent_start("ExecuterAgent: executing code and collecting stdout/stderr for evaluation.")
 
@@ -178,9 +178,9 @@ class ExecuterAgent(BaseAgent):
         prompt = self.executer_prompt.build(
             stdout=stdout,
             stderr=stderr,
-            python_code=code_to_analyze,
-            task_description=task_description,
-            data_prompt=data_prompt,
+            code_to_analyze=code_to_analyze,
+            execution_task=execution_task,
+            execution_data=execution_data,
         )
 
         # Query the LLM

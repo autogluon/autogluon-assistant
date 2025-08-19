@@ -14,13 +14,13 @@ class ExecuterPrompt(BasePrompt):
         return """You are an expert code evaluator. Analyze the execution results of the following Python code and determine if the execution was successful or if issues need to be fixed.
 
 ### Task Descriptions
-{task_description}
+{execution_task}
 
 ### Data Structure
-{data_prompt}
+{execution_data}
 
 ### Python Code
-{python_code}
+{code_to_analyze}
 
 ## Execution Results
 ### Standard Output (stdout)
@@ -29,7 +29,7 @@ class ExecuterPrompt(BasePrompt):
 
 ### Standard Error (stderr)
 
-{stderr_truncate_mid_2048}
+{stderr_truncate_mid_8192}
 
 Evaluate the execution results and decide on one of the following actions:
 1. SUCCESS - If the execution was completely successful and met all requirements.
@@ -48,7 +48,7 @@ For validation scores:
 - Convert the score to ensure higher values indicate better performance (multiply "lower is better" metrics like RMSE, MAE, or loss by -1)
 - Return the converted score that follows the "higher is better" convention"""
 
-    def build(self, stdout: str, stderr: str, python_code: str, task_description: str, data_prompt: str) -> str:
+    def build(self, stdout: str, stderr: str, code_to_analyze: str, execution_task: str, execution_data: str) -> str:
         """Build a prompt for the LLM to evaluate execution logs."""
         self.manager.save_and_log_states(content=stdout, save_name="stdout.txt", per_iteration=True, add_uuid=True)
         self.manager.save_and_log_states(content=stderr, save_name="stderr.txt", per_iteration=True, add_uuid=True)
@@ -63,9 +63,9 @@ For validation scores:
 
         # Render the prompt using the variable provider with additional variables
         additional_vars = {
-            "task_description": task_description,
-            "data_prompt": data_prompt,
-            "python_code": python_code,
+            "execution_task": execution_task,
+            "execution_data": execution_data,
+            "code_to_analyze": code_to_analyze,
             "stdout": stdout or "No standard output",
             "stderr": stderr or "No standard error",
         }
