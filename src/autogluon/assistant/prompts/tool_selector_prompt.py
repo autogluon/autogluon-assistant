@@ -61,11 +61,11 @@ Do not include any other formatting or additional sections in your response.
 
     def build(self) -> str:
         """Build a prompt for the LLM to select appropriate library."""
-        prompt = self.template.format(
-            task_description=self.manager.task_description,
-            data_prompt=self.manager.data_prompt,
-            tools_info=_format_tools_info(registry.tools),
-        )
+
+        # Render the prompt using the variable provider with additional variables
+        additional_vars = {"tools_info": _format_tools_info(registry.tools)}
+
+        prompt = self.render(additional_vars)
 
         self.manager.save_and_log_states(
             content=prompt, save_name="tool_selector_prompt.txt", per_iteration=False, add_uuid=False

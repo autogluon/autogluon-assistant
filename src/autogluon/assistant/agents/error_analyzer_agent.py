@@ -54,6 +54,8 @@ class ErrorAnalyzerAgent(BaseAgent):
 
         error_analysis = self.error_analyzer_prompt.parse(response)
 
-        self.manager.log_agent_end("ErrorAnalyzerAgent: error analysis complete with summary and fix suggestions.")
+        self.manager.log_agent_end(
+            f"ErrorAnalyzerAgent: error analysis complete with summary and fix suggestions: {error_analysis}"
+        )
 
         return error_analysis

@@ -115,11 +115,14 @@ jobs:
       - name: Checkout repository
         if: ${{ github.event_name != 'pull_request_target' }}
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Checkout repository(Pull Request Target)
         if: ${{ github.event_name == 'pull_request_target' }}
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
       - name: Setup Env Vars
         uses: ./.github/actions/setup-env-vars
       - uses: actions/setup-python@v5

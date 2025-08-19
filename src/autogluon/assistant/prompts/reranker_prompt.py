@@ -66,7 +66,7 @@ Given the following context and list of tutorials with their summaries, select t
 {user_input}
 
 ### Previous Error Analysis
-{error_analysis}
+{all_error_analyses}
 
 Available Tutorials:
 {tutorials_info}
@@ -96,15 +96,13 @@ DO NOT include any other text, explanation, or formatting in your response.
             for i, tutorial in enumerate(self.tutorials)
         )
 
-        # Format the prompt using the template
-        prompt = self.template.format(
-            task_description=self.manager.task_description,
-            data_prompt=self.manager.data_prompt,
-            user_input=self.manager.user_input,
-            error_analysis=self.manager.all_previous_error_prompts,
-            tutorials_info=tutorials_info,
-            max_num_tutorials=self.manager.config.max_num_tutorials,
-        )
+        # Render the prompt using the variable provider with additional variables
+        additional_vars = {
+            "tutorials_info": tutorials_info,
+            "max_num_tutorials": self.manager.config.max_num_tutorials,
+        }
+
+        prompt = self.render(additional_vars)
 
         self.manager.save_and_log_states(
             content=prompt, save_name="reranker_prompt.txt", per_iteration=True, add_uuid=False
