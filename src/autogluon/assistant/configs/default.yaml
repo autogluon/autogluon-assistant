@@ -38,7 +38,11 @@ llm: &default_llm
   template: null
   add_coding_format_instruction: false
 
-coder:
+python_coder:
+  <<: *default_llm  # Merge llm_config
+  multi_turn: True
+
+bash_coder:
   <<: *default_llm  # Merge llm_config
   multi_turn: True
 

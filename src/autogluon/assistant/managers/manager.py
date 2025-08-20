@@ -60,7 +60,6 @@ class Manager:
         Path(output_folder).mkdir(parents=True, exist_ok=True)
 
         self.config = config
-        self.coder_multi_turn = config.coder.multi_turn
 
         self.dp_agent = DataPerceptionAgent(
             config=self.config,
@@ -130,7 +129,7 @@ class Manager:
             manager=self,
             language="python",
             coding_mode="coder",
-            llm_config=self.config.coder,
+            llm_config=self.config.python_coder,
             prompt_template=None,
         )  # TODO: Add prompt_template to argument
         self.bash_coder = CoderAgent(
@@ -138,7 +137,7 @@ class Manager:
             manager=self,
             language="bash",
             coding_mode="coder",
-            llm_config=self.config.coder,
+            llm_config=self.config.bash_coder,
             prompt_template=None,
         )  # TODO: Add prompt_template to argument
 

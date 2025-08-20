@@ -1,0 +1,183 @@
+# Data Visualization Configuration
+
+per_execution_timeout: 86400
+
+# Data Perception
+max_file_group_size_to_show: 5
+num_example_files_to_show: 1
+
+max_chars_per_file: 768
+num_tutorial_retrievals: 30
+max_num_tutorials: 5
+max_user_input_length: 2048
+max_tutorial_length: 32768
+create_venv: false
+condense_tutorials: True
+use_tutorial_summary: True
+continuous_improvement: False
+optimize_system_resources: False
+cleanup_unused_env: True
+
+# Default LLM Configuration
+# For each agent (coder, etc.) you can use a different one
+llm: &default_llm
+  provider: bedrock
+  model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+  max_tokens: 65535
+  proxy_url: null
+  temperature: 0.1
+  top_p: 0.9
+  verbose: True
+  multi_turn: False
+  template: null
+  add_coding_format_instruction: false
+
+bash_coder:
+  <<: *default_llm  # Merge llm_config
+  multi_turn: True
+
+python_coder:
+  <<: *default_llm  # Merge llm_config
+  multi_turn: True
+  template: |
+    As a Data Visualization Agent, you will be given a folder containing data and description files. Please generate Python code using {selected_tool} to create insightful and informative visualizations. Follow these specifications:
+
+    ONLY save files to the working directory: {per_iteration_output_folder}.
+
+    1. Data preprocessing:
+       - Clean the data appropriately (handle missing values, outliers, etc.)
+       - Transform data into suitable formats for visualization
+       - Remove the unnecessary index column (if applicable)
+
+    2. Visualization creation:
+       - Create a variety of appropriate visualizations based on the data type and task requirements
+       - Include both exploratory and explanatory visualizations
+       - Use appropriate color schemes, labels, titles, and annotations
+       - For multivariate data, consider correlation plots, pair plots, or dimension reduction visualizations
+       - For time-series data, use line plots, area charts, or seasonal decomposition plots
+       - For categorical data, use bar charts, pie charts, or heatmaps
+       - For geographic data, use maps with appropriate projections and overlays
+       - Consider interactive visualizations when appropriate
+
+    3. Output and organization:
+       - Save visualizations in appropriate formats (PNG, SVG, HTML for interactive plots)
+       - Create a main visualization script that generates all visualizations
+       - For interactive dashboards, ensure they're properly documented and easy to run
+
+    4. Documentation:
+       - Add a brief docstring at the beginning of the script explaining its purpose
+       - Include additional installation steps with comments at the beginning of the script
+       - Document the visualization choices and what insights they reveal
+       - Add clear interpretations and analysis of each visualization
+
+    5. Others:
+       - To avoid DDP errors, wrap the code in: if __name__ == "__main__":
+       - Ensure errors are propagated up and not silently caught - do not use try/except blocks unless you explicitly re-raise the exception.
+       - When creating multiple plots, consider using subplots or a grid layout for better organization
+
+    {validation_prompt}
+
+    {tool_prompt}
+
+    {best_code_prompt}
+
+    Please provide the complete Python script that accomplishes these tasks, ensuring it's ready to run given the appropriate data inputs.
+
+    ### Task Description
+    {task_description}
+
+    ### Data Structure
+    {data_prompt}
+
+    ### User Instruction
+    {user_input_truncate_end_2048}
+
+    ### Previous Errors
+    {all_error_analyses}
+
+    ### Tutorials for Reference
+    {tutorial_prompt}
+
+executer:
+  <<: *default_llm  # Merge llm_config
+  max_stdout_length: 8192
+  max_stderr_length: 2048
+
+reader:
+  <<: *default_llm  # Merge llm_config
+  details: False
+
+error_analyzer:
+  <<: *default_llm  # Merge llm_config
+
+retriever:
+  <<: *default_llm  # Merge llm_config
+
+reranker:
+  <<: *default_llm  # Merge llm_config
+  temperature: 0.
+  top_p: 1.
+
+description_file_retriever:
+  <<: *default_llm  # Merge llm_config
+  temperature: 0.
+  top_p: 1.
+
+task_descriptor:
+  <<: *default_llm  # Merge llm_config
+  max_description_files_length_to_show: 1024
+  max_description_files_length_for_summarization: 16384
+  template: |
+    Based ONLY on the information explicitly stated in the provided data structure and description files, provide a condensed and precise description of the data visualization task. Include only details that are directly mentioned in the source materials. Do not add assumptions or infer unstated information.
+
+    Focus on identifying:
+    1. The main visualization objectives (exploration, explanation, comparison, trend analysis, etc.)
+    2. The key data variables that should be visualized
+    3. Any specific visualization types mentioned or required
+    4. The target audience for the visualizations
+    5. Any specific insights that need to be highlighted
+
+    Be very clear about the data types (numerical, categorical, time-series, geospatial, etc.), potential relationships to explore, and any required visualization outputs.
+
+    ### Data Structure:
+    (IMPORTANT: The metadata of example files in Data Structure may not be representative - do not make assumptions about data statistics based on examples.)
+    {data_prompt}
+
+    ### Description File Contents:
+    {description_file_contents_truncate_end_16384}
+
+tool_selector:
+  <<: *default_llm  # Merge llm_config
+  temperature: 0.
+  top_p: 1.
+  template: |
+    You are a data visualization expert tasked with selecting the most appropriate library for a specific visualization task.
+
+    ### Task Description:
+    {task_description}
+
+    ### Data Information:
+    {data_prompt}
+
+    ### Available Visualization Libraries:
+    {tools_info}
+
+    When selecting a visualization library, consider:
+    1. The type of visualizations required (static, interactive, 3D, geospatial, etc.)
+    2. The complexity and size of the data
+    3. Specific visualization requirements (interactivity, animation, publication quality)
+    4. The target audience and delivery format of the visualizations
+
+    IMPORTANT: Your response MUST follow this exact format:
+    ---
+    SELECTED_LIBRARY: <write only the exact library name from the options above>
+    EXPLANATION: <provide your detailed reasoning>
+    ---
+
+    Requirements for your response:
+    1. The SELECTED_LIBRARY must be exactly as shown in the available libraries list
+    2. Use the exact headers "SELECTED_LIBRARY:" and "EXPLANATION:"
+    3. Provide a clear, detailed explanation of why this library is the best choice
+    4. Consider visualization capabilities, data handling, interactivity, and aesthetic quality
+
+    Do not include any other formatting or additional sections in your response.
