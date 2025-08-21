@@ -4,16 +4,14 @@ This tutorial demonstrates how to customize AutoGluon Assistant agents for speci
 
 ## Customizing Agents with Templates
 
-Customize agent behavior by modifying prompt templates through either:
+Customize agent behavior by modifying prompt templates using {variable_name} syntax, through either:
 
-1. **External Template Files**: Create a text file with your template using `{variable_name}` syntax
-2. **Inline YAML Templates**: Define templates directly in your configuration file
+1. **External Template Files**: Write the template in a text file and use its absolute path in your configuration file
+2. **Inline Templates**: Write the template directly in your configuration file
 
-## Data Visualization Agent Example
+## Example: Data Visualization
 
-### Configuration File
-
-Create `data_visualizer.yaml` with customized prompt templates:
+Here we give an example of customizing the system to complete data visualization tasks using inline templates. Create `data_visualizer.yaml` with customized templates:
 
 ```yaml
 # data_visualizer.yaml (key sections only)
@@ -93,27 +91,23 @@ tool_selector:
     ---
 ```
 
-### Key Customizations
+### Key Changes
 
-1. **PythonCoderAgent**: Focuses on creating effective visualizations for different data types
-2. **TaskDescriptorAgent**: Identifies visualization objectives and key variables
-3. **ToolSelectorAgent**: Evaluates libraries based on visualization requirements
+1. **PythonCoderAgent**: Ask to create effective visualizations (instead of previous request for model training and inference)
+2. **TaskDescriptorAgent**: Identifies visualization objectives (instead of previous ML task description for model training and inference)
+3. **ToolSelectorAgent**: Evaluates libraries based on visualization requirements (instead of previous request for model training and inference)
 
 ### Usage
 
 Run your customized agent:
 
 ```bash
-mlzero -i /path/to/data -t "visualize the training data distribution, and generate a .pdf report" -c /path/to/data_visualizer.yaml
+mlzero -i </path/to/data> -t "visualize the training data distribution, and generate a .pdf report" -c </path/to/data_visualizer.yaml>
 ```
 
-Example command for the abalone dataset:
-
-```bash
-mlzero -i /media/agent/autogluon-assistant/maab/datasets/abalone/training -t "visualize the training data distribution, and generate a .pdf report to gather all the results" -c /media/agent/autogluon-assistant/src/autogluon/assistant/configs/data_visualizer.yaml -n 10
 ```
 
-### Example Output
+### Example Output on Abalone Dataset
 
 [Abalone Data Visualization Report (PDF)](../assets/abalone_data_visualization_report.pdf)
 
@@ -121,18 +115,18 @@ The visualization agent creates a comprehensive report with distribution plots, 
 
 ## Template Variables
 
-AutoGluon Assistant uses a variable registration system for template rendering. These variables can be used in your custom templates:
+AutoGluon Assistant uses a variable registration system for template rendering. These variables can be used in your custom templates (they will be filled during the run using the information gathered by LLMs):
 
 ### User and Task Variables
-- `user_input`: Raw user instructions and requirements (alias: `user_prompt`)
-- `task_description`: Description of the ML task to be performed
+- `user_input`: Raw user instructions and requirements
+- `task_description`: Description of the task to be performed
 
 ### Data-Related Variables
 - `data_prompt`: Information about data structure and files 
 - `description_file_contents`: Contents of identified description files
 
 ### Path and Output Variables
-- `per_iteration_output_folder`: Output directory for generated code
+- `per_iteration_output_folder`: Output directory for current iteration
 - `python_file_path`: Path to the Python file to execute
 - `file_path`: Path to the file being read
 - `file_size_mb`: Size of the file in MB
@@ -152,15 +146,15 @@ AutoGluon Assistant uses a variable registration system for template rendering. 
 
 ### Tools and Tutorials Variables
 - `selected_tool`: The chosen ML library/framework
-- `tool_prompt`: Information about selected tools (alias: `tools_info`)
+- `tool_prompt`: Information about selected tools
 - `tutorial_prompt`: Relevant tutorial information
 - `previous_tutorial_prompt`: Tutorial information from previous iteration
 - `max_num_tutorials`: Maximum number of tutorials to select
 
 ### Environment and Validation Variables
 - `environment_prompt`: System environment information
-- `validation_prompt`: Validation criteria
-- `best_code_prompt`: Examples of high-quality code
+- `validation_prompt`: Asking for Validation
+- `best_code_prompt`: Asking to improve the code
 
 ### Variable Truncation
 
@@ -177,18 +171,8 @@ For long variable content, use these truncation modifiers:
 
 ## Best Practices
 
-- Define a clear purpose for your specialized agent
-- Start by customizing the most critical agent for your domain
-- Embed domain-specific knowledge and guidelines in prompts
-- Specify clear output requirements and formats
-- Test thoroughly with representative tasks
-
-## Troubleshooting
-
-- Verify all template variables are properly referenced
-- Validate YAML syntax (watch for indentation issues)
-- Review template rendering in output directories
-- Start with minimal templates before adding complexity
-- Check agent logs for template rendering issues
+- Modify from the existing default prompt
+- Start by customizing the most critical agent (e.g. PythonCoderAgent and TaskDescriptorAgent)
+- Embed domain-specific guidelines and specify clear output requirements and formats
 
 Creating domain-specific agents through prompt engineering allows you to build specialized tools that excel at specific tasks while leveraging AutoGluon Assistant's architecture.
