@@ -39,7 +39,11 @@ llm: &default_llm
   add_coding_format_instruction: false
 
 # Ensure all agent types inherit the SageMaker LLM config
-coder:
+python_coder:
+  <<: *default_llm  # Merge llm_config
+  multi_turn: True
+
+bash_coder:
   <<: *default_llm  # Merge llm_config
   multi_turn: True
 

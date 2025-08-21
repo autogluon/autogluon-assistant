@@ -11,6 +11,7 @@ quickstart
 llm_providers
 interfaces
 configuration
+agent_customization
 ```
 
 ## Basic Usage
@@ -21,6 +22,7 @@ Learn the fundamentals of using AutoGluon-Assistant:
 - **LLM Providers**: Learn how to use different AI providers (Bedrock, OpenAI, Anthropic, SageMaker)
 - **Interfaces**: Understand the different ways to interact with AutoGluon Assistant (CLI, Python API, WebUI, MCP)
 - **Configuration**: Master customizing AutoGluon Assistant for your specific needs
+- **Agent Customization**: Create specialized agents for specific tasks like data visualization
 
 ## Advanced Topics
 
