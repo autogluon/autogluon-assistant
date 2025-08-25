@@ -11,6 +11,7 @@ from ..agents import (
     DescriptionFileRetrieverAgent,
     ErrorAnalyzerAgent,
     ExecuterAgent,
+    MetaPromptingAgent,
     RerankerAgent,
     RetrieverAgent,
     TaskDescriptorAgent,
@@ -89,6 +90,24 @@ class Manager:
             llm_config=self.config.tool_selector,
             prompt_template=None,  # TODO: add it to argument
         )
+
+        # Initialize meta-prompting
+        self.enable_meta_prompting = getattr(self.config, 'enable_meta_prompting', False)
+        # Set up meta-prompting LLM config if enabled
+        if self.enable_meta_prompting:
+            # Initialize meta-prompting agent that will be reused
+            self.meta_prompting_agent = MetaPromptingAgent(
+                config=self.config,
+                manager=self,
+                llm_config=self.self.config.meta_prompting,
+                prompt_name="meta_prompting",
+                prompt_class=None,
+                prompt_template=None
+            )
+        else:
+            self.meta_prompting_agent = None
+        # Create a dictionary to store rewritten templates for reference
+        self.rewritten_templates = {}
 
         # Initialize prompts
         self.generate_initial_prompts()

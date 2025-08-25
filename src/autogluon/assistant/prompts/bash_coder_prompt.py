@@ -10,6 +10,14 @@ logger = logging.getLogger(__name__)
 
 class BashCoderPrompt(BasePrompt):
     """Handles prompts for code execution evaluation"""
+    
+    def meta_description(self) -> str:
+        """
+        Returns specific instructions for meta-prompting the Bash coder template.
+        """
+        return """
+The BashCoderPrompt generates Bash scripts that execute Python code and set up the required environment. You may also add other requirements if it's necessary to run in the bash script.
+"""
 
     def default_template(self) -> str:
         return """Generate a minimal bash script that will:
@@ -31,7 +39,7 @@ Notes:
 - Handle environment and package only if asked or there were errors
 """
 
-    def build(self) -> str:
+    def _build(self) -> str:
         """Build a prompt for the LLM to evaluate execution logs."""
 
         assert self.manager.time_step >= 0, "run manager.step(user_input) before retriving the prompt"

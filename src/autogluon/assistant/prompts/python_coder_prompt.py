@@ -18,6 +18,15 @@ logger = logging.getLogger(__name__)
 class PythonCoderPrompt(BasePrompt):
     """Handles prompts for Python code generation"""
 
+    @classmethod
+    def meta_template(cls) -> str:
+        """
+        Returns specific instructions for meta-prompting the Python coder template.
+        """
+        return """
+The PythonCoderPrompt generates executable Python code for the specified task.
+"""
+
     def default_template(self) -> str:
         return """
 As an AutoML Agent, you will be given a folder containing data and description files. Please generate Python code using {selected_tool} to train a predictor and make predictions on test data. Follow these specifications:
@@ -75,10 +84,10 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
         """Get the format instruction to append to the prompt."""
         return "Please format your response with the code in a ```python``` code block to make it easily extractable."
 
-    def build(self) -> str:
+    def _build(self) -> str:
         """Build a prompt for the LLM to generate Python code."""
         assert self.manager.time_step >= 0, "run manager.step(user_input) before retrieving the prompt"
-
+        
         # Generate best code prompt and validation prompt
         best_code_prompt = self._generate_best_code_prompt()
         validation_prompt = self._generate_validation_prompt()
