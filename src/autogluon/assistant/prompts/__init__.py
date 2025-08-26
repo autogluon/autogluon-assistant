@@ -2,6 +2,7 @@ from .bash_coder_prompt import BashCoderPrompt
 from .description_file_retriever_prompt import DescriptionFileRetrieverPrompt
 from .error_analyzer_prompt import ErrorAnalyzerPrompt
 from .executer_prompt import ExecuterPrompt
+from .meta_prompting_prompt import MetaPromptingPrompt
 from .python_coder_prompt import PythonCoderPrompt
 from .python_reader_prompt import PythonReaderPrompt
 from .reranker_prompt import RerankerPrompt
