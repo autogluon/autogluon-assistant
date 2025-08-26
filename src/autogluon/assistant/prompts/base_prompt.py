@@ -265,7 +265,8 @@ class BasePrompt(ABC):
         """Default prompt template"""
         pass
         
-    def meta_description(self) -> str:
+    @classmethod
+    def meta_template(cls) -> str:
         """
         Template specifically for meta-prompting.
         

@@ -8,7 +8,23 @@ logger = logging.getLogger(__name__)
 
 class DescriptionFileRetrieverPrompt(BasePrompt):
     """Handles prompts for description file identification"""
+    
+    @classmethod
+    def meta_template(cls) -> str:
+        """
+        Returns specific instructions for meta-prompting the Description File Retriever template.
+        """
+        return """
+The DescriptionFileRetrieverPrompt identifies files that contain project descriptions, requirements, or task definitions.
 
+Considerations for rewriting this template:
+1. Focus on accurate identification of files with task-relevant descriptions
+2. Include pattern recognition for common documentation file formats and naming conventions
+3. Emphasize extraction of absolute file paths in the correct format
+4. Prioritize README files, competition descriptions, and task specification documents
+5. Ensure the output format is clean and correctly structured for downstream processing
+"""
+    
     def default_template(self) -> str:
         """Default template for description file identification"""
         return """

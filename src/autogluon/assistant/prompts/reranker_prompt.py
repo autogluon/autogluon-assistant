@@ -50,7 +50,23 @@ def get_all_tutorials(selected_tool: str, condensed: bool = False) -> List[Tutor
 
 class RerankerPrompt(BasePrompt):
     """Handles prompts for tutorial retrieval and selection"""
+    
+    @classmethod
+    def meta_template(cls) -> str:
+        """
+        Returns specific instructions for meta-prompting the Reranker template.
+        """
+        return """
+The RerankerPrompt selects the most relevant tutorials from a list based on task context and user needs.
 
+Considerations for rewriting this template:
+1. Focus on clear criteria for evaluating tutorial relevance to the specific task
+2. Include assessment of how well tutorials address any errors or challenges encountered
+3. Prioritize tutorials that match the technical requirements and skill level needed
+4. Consider the specific data characteristics and model requirements when ranking relevance
+5. Ensure the response format maintains clarity in tutorial selection
+"""
+    
     def default_template(self) -> str:
         """Default template for tutorial selection"""
         return """

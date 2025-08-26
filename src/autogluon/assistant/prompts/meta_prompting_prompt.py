@@ -16,7 +16,25 @@ logger = logging.getLogger(__name__)
 
 class MetaPromptingPrompt(BasePrompt):
     """Handles meta-prompting for customizing other agent prompts"""
+    
+    @classmethod
+    def meta_template(cls) -> str:
+        """
+        Returns specific instructions for meta-prompting the Meta Prompting template.
+        Note: Meta-prompting is typically not applied to the meta-prompting template itself
+        to avoid recursive meta-prompting.
+        """
+        return """
+The MetaPromptingPrompt is responsible for dynamically rewriting other prompt templates to better suit specific tasks.
 
+Considerations for rewriting this template:
+1. Focus on clear criteria for evaluating and preserving the original template's purpose
+2. Include guidance for effectively incorporating task-specific context into prompts
+3. Emphasize maintaining essential variable placeholders while enhancing instructions
+4. Provide strategies for adding domain-specific knowledge relevant to the task
+5. Ensure the output format maintains structural integrity with the original template
+"""
+    
     def default_template(self) -> str:
         return """
 You are a Meta Prompt Engineer tasked with customizing a template for an AI assistant. Your job is to rewrite the template to better suit a specific task while preserving its core functionality.

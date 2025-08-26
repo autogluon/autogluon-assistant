@@ -7,7 +7,23 @@ logger = logging.getLogger(__name__)
 
 class RetrieverPrompt(BasePrompt):
     """Handles prompts for generating search queries for tutorial retriever"""
+    
+    @classmethod
+    def meta_template(cls) -> str:
+        """
+        Returns specific instructions for meta-prompting the Retriever template.
+        """
+        return """
+The RetrieverPrompt generates effective search queries to find relevant machine learning tutorials based on the task context.
 
+Considerations for rewriting this template:
+1. Focus on extracting key technical concepts and algorithms relevant to the specific task
+2. Ensure queries are properly scoped to the selected machine learning library or framework
+3. Include important dataset characteristics and task requirements
+4. Balance specificity with breadth to ensure relevant tutorials are found
+5. Consider the context of previous errors when formulating search queries
+"""
+    
     def default_template(self) -> str:
         """Default template for search query generation"""
         return """

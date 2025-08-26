@@ -8,7 +8,23 @@ logger = logging.getLogger(__name__)
 
 class TaskDescriptorPrompt(BasePrompt):
     """Handles prompts for task description generation"""
+    
+    @classmethod
+    def meta_template(cls) -> str:
+        """
+        Returns specific instructions for meta-prompting the Task Descriptor template.
+        """
+        return """
+The TaskDescriptorPrompt analyzes data structure and description files to generate a precise technical description of the machine learning task.
 
+Considerations for rewriting this template:
+1. Focus on accurate identification of problem type and evaluation metrics
+2. Include guidance for extracting key data characteristics relevant to model selection
+3. Emphasize clarity in describing input/output formats and requirements
+4. Prioritize extracting technical specifications over general descriptions
+5. Ensure the resulting description captures all critical task constraints and objectives
+"""
+    
     def default_template(self) -> str:
         """Default template for task description generation"""
         return """

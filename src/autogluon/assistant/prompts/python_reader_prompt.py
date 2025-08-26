@@ -10,7 +10,23 @@ logger = logging.getLogger(__name__)
 
 class PythonReaderPrompt(BasePrompt):
     """Handles prompts for code execution evaluation"""
+    
+    @classmethod
+    def meta_template(cls) -> str:
+        """
+        Returns specific instructions for meta-prompting the Python Reader template.
+        """
+        return """
+The PythonReaderPrompt generates code to read and analyze different file types, providing useful summaries of their contents.
 
+Considerations for rewriting this template:
+1. Focus on robust file handling for various formats (tabular, text, binary, compressed)
+2. Include specific adaptations for large files to prevent memory issues
+3. Emphasize efficient summarization techniques for different data structures
+4. Consider the specific file types relevant to the current task context
+5. Ensure output is properly truncated and formatted for downstream use
+"""
+    
     def default_template(self) -> str:
         return """
 Generate Python code to read and analyze the file: "{file_path}"
