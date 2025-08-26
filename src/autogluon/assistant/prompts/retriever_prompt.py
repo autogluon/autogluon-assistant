@@ -9,7 +9,7 @@ class RetrieverPrompt(BasePrompt):
     """Handles prompts for generating search queries for tutorial retriever"""
     
     @classmethod
-    def meta_template(cls) -> str:
+    def meta_instructions(cls) -> str:
         """
         Returns specific instructions for meta-prompting the Retriever template.
         """

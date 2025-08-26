@@ -101,6 +101,8 @@ def run_agent(
             input_data_folder=input_data_folder,
             output_folder=output_folder,
             config=config,
+            need_user_input=need_user_input,
+            initial_user_input=initial_user_input,
         )
 
     manager.set_initial_user_input(need_user_input=need_user_input, initial_user_input=initial_user_input)

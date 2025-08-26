@@ -19,7 +19,7 @@ class PythonCoderPrompt(BasePrompt):
     """Handles prompts for Python code generation"""
 
     @classmethod
-    def meta_template(cls) -> str:
+    def meta_instructions(cls) -> str:
         """
         Returns specific instructions for meta-prompting the Python coder template.
         """

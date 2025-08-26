@@ -38,6 +38,7 @@ class BasePrompt(ABC):
         self.llm_config = llm_config
         self.manager = manager
         self.variable_provider = VariableProvider(manager)
+        self.template = None
             
         # State for meta-prompting
         self._original_template = template
@@ -107,75 +108,25 @@ class BasePrompt(ABC):
         """Apply meta-prompting to rewrite the current template."""
         logger.info(f"Applying meta-prompting to rewrite template for {self.__class__.__name__}")
         
-        # Gather all the information needed for meta prompting
-        # 1. Get the general meta prompting instruction from meta_prompting_prompt.py
-        # This is already handled by the agent itself
-        
-        # 2. Get information asked in the instruction (template)
-        # - task_description, user_input, data_prompt if available
-        task_description = ""
-        user_input = ""
-        data_prompt = ""
-        
-        # Try to get task description
-        if hasattr(self.manager, 'task_description'):
-            task_description = self.manager.task_description
-            
-        # Try to get user input
-        if hasattr(self.manager, 'time_step') and self.manager.time_step >= 0:
-            try:
-                user_input = self.manager.user_input
-            except (AssertionError, IndexError):
-                if hasattr(self.manager, 'user_inputs') and len(self.manager.user_inputs) > self.manager.time_step:
-                    user_input = self.manager.user_inputs[self.manager.time_step]
-                elif hasattr(self.manager, 'initial_user_input'):
-                    user_input = self.manager.initial_user_input
-        elif hasattr(self.manager, 'initial_user_input'):
-            user_input = self.manager.initial_user_input
-            
-        # Try to get data prompt
-        if hasattr(self.manager, 'data_prompt'):
-            data_prompt = self.manager.data_prompt
-            
-        # 3. Get the target_prompt_template (current template) and agent_specific_instructions
-        # Get agent-specific instructions from meta_template if available
-        agent_specific_instructions = ""
-        if hasattr(self.__class__, 'meta_template'):
-            agent_specific_instructions = self.__class__.meta_template(self.__class__)
-        
+        # Meta prompting will use the standard manager variables
+        # No need to gather variables separately, as they'll be accessed directly from the manager
+        # The meta-prompting prompt class knows how to access these variables via the manager
         # Store the original template and the current class on the manager
         # for the meta-prompting prompt to access
-        self.manager.target_prompt_template = self.template
-        self.manager.target_prompt_class = self.__class__
+        self.manager.target_prompt_class = self
         
         # Use the existing meta-prompting agent with all required parameters
-        self.manager.meta_prompting_agent.target_prompt_template = self.template
-        self.manager.meta_prompting_agent.prompt_class = self.__class__
+        prompt_name = self.__class__.__name__
         rewritten_template = self.manager.meta_prompting_agent(
-            user_input=user_input,
-            data_prompt=data_prompt,
-            task_description=task_description,
-            target_prompt_template=self.template,
-            agent_specific_instructions=agent_specific_instructions
+            target_prompt_instance=self
         )
 
-        # Save the rewritten template
-        prompt_name = self.__class__.__name__
-        self.manager.save_and_log_states(
-            content=rewritten_template,
-            save_name=f"rewritten_{prompt_name}_template.txt",
-            per_iteration=False,
-            add_uuid=False
-        )
+        # The meta_prompting_agent already saves the rewritten template, no need to save again
         
         # Update the template with the rewritten version
         self.template = rewritten_template
         self._meta_prompted = True
         self._rewritten_template = rewritten_template
-
-        # Also store the rewritten template in the manager for reference
-        prompt_class_name = self.__class__.__name__
-        self.manager.rewritten_templates[prompt_class_name] = rewritten_template
         
         logger.info(f"Successfully applied meta-prompting to {self.__class__.__name__}")
 
@@ -280,7 +231,7 @@ class BasePrompt(ABC):
         pass
         
     @classmethod
-    def meta_template(cls) -> str:
+    def meta_instructions(cls) -> str:
         """
         Template specifically for meta-prompting.
         
@@ -288,4 +239,4 @@ class BasePrompt(ABC):
         to better suit a specific task. Subclasses should override this
         method to provide prompt-specific guidance.
         """
-        raise NotImplementedError("Subclasses must implement meta_template()")
+        raise NotImplementedError("Subclasses must implement meta_instructions()")

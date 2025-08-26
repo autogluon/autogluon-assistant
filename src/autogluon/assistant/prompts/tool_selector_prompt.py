@@ -31,7 +31,7 @@ class ToolSelectorPrompt(BasePrompt):
     """Handles prompts for tool selection"""
     
     @classmethod
-    def meta_template(cls) -> str:
+    def meta_instructions(cls) -> str:
         """
         Returns specific instructions for meta-prompting the Tool Selector template.
         """

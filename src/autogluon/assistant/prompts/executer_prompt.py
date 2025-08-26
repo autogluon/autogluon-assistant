@@ -10,7 +10,7 @@ class ExecuterPrompt(BasePrompt):
     """Handles prompts for code execution evaluation"""
     
     @classmethod
-    def meta_template(cls) -> str:
+    def meta_instructions(cls) -> str:
         """
         Returns specific instructions for meta-prompting the Executer template.
         """

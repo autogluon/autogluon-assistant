@@ -10,7 +10,7 @@ class TaskDescriptorPrompt(BasePrompt):
     """Handles prompts for task description generation"""
     
     @classmethod
-    def meta_template(cls) -> str:
+    def meta_instructions(cls) -> str:
         """
         Returns specific instructions for meta-prompting the Task Descriptor template.
         """

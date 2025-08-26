@@ -35,6 +35,8 @@ class Manager:
         input_data_folder: str,
         output_folder: str,
         config: str,
+        initial_user_input: str,
+        need_user_input: bool,
     ):
         """Initialize Manager with required paths and config from YAML file.
 
@@ -42,6 +44,8 @@ class Manager:
             input_data_folder: Path to input data directory
             output_folder: Path to output directory
             config_path: Path to YAML configuration file
+            initial_user_input: Initial user instruction
+            need_user_input: If asking for per iteration user input
         """
         self.time_step = -1
         self.best_step = -1
@@ -61,6 +65,10 @@ class Manager:
         Path(output_folder).mkdir(parents=True, exist_ok=True)
 
         self.config = config
+
+        self.set_initial_user_input(need_user_input=need_user_input, initial_user_input=initial_user_input)
+
+        self.target_prompt_instance = None
 
         self.dp_agent = DataPerceptionAgent(
             config=self.config,
@@ -94,20 +102,11 @@ class Manager:
         # Initialize meta-prompting
         self.enable_meta_prompting = getattr(self.config, 'enable_meta_prompting', False)
         # Set up meta-prompting LLM config if enabled
-        if self.enable_meta_prompting:
-            # Initialize meta-prompting agent that will be reused
-            self.meta_prompting_agent = MetaPromptingAgent(
+        self.meta_prompting_agent = MetaPromptingAgent(
                 config=self.config,
                 manager=self,
-                llm_config=self.self.config.meta_prompting,
-                prompt_name="meta_prompting",
-                prompt_class=None,
-                prompt_template=None
+                llm_config=self.config.meta_prompting,
             )
-        else:
-            self.meta_prompting_agent = None
-        # Create a dictionary to store rewritten templates for reference
-        self.rewritten_templates = {}
 
         # Initialize prompts
         self.generate_initial_prompts()

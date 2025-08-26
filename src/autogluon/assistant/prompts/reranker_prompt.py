@@ -52,7 +52,7 @@ class RerankerPrompt(BasePrompt):
     """Handles prompts for tutorial retrieval and selection"""
     
     @classmethod
-    def meta_template(cls) -> str:
+    def meta_instructions(cls) -> str:
         """
         Returns specific instructions for meta-prompting the Reranker template.
         """
