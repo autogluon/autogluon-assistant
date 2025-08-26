@@ -76,7 +76,7 @@ For example: "1,3,4" or "2,5" or just "1" if only one is relevant.
 DO NOT include any other text, explanation, or formatting in your response.
 """
 
-    def build(self) -> str:
+    def _build(self) -> str:
         """Build a prompt for the LLM to select relevant tutorials."""
 
         # Get tutorial information

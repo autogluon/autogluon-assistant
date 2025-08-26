@@ -45,7 +45,7 @@ User Request: {user_input_truncate_end_8192}
 Your response must ONLY contain the rewritten template with no additional explanations or commentary.
 """
 
-    def build(self) -> str:
+    def _build(self) -> str:
         """Build a prompt for the meta-prompting LLM."""
         # We don't assert time_step here since meta-prompting might be used before the first step
         

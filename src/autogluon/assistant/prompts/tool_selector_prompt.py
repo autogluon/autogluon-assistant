@@ -59,7 +59,7 @@ Requirements for your response:
 Do not include any other formatting or additional sections in your response.
 """
 
-    def build(self) -> str:
+    def _build(self) -> str:
         """Build a prompt for the LLM to select appropriate library."""
 
         # Render the prompt using the variable provider with additional variables

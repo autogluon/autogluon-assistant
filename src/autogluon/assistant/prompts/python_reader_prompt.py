@@ -34,7 +34,7 @@ Your code should:
 Return ONLY the Python code, no explanations. The code should be self-contained and executable on its own.
 """
 
-    def build(self, file_path, max_chars) -> str:
+    def _build(self, file_path, max_chars) -> str:
         """Build a prompt for the LLM to evaluate execution logs."""
 
         file_size = os.path.getsize(file_path)

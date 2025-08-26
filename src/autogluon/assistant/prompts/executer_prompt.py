@@ -48,7 +48,7 @@ For validation scores:
 - Convert the score to ensure higher values indicate better performance (multiply "lower is better" metrics like RMSE, MAE, or loss by -1)
 - Return the converted score that follows the "higher is better" convention"""
 
-    def build(self, stdout: str, stderr: str, code_to_analyze: str, execution_task: str, execution_data: str) -> str:
+    def _build(self, stdout: str, stderr: str, code_to_analyze: str, execution_task: str, execution_data: str) -> str:
         """Build a prompt for the LLM to evaluate execution logs."""
         self.manager.save_and_log_states(content=stdout, save_name="stdout.txt", per_iteration=True, add_uuid=True)
         self.manager.save_and_log_states(content=stderr, save_name="stderr.txt", per_iteration=True, add_uuid=True)

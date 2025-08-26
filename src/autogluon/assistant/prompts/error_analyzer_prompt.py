@@ -40,7 +40,7 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
 {previous_tutorial_prompt}
 """
 
-    def build(self) -> str:
+    def _build(self) -> str:
         """Build a prompt for the LLM to analyze errors."""
 
         # Render the prompt using the variable provider

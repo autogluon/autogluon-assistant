@@ -22,7 +22,7 @@ Format your response as follows, do not give explanations:
 Description Files: [list ONLY the absolute path, one per line]
 """
 
-    def build(self) -> str:
+    def _build(self) -> str:
         """Build a prompt for the LLM to identify description files."""
 
         # Render the prompt using the variable provider
