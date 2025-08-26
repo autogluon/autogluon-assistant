@@ -56,8 +56,13 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
 {previous_tutorial_prompt}
 """
 
-    def _build(self) -> str:
-        """Build a prompt for the LLM to analyze errors."""
+    def _build(self, **kwargs) -> str:
+        """Build a prompt for the LLM to analyze errors.
+        
+        Args:
+            **kwargs: Additional keyword arguments to customize the prompt building process
+        """
+        
 
         # Render the prompt using the variable provider
         prompt = self.render()

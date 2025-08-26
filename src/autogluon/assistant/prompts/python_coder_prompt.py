@@ -84,8 +84,12 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
         """Get the format instruction to append to the prompt."""
         return "Please format your response with the code in a ```python``` code block to make it easily extractable."
 
-    def _build(self) -> str:
-        """Build a prompt for the LLM to generate Python code."""
+    def _build(self, **kwargs) -> str:
+        """Build a prompt for the LLM to generate Python code.
+        
+        Args:
+            **kwargs: Additional keyword arguments to customize the prompt building process
+        """
         assert self.manager.time_step >= 0, "run manager.step(user_input) before retrieving the prompt"
         
         # Generate best code prompt and validation prompt

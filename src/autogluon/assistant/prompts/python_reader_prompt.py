@@ -50,8 +50,15 @@ Your code should:
 Return ONLY the Python code, no explanations. The code should be self-contained and executable on its own.
 """
 
-    def _build(self, file_path, max_chars) -> str:
-        """Build a prompt for the LLM to evaluate execution logs."""
+    def _build(self, file_path, max_chars, **kwargs) -> str:
+        """Build a prompt for the LLM to evaluate execution logs.
+        
+        Args:
+            file_path: Path to the file to read
+            max_chars: Maximum number of characters to include in the output
+            **kwargs: Additional keyword arguments to customize the prompt building process
+        """
+        
 
         file_size = os.path.getsize(file_path)
         file_size_mb = file_size / (1024 * 1024)

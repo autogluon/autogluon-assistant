@@ -53,8 +53,13 @@ Based on the above context, generate a search query that will help find tutorial
 IMPORTANT: Respond ONLY with the search query text. Do not include explanations, quotes, or any other formatting.
 """
 
-    def _build(self) -> str:
-        """Build a prompt for the LLM to generate a search query."""
+    def _build(self, **kwargs) -> str:
+        """Build a prompt for the LLM to generate a search query.
+        
+        Args:
+            **kwargs: Additional keyword arguments to customize the prompt building process
+        """
+        
 
         # Render the prompt using the variable provider
         prompt = self.render()

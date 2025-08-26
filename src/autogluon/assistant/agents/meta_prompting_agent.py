@@ -8,7 +8,7 @@ and dynamically rewrite a specific prompt to better suit the requirements.
 import logging
 from typing import Dict, Optional, Type
 
-from ..prompts import MetaPromptingPrompt, BasePrompt
+from ..prompts import MetaPromptingPrompt
 from .base_agent import BaseAgent
 from .utils import init_llm
 

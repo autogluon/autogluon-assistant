@@ -62,8 +62,13 @@ Be very clear about the problem type (e.g. audio classification/image regression
         )
         return description_file_contents
 
-    def _build(self) -> str:
-        """Build a prompt for the LLM to generate task description."""
+    def _build(self, **kwargs) -> str:
+        """Build a prompt for the LLM to generate task description.
+        
+        Args:
+            **kwargs: Additional keyword arguments to customize the prompt building process
+        """
+        
 
         description_file_contents = self.get_description_files_contents()
 

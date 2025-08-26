@@ -92,8 +92,13 @@ For example: "1,3,4" or "2,5" or just "1" if only one is relevant.
 DO NOT include any other text, explanation, or formatting in your response.
 """
 
-    def _build(self) -> str:
-        """Build a prompt for the LLM to select relevant tutorials."""
+    def _build(self, **kwargs) -> str:
+        """Build a prompt for the LLM to select relevant tutorials.
+        
+        Args:
+            **kwargs: Additional keyword arguments to customize the prompt building process
+        """
+        
 
         # Get tutorial information
         selected_tool = self.manager.selected_tool

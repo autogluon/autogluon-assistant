@@ -75,8 +75,13 @@ Requirements for your response:
 Do not include any other formatting or additional sections in your response.
 """
 
-    def _build(self) -> str:
-        """Build a prompt for the LLM to select appropriate library."""
+    def _build(self, **kwargs) -> str:
+        """Build a prompt for the LLM to select appropriate library.
+        
+        Args:
+            **kwargs: Additional keyword arguments to customize the prompt building process
+        """
+        
 
         # Render the prompt using the variable provider with additional variables
         additional_vars = {"tools_info": _format_tools_info(registry.tools)}

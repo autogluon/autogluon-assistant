@@ -234,24 +234,38 @@ class BasePrompt(ABC):
 
         return rendered
 
-    def build(self) -> str:
+    def build(self, **kwargs) -> str:
         """
         Build the prompt string.
         
         This method applies meta-prompting if enabled, then calls the _build method
         which should be implemented by subclasses.
+        
+        Args:
+            **kwargs: Additional keyword arguments to pass to the _build method.
+                     These can be used to customize the prompt building process.
+        
+        Returns:
+            str: The built prompt string
         """
         # Apply meta-prompting if appropriate - this ensures we have the latest context
         self.maybe_apply_meta_prompting()
         
-        # Call the template method that subclasses should override
-        return self._build()
+        # Call the template method that subclasses should override, passing all kwargs
+        return self._build(**kwargs)
     
-    def _build(self) -> str:
+    def _build(self, **kwargs) -> str:
         """
         Template method for building the prompt string.
         
         Subclasses should override this method instead of build().
+        
+        Args:
+            **kwargs: Additional keyword arguments to customize the prompt building process.
+                     These are passed from the build() method.
+        
+        Returns:
+            str: The built prompt string
         """
         raise NotImplementedError("Subclasses must implement _build()")
 
