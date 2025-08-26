@@ -29,7 +29,7 @@ def _format_tools_info(tools_info: Dict) -> str:
 
 class ToolSelectorPrompt(BasePrompt):
     """Handles prompts for tool selection"""
-    
+
     @classmethod
     def meta_instructions(cls) -> str:
         """
@@ -45,7 +45,7 @@ Considerations for rewriting this template:
 4. Emphasize specific features of libraries that are most relevant to the task domain
 5. Ensure the output format clearly identifies the selected tool with detailed justification
 """
-    
+
     def default_template(self) -> str:
         """Default template for tool selection"""
         return """
@@ -77,11 +77,10 @@ Do not include any other formatting or additional sections in your response.
 
     def _build(self, **kwargs) -> str:
         """Build a prompt for the LLM to select appropriate library.
-        
+
         Args:
             **kwargs: Additional keyword arguments to customize the prompt building process
         """
-        
 
         # Render the prompt using the variable provider with additional variables
         additional_vars = {"tools_info": _format_tools_info(registry.tools)}

@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class ExecuterPrompt(BasePrompt):
     """Handles prompts for code execution evaluation"""
-    
+
     @classmethod
     def meta_instructions(cls) -> str:
         """
@@ -24,7 +24,7 @@ Considerations for rewriting this template:
 4. Add specific checks for common failure modes in the given task context
 5. Ensure clear decision boundaries between success and failure states
 """
-    
+
     def default_template(self) -> str:
         """Default template for code execution evaluation"""
         return """You are an expert code evaluator. Analyze the execution results of the following Python code and determine if the execution was successful or if issues need to be fixed.
@@ -64,9 +64,11 @@ For validation scores:
 - Convert the score to ensure higher values indicate better performance (multiply "lower is better" metrics like RMSE, MAE, or loss by -1)
 - Return the converted score that follows the "higher is better" convention"""
 
-    def _build(self, stdout: str, stderr: str, code_to_analyze: str, execution_task: str, execution_data: str, **kwargs) -> str:
+    def _build(
+        self, stdout: str, stderr: str, code_to_analyze: str, execution_task: str, execution_data: str, **kwargs
+    ) -> str:
         """Build a prompt for the LLM to evaluate execution logs.
-        
+
         Args:
             stdout: Standard output from code execution
             stderr: Standard error from code execution
@@ -75,7 +77,7 @@ For validation scores:
             execution_data: Data structure information
             **kwargs: Additional keyword arguments to customize the prompt building process
         """
-        
+
         self.manager.save_and_log_states(content=stdout, save_name="stdout.txt", per_iteration=True, add_uuid=True)
         self.manager.save_and_log_states(content=stderr, save_name="stderr.txt", per_iteration=True, add_uuid=True)
 

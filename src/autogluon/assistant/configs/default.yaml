@@ -17,7 +17,7 @@ use_tutorial_summary: True
 continuous_improvement: False
 optimize_system_resources: False
 cleanup_unused_env: True
-enable_meta_prompting: False
+enable_meta_prompting: True
 
 # Default LLM Configuration
 # For each agent (coder, etc.) you can use a different one
@@ -38,10 +38,12 @@ llm: &default_llm
   multi_turn: False
   template: null
   add_coding_format_instruction: false
+  apply_meta_prompting: False
 
 python_coder:
   <<: *default_llm  # Merge llm_config
   multi_turn: True
+  apply_meta_prompting: True
 
 bash_coder:
   <<: *default_llm  # Merge llm_config
@@ -80,6 +82,7 @@ task_descriptor:
   <<: *default_llm  # Merge llm_config
   max_description_files_length_to_show: 1024
   max_description_files_length_for_summarization: 16384
+  apply_meta_prompting: True
 
 tool_selector:
   <<: *default_llm  # Merge llm_config

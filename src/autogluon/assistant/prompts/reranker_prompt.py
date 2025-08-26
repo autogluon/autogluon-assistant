@@ -50,7 +50,7 @@ def get_all_tutorials(selected_tool: str, condensed: bool = False) -> List[Tutor
 
 class RerankerPrompt(BasePrompt):
     """Handles prompts for tutorial retrieval and selection"""
-    
+
     @classmethod
     def meta_instructions(cls) -> str:
         """
@@ -66,7 +66,7 @@ Considerations for rewriting this template:
 4. Consider the specific data characteristics and model requirements when ranking relevance
 5. Ensure the response format maintains clarity in tutorial selection
 """
-    
+
     def default_template(self) -> str:
         """Default template for tutorial selection"""
         return """
@@ -94,11 +94,10 @@ DO NOT include any other text, explanation, or formatting in your response.
 
     def _build(self, **kwargs) -> str:
         """Build a prompt for the LLM to select relevant tutorials.
-        
+
         Args:
             **kwargs: Additional keyword arguments to customize the prompt building process
         """
-        
 
         # Get tutorial information
         selected_tool = self.manager.selected_tool

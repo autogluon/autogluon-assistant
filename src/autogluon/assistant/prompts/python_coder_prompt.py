@@ -86,12 +86,12 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
 
     def _build(self, **kwargs) -> str:
         """Build a prompt for the LLM to generate Python code.
-        
+
         Args:
             **kwargs: Additional keyword arguments to customize the prompt building process
         """
         assert self.manager.time_step >= 0, "run manager.step(user_input) before retrieving the prompt"
-        
+
         # Generate best code prompt and validation prompt
         best_code_prompt = self._generate_best_code_prompt()
         validation_prompt = self._generate_validation_prompt()

@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class BashCoderPrompt(BasePrompt):
     """Handles prompts for code execution evaluation"""
-    
+
     @classmethod
     def meta_instructions(cls) -> str:
         """
@@ -49,11 +49,10 @@ Notes:
 
     def _build(self, **kwargs) -> str:
         """Build a prompt for the LLM to evaluate execution logs.
-        
+
         Args:
             **kwargs: Additional keyword arguments to customize the prompt building process
         """
-        
 
         assert self.manager.time_step >= 0, "run manager.step(user_input) before retriving the prompt"
 

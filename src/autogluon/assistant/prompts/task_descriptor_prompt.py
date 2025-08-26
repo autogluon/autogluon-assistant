@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class TaskDescriptorPrompt(BasePrompt):
     """Handles prompts for task description generation"""
-    
+
     @classmethod
     def meta_instructions(cls) -> str:
         """
@@ -24,13 +24,16 @@ Considerations for rewriting this template:
 4. Prioritize extracting technical specifications over general descriptions
 5. Ensure the resulting description captures all critical task constraints and objectives
 """
-    
+
     def default_template(self) -> str:
         """Default template for task description generation"""
         return """
 Based ONLY on the information explicitly stated in the provided data structure and description files, provide a condensed and precise description of the data science task. Include only details that are directly mentioned in the source materials. Do not add assumptions or infer unstated information.
 
 Be very clear about the problem type (e.g. audio classification/image regression/seq-to-seq generation/etc.), input format, and prediction output format.
+
+### User Instruction
+{user_input_truncate_end_16384}
 
 ### Data Structure:
 (IMPORTANT: The metadata of example files in Data Structure may not be representative - do not make assumptions about data statistics based on examples.)
@@ -64,16 +67,21 @@ Be very clear about the problem type (e.g. audio classification/image regression
 
     def _build(self, **kwargs) -> str:
         """Build a prompt for the LLM to generate task description.
-        
+
         Args:
             **kwargs: Additional keyword arguments to customize the prompt building process
         """
-        
+
+        # Get user input using the manager's standard properties
+        try:
+            user_input = self.manager.user_input
+        except Exception:
+            user_input = self.manager.initial_user_input
 
         description_file_contents = self.get_description_files_contents()
 
         # Render the prompt using the variable provider with additional variables
-        additional_vars = {"description_file_contents": description_file_contents}
+        additional_vars = {"description_file_contents": description_file_contents, "user_input": user_input}
 
         prompt = self.render(additional_vars)
 

@@ -6,7 +6,7 @@ task and variables to generate customized prompts for other agents.
 """
 
 import logging
-from typing import Dict, Optional
+from typing import Dict
 
 from .base_prompt import BasePrompt
 
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class MetaPromptingPrompt(BasePrompt):
     """Handles meta-prompting for customizing other agent prompts"""
-    
+
     @classmethod
     def meta_instructions(cls) -> str:
         """
@@ -60,45 +60,45 @@ Return the customized prompt template as plain text only.
 
     def _build(self, **kwargs) -> str:
         """Build a prompt for the meta-prompting LLM.
-        
+
         Args:
             **kwargs: Additional keyword arguments to customize the prompt building process
         """
-        
+
         # We don't assert time_step here since meta-prompting might be used before the first step
 
         # Get the template to rewrite from the manager
         target_prompt_template = self.manager.target_prompt_instance.template
         meta_instructions = self.manager.target_prompt_instance.meta_instructions()
-        
+
         # Get user input using the manager's standard properties
         try:
             user_input = self.manager.user_input
-        except Exception as e:
+        except Exception:
             user_input = self.manager.initial_user_input
 
         # Render the prompt with additional variables
         additional_vars = {
             "target_prompt_template": target_prompt_template,
             "meta_instructions": meta_instructions,
-            "user_input": user_input
+            "user_input": user_input,
         }
-        
+
         prompt = self.render(additional_vars)
-        
+
         # Log the prompt for debugging if manager supports it
-        if hasattr(self.manager, 'save_and_log_states'):
+        if hasattr(self.manager, "save_and_log_states"):
             self.manager.save_and_log_states(
                 content=prompt, save_name="meta_prompting_prompt.txt", per_iteration=True, add_uuid=False
             )
-        
+
         return prompt
 
     def parse(self, response: Dict) -> str:
         """Parse the LLM's response to extract the rewritten template."""
         # Extract the rewritten template from the response
         rewritten_template = response.strip()
-        
+
         # Save the response and rewritten template for debugging
         self.manager.save_and_log_states(
             content=response, save_name="meta_prompting_response.txt", per_iteration=True, add_uuid=False
@@ -106,5 +106,5 @@ Return the customized prompt template as plain text only.
         self.manager.save_and_log_states(
             content=rewritten_template, save_name="rewritten_prompt_template.txt", per_iteration=True, add_uuid=False
         )
-        
+
         return rewritten_template

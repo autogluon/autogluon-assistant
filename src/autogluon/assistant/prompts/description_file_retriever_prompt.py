@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class DescriptionFileRetrieverPrompt(BasePrompt):
     """Handles prompts for description file identification"""
-    
+
     @classmethod
     def meta_instructions(cls) -> str:
         """
@@ -24,7 +24,7 @@ Considerations for rewriting this template:
 4. Prioritize README files, competition descriptions, and task specification documents
 5. Ensure the output format is clean and correctly structured for downstream processing
 """
-    
+
     def default_template(self) -> str:
         """Default template for description file identification"""
         return """
@@ -40,11 +40,10 @@ Description Files: [list ONLY the absolute path, one per line]
 
     def _build(self, **kwargs) -> str:
         """Build a prompt for the LLM to identify description files.
-        
+
         Args:
             **kwargs: Additional keyword arguments to customize the prompt building process
         """
-        
 
         # Render the prompt using the variable provider
         prompt = self.render()

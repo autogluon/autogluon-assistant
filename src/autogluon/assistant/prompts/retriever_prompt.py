@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 class RetrieverPrompt(BasePrompt):
     """Handles prompts for generating search queries for tutorial retriever"""
-    
+
     @classmethod
     def meta_instructions(cls) -> str:
         """
@@ -23,7 +23,7 @@ Considerations for rewriting this template:
 4. Balance specificity with breadth to ensure relevant tutorials are found
 5. Consider the context of previous errors when formulating search queries
 """
-    
+
     def default_template(self) -> str:
         """Default template for search query generation"""
         return """
@@ -55,11 +55,10 @@ IMPORTANT: Respond ONLY with the search query text. Do not include explanations,
 
     def _build(self, **kwargs) -> str:
         """Build a prompt for the LLM to generate a search query.
-        
+
         Args:
             **kwargs: Additional keyword arguments to customize the prompt building process
         """
-        
 
         # Render the prompt using the variable provider
         prompt = self.render()

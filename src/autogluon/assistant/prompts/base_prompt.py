@@ -6,16 +6,15 @@ for all prompt types in the system.
 """
 
 import logging
-import importlib
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+
+# Import at module level to avoid circular import
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from .variable_provider import VariableProvider
 
-# Import at module level to avoid circular import
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from .meta_prompting_prompt import MetaPromptingPrompt
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +38,15 @@ class BasePrompt(ABC):
         self.manager = manager
         self.variable_provider = VariableProvider(manager)
         self.template = None
-            
+
         # State for meta-prompting
+        self.apply_meta_prompting = (
+            hasattr(self.llm_config, "apply_meta_prompting") and self.llm_config.apply_meta_prompting
+        )
         self._original_template = template
         self._meta_prompted = False
         self._rewritten_template = None
-        
+
         # Initialize the template (without meta-prompting, that will happen in build())
         self.set_template(template, apply_meta_prompting=False)
 
@@ -82,12 +84,12 @@ class BasePrompt(ABC):
             self._load_template(self.llm_config.template)
         else:
             self.template = self.default_template()
-            
+
         # Apply meta-prompting if explicitly requested
         # Note: We'll typically delay meta-prompting until build() is called
         if apply_meta_prompting:
             self.maybe_apply_meta_prompting()
-            
+
     def maybe_apply_meta_prompting(self):
         """
         Apply meta-prompting if enabled and not already done.
@@ -97,37 +99,38 @@ class BasePrompt(ABC):
         # Don't apply meta-prompting to the meta prompting prompt itself to avoid infinite recursion
         # Import here to avoid circular import
         from .meta_prompting_prompt import MetaPromptingPrompt
+
         if isinstance(self, MetaPromptingPrompt):
             return
 
+        if not self.apply_meta_prompting:
+            return
+
         # Apply meta-prompting if enabled
-        if (self.manager.enable_meta_prompting and not self._meta_prompted):
+        if self.manager.enable_meta_prompting and not self._meta_prompted:
             self._apply_meta_prompting()
-    
+
     def _apply_meta_prompting(self):
         """Apply meta-prompting to rewrite the current template."""
         logger.info(f"Applying meta-prompting to rewrite template for {self.__class__.__name__}")
-        
+
         # Meta prompting will use the standard manager variables
         # No need to gather variables separately, as they'll be accessed directly from the manager
         # The meta-prompting prompt class knows how to access these variables via the manager
         # Store the original template and the current class on the manager
         # for the meta-prompting prompt to access
         self.manager.target_prompt_class = self
-        
+
         # Use the existing meta-prompting agent with all required parameters
-        prompt_name = self.__class__.__name__
-        rewritten_template = self.manager.meta_prompting_agent(
-            target_prompt_instance=self
-        )
+        rewritten_template = self.manager.meta_prompting_agent(target_prompt_instance=self)
 
         # The meta_prompting_agent already saves the rewritten template, no need to save again
-        
+
         # Update the template with the rewritten version
         self.template = rewritten_template
         self._meta_prompted = True
         self._rewritten_template = rewritten_template
-        
+
         logger.info(f"Successfully applied meta-prompting to {self.__class__.__name__}")
 
     def _truncate_output_end(self, output: str, max_length: int) -> str:
@@ -188,33 +191,33 @@ class BasePrompt(ABC):
     def build(self, **kwargs) -> str:
         """
         Build the prompt string.
-        
+
         This method applies meta-prompting if enabled, then calls the _build method
         which should be implemented by subclasses.
-        
+
         Args:
             **kwargs: Additional keyword arguments to pass to the _build method.
                      These can be used to customize the prompt building process.
-        
+
         Returns:
             str: The built prompt string
         """
         # Apply meta-prompting if appropriate - this ensures we have the latest context
         self.maybe_apply_meta_prompting()
-        
+
         # Call the template method that subclasses should override, passing all kwargs
         return self._build(**kwargs)
-    
+
     def _build(self, **kwargs) -> str:
         """
         Template method for building the prompt string.
-        
+
         Subclasses should override this method instead of build().
-        
+
         Args:
             **kwargs: Additional keyword arguments to customize the prompt building process.
                      These are passed from the build() method.
-        
+
         Returns:
             str: The built prompt string
         """
@@ -229,12 +232,12 @@ class BasePrompt(ABC):
     def default_template(self) -> str:
         """Default prompt template"""
         pass
-        
+
     @classmethod
     def meta_instructions(cls) -> str:
         """
         Template specifically for meta-prompting.
-        
+
         This template provides instructions on how to rewrite this prompt
         to better suit a specific task. Subclasses should override this
         method to provide prompt-specific guidance.

@@ -100,13 +100,13 @@ class Manager:
         )
 
         # Initialize meta-prompting
-        self.enable_meta_prompting = getattr(self.config, 'enable_meta_prompting', False)
+        self.enable_meta_prompting = getattr(self.config, "enable_meta_prompting", False)
         # Set up meta-prompting LLM config if enabled
         self.meta_prompting_agent = MetaPromptingAgent(
-                config=self.config,
-                manager=self,
-                llm_config=self.config.meta_prompting,
-            )
+            config=self.config,
+            manager=self,
+            llm_config=self.config.meta_prompting,
+        )
 
         # Initialize prompts
         self.generate_initial_prompts()
