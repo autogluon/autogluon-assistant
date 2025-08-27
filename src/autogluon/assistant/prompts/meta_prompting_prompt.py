@@ -43,7 +43,7 @@ You are a Prompt Engineer. Customize the original template for the specific task
 
 ### General Guidelines:
 1. Only modify if the original template does not work for this task
-2. Preserve core structure and variable placeholders (e.g., {<variable_name>})
+2. PRESERVE core structure and variable placeholders (i.e., {<variable_name>})
 3. Use truncation syntax when needed (e.g., {<variable_name>_truncate_end_2048})
 4. Add relevant domain-specific knowledge
 

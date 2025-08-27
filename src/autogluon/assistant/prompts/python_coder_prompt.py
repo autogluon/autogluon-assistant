@@ -24,7 +24,7 @@ class PythonCoderPrompt(BasePrompt):
         Returns specific instructions for meta-prompting the Python coder template.
         """
         return """
-The PythonCoderPrompt generates executable Python code for the specified task.
+This prompt generates executable Python code for the specified task. Make sure to PRESERVE the variables in the original template.
 """
 
     def default_template(self) -> str:

@@ -17,7 +17,7 @@ use_tutorial_summary: True
 continuous_improvement: False
 optimize_system_resources: False
 cleanup_unused_env: True
-enable_meta_prompting: True
+enable_meta_prompting: False
 
 # Default LLM Configuration
 # For each agent (coder, etc.) you can use a different one

@@ -54,10 +54,16 @@ def main(
         "--continuous_improvement",
         help="If enabled, the system will continue optimizing even after finding a valid solution. Instead of stopping at the first successful run, it will keep searching for better solutions until reaching the maximum number of iterations. This allows the system to potentially find higher quality solutions at the cost of additional computation time.",
     ),
-    need_user_input: bool = typer.Option(
+    enable_per_iteration_instruction: bool = typer.Option(
         False,
         "--enable-per-iteration-instruction",
         help="If enabled, provide an instruction at the start of each iteration (except the first, which uses the initial instruction). The process suspends until you provide it.",
+    ),
+    enable_meta_prompting: bool = typer.Option(
+        False,
+        "-m",
+        "--enable-meta-prompting",
+        help="If enabled, the system will refine the prompts itself based on user instruction and given data.",
     ),
     initial_user_input: str | None = typer.Option(
         None, "-t", "--initial-instruction", help="You can provide the initial instruction here."
@@ -100,7 +106,8 @@ def main(
         config_path=str(provider_config_path),
         max_iterations=max_iterations,
         continuous_improvement=continuous_improvement,
-        need_user_input=need_user_input,
+        enable_per_iteration_instruction=enable_per_iteration_instruction,
+        enable_meta_prompting=enable_meta_prompting,
         initial_user_input=initial_user_input,
         extract_archives_to=extract_archives_to,
         verbosity=verbosity,

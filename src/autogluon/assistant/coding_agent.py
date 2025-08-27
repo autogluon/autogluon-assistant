@@ -19,7 +19,8 @@ def run_agent(
     config_path=None,
     max_iterations=5,
     continuous_improvement=None,
-    need_user_input=False,
+    enable_meta_prompting=None,
+    enable_per_iteration_instruction=False,
     initial_user_input=None,
     extract_archives_to=None,
     manager=None,
@@ -95,17 +96,19 @@ def run_agent(
 
     if continuous_improvement is not None:
         config.continuous_improvement = continuous_improvement
+    if enable_meta_prompting is not None:
+        config.enable_meta_prompting = enable_meta_prompting
 
     if manager is None:
         manager = Manager(
             input_data_folder=input_data_folder,
             output_folder=output_folder,
             config=config,
-            need_user_input=need_user_input,
+            enable_per_iteration_instruction=enable_per_iteration_instruction,
             initial_user_input=initial_user_input,
         )
 
-    manager.set_initial_user_input(need_user_input=need_user_input, initial_user_input=initial_user_input)
+    manager.set_initial_user_input(enable_per_iteration_instruction=enable_per_iteration_instruction, initial_user_input=initial_user_input)
 
     while manager.time_step + 1 < max_iterations:
         logger.brief(f"Starting iteration {manager.time_step + 1}!")
