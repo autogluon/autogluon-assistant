@@ -43,7 +43,6 @@ class BasePrompt(ABC):
         self.apply_meta_prompting = (
             hasattr(self.llm_config, "apply_meta_prompting") and self.llm_config.apply_meta_prompting
         )
-        self._original_template = template
         self._meta_prompted = False
         self._rewritten_template = None
 
@@ -127,6 +126,7 @@ class BasePrompt(ABC):
         # The meta_prompting_agent already saves the rewritten template, no need to save again
 
         # Update the template with the rewritten version
+        self._original_template = self.template
         self.template = rewritten_template
         self._meta_prompted = True
         self._rewritten_template = rewritten_template

@@ -17,6 +17,7 @@ use_tutorial_summary: True
 continuous_improvement: False
 optimize_system_resources: False
 cleanup_unused_env: True
+enable_meta_prompting: False
 
 # Default LLM Configuration
 # For each agent (coder, etc.) you can use a different one
@@ -31,6 +32,7 @@ llm: &default_llm
   multi_turn: False
   template: null
   add_coding_format_instruction: false
+  apply_meta_prompting: False
 
 bash_coder:
   <<: *default_llm  # Merge llm_config
@@ -39,6 +41,7 @@ bash_coder:
 python_coder:
   <<: *default_llm  # Merge llm_config
   multi_turn: True
+  apply_meta_prompting: True
   template: |
     As a Data Visualization Agent, you will be given a folder containing data and description files. Please generate Python code using {selected_tool} to create insightful and informative visualizations. Follow these specifications:
 
@@ -103,6 +106,10 @@ executer:
   max_stdout_length: 8192
   max_stderr_length: 2048
 
+meta_prompting:
+  <<: *default_llm  # Merge llm_config
+  multi_turn: False
+
 reader:
   <<: *default_llm  # Merge llm_config
   details: False
@@ -127,6 +134,7 @@ task_descriptor:
   <<: *default_llm  # Merge llm_config
   max_description_files_length_to_show: 1024
   max_description_files_length_for_summarization: 16384
+  apply_meta_prompting: True
   template: |
     Based ONLY on the information explicitly stated in the provided data structure and description files, provide a condensed and precise description of the data visualization task. Include only details that are directly mentioned in the source materials. Do not add assumptions or infer unstated information.
 
