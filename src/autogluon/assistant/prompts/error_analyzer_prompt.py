@@ -10,6 +10,22 @@ logger = logging.getLogger(__name__)
 class ErrorAnalyzerPrompt(BasePrompt):
     """Handles prompts for error analysis"""
 
+    @classmethod
+    def meta_instructions(cls) -> str:
+        """
+        Returns specific instructions for meta-prompting the Error Analyzer template.
+        """
+        return """
+The ErrorAnalyzerPrompt analyzes execution errors and provides concise, actionable feedback on how to fix them.
+
+Considerations for rewriting this template:
+1. Focus on clear diagnostic analysis of root causes rather than symptoms
+2. Emphasize actionable, specific guidance for error resolution
+3. Structure the output to clearly separate error diagnosis from solution steps
+4. Include checks for common error patterns specific to the task domain
+5. Consider the context of previous errors and solutions when providing recommendations
+"""
+
     def default_template(self) -> str:
         """Default template for code execution evaluation"""
         return """
@@ -40,8 +56,12 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
 {previous_tutorial_prompt}
 """
 
-    def build(self) -> str:
-        """Build a prompt for the LLM to analyze errors."""
+    def _build(self, **kwargs) -> str:
+        """Build a prompt for the LLM to analyze errors.
+
+        Args:
+            **kwargs: Additional keyword arguments to customize the prompt building process
+        """
 
         # Render the prompt using the variable provider
         prompt = self.render()

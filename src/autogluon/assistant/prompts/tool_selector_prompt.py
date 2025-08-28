@@ -30,6 +30,22 @@ def _format_tools_info(tools_info: Dict) -> str:
 class ToolSelectorPrompt(BasePrompt):
     """Handles prompts for tool selection"""
 
+    @classmethod
+    def meta_instructions(cls) -> str:
+        """
+        Returns specific instructions for meta-prompting the Tool Selector template.
+        """
+        return """
+The ToolSelectorPrompt selects the most appropriate machine learning library for a given task based on data characteristics and requirements.
+
+Considerations for rewriting this template:
+1. Focus on clear criteria for matching libraries to specific data types and task requirements
+2. Include evaluation of library strengths and limitations for the particular use case
+3. Consider computational efficiency requirements based on data size and available resources
+4. Emphasize specific features of libraries that are most relevant to the task domain
+5. Ensure the output format clearly identifies the selected tool with detailed justification
+"""
+
     def default_template(self) -> str:
         """Default template for tool selection"""
         return """
@@ -59,8 +75,12 @@ Requirements for your response:
 Do not include any other formatting or additional sections in your response.
 """
 
-    def build(self) -> str:
-        """Build a prompt for the LLM to select appropriate library."""
+    def _build(self, **kwargs) -> str:
+        """Build a prompt for the LLM to select appropriate library.
+
+        Args:
+            **kwargs: Additional keyword arguments to customize the prompt building process
+        """
 
         # Render the prompt using the variable provider with additional variables
         additional_vars = {"tools_info": _format_tools_info(registry.tools)}

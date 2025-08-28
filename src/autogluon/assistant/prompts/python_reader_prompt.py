@@ -11,6 +11,22 @@ logger = logging.getLogger(__name__)
 class PythonReaderPrompt(BasePrompt):
     """Handles prompts for code execution evaluation"""
 
+    @classmethod
+    def meta_instructions(cls) -> str:
+        """
+        Returns specific instructions for meta-prompting the Python Reader template.
+        """
+        return """
+The PythonReaderPrompt generates code to read and analyze different file types, providing useful summaries of their contents.
+
+Considerations for rewriting this template:
+1. Focus on robust file handling for various formats (tabular, text, binary, compressed)
+2. Include specific adaptations for large files to prevent memory issues
+3. Emphasize efficient summarization techniques for different data structures
+4. Consider the specific file types relevant to the current task context
+5. Ensure output is properly truncated and formatted for downstream use
+"""
+
     def default_template(self) -> str:
         return """
 Generate Python code to read and analyze the file: "{file_path}"
@@ -34,8 +50,14 @@ Your code should:
 Return ONLY the Python code, no explanations. The code should be self-contained and executable on its own.
 """
 
-    def build(self, file_path, max_chars) -> str:
-        """Build a prompt for the LLM to evaluate execution logs."""
+    def _build(self, file_path, max_chars, **kwargs) -> str:
+        """Build a prompt for the LLM to evaluate execution logs.
+
+        Args:
+            file_path: Path to the file to read
+            max_chars: Maximum number of characters to include in the output
+            **kwargs: Additional keyword arguments to customize the prompt building process
+        """
 
         file_size = os.path.getsize(file_path)
         file_size_mb = file_size / (1024 * 1024)

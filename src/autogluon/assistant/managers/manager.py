@@ -11,6 +11,7 @@ from ..agents import (
     DescriptionFileRetrieverAgent,
     ErrorAnalyzerAgent,
     ExecuterAgent,
+    MetaPromptingAgent,
     RerankerAgent,
     RetrieverAgent,
     TaskDescriptorAgent,
@@ -34,6 +35,8 @@ class Manager:
         input_data_folder: str,
         output_folder: str,
         config: str,
+        initial_user_input: str,
+        enable_per_iteration_instruction: bool,
     ):
         """Initialize Manager with required paths and config from YAML file.
 
@@ -41,6 +44,8 @@ class Manager:
             input_data_folder: Path to input data directory
             output_folder: Path to output directory
             config_path: Path to YAML configuration file
+            initial_user_input: Initial user instruction
+            enable_per_iteration_instruction: If asking for per iteration user input
         """
         self.time_step = -1
         self.best_step = -1
@@ -60,6 +65,12 @@ class Manager:
         Path(output_folder).mkdir(parents=True, exist_ok=True)
 
         self.config = config
+
+        self.set_initial_user_input(
+            enable_per_iteration_instruction=enable_per_iteration_instruction, initial_user_input=initial_user_input
+        )
+
+        self.target_prompt_instance = None
 
         self.dp_agent = DataPerceptionAgent(
             config=self.config,
@@ -88,6 +99,15 @@ class Manager:
             manager=self,
             llm_config=self.config.tool_selector,
             prompt_template=None,  # TODO: add it to argument
+        )
+
+        # Initialize meta-prompting
+        self.enable_meta_prompting = getattr(self.config, "enable_meta_prompting", False)
+        # Set up meta-prompting LLM config if enabled
+        self.meta_prompting_agent = MetaPromptingAgent(
+            config=self.config,
+            manager=self,
+            llm_config=self.config.meta_prompting,
         )
 
         # Initialize prompts
@@ -307,8 +327,8 @@ class Manager:
             return self.val_scores[self.best_step]
         return None
 
-    def set_initial_user_input(self, need_user_input, initial_user_input):
-        self.need_user_input = need_user_input
+    def set_initial_user_input(self, enable_per_iteration_instruction, initial_user_input):
+        self.enable_per_iteration_instruction = enable_per_iteration_instruction
         self.initial_user_input = initial_user_input
 
     def step(self):
@@ -317,7 +337,7 @@ class Manager:
 
         user_input = self.initial_user_input
         # Get per iter user inputs if needed
-        if self.need_user_input:
+        if self.enable_per_iteration_instruction:
             if self.time_step > 0:
                 logger.brief(
                     f"[bold green]Previous iteration info is stored in:[/bold green] {os.path.join(self.output_folder, f'iteration_{self.time_step - 1}')}"

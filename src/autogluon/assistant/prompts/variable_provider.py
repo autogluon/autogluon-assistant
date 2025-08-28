@@ -117,7 +117,8 @@ class VariableProvider:
         """
         # This regex finds all {variable_name} patterns
         # but ignores escaped braces like \{not_a_variable\}
-        pattern = r"(?<!\\){([^{}]+)}"
+        # and excludes any {} that contain < or > characters
+        pattern = r"(?<!\\){([^{}<>]+)}"
         return set(re.findall(pattern, template))
 
     def validate_template(self, template: str) -> List[str]:
