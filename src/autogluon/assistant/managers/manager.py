@@ -66,7 +66,9 @@ class Manager:
 
         self.config = config
 
-        self.set_initial_user_input(enable_per_iteration_instruction=enable_per_iteration_instruction, initial_user_input=initial_user_input)
+        self.set_initial_user_input(
+            enable_per_iteration_instruction=enable_per_iteration_instruction, initial_user_input=initial_user_input
+        )
 
         self.target_prompt_instance = None
 

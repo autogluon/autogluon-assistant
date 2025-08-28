@@ -108,7 +108,9 @@ def run_agent(
             initial_user_input=initial_user_input,
         )
 
-    manager.set_initial_user_input(enable_per_iteration_instruction=enable_per_iteration_instruction, initial_user_input=initial_user_input)
+    manager.set_initial_user_input(
+        enable_per_iteration_instruction=enable_per_iteration_instruction, initial_user_input=initial_user_input
+    )
 
     while manager.time_step + 1 < max_iterations:
         logger.brief(f"Starting iteration {manager.time_step + 1}!")
