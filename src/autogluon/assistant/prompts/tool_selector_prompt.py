@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List, Union
 
 from ..tools_registry import registry
 from .base_prompt import BasePrompt
@@ -49,7 +49,7 @@ Considerations for rewriting this template:
     def default_template(self) -> str:
         """Default template for tool selection"""
         return """
-You are a data science expert tasked with selecting the most appropriate ML library for a specific task.
+You are a data science expert tasked with selecting and ranking the most appropriate ML libraries for a specific task.
 
 ### Task Description:
 {task_description}
@@ -62,15 +62,21 @@ You are a data science expert tasked with selecting the most appropriate ML libr
 
 IMPORTANT: Your response MUST follow this exact format:
 ---
-SELECTED_LIBRARY: <write only the exact library name from the options above>
-EXPLANATION: <provide your detailed reasoning>
+RANKED_LIBRARIES:
+1. <first choice library name>
+2. <second choice library name>
+3. <third choice library name>
+...
+
+EXPLANATION: <provide your detailed reasoning for the ranking>
 ---
 
 Requirements for your response:
-1. The SELECTED_LIBRARY must be exactly as shown in the available libraries list
-2. Use the exact headers "SELECTED_LIBRARY:" and "EXPLANATION:"
-3. Provide a clear, detailed explanation of why this library is the best choice
-4. Consider the task requirements, data characteristics, and library features
+1. The library names must be exactly as shown in the available libraries list
+2. Provide a ranking of at least 3 libraries (if available)
+3. Use the exact headers "RANKED_LIBRARIES:" and "EXPLANATION:"
+4. Provide a clear, detailed explanation of why you ranked the libraries in this order
+5. Consider the task requirements, data characteristics, and library features
 
 Do not include any other formatting or additional sections in your response.
 """
@@ -93,7 +99,7 @@ Do not include any other formatting or additional sections in your response.
 
         return prompt
 
-    def parse(self, response: str) -> Tuple[str, str]:
+    def parse(self, response: str) -> Union[List[str], str]:
         """
         Parse the library selection response from LLM with improved robustness.
 
@@ -101,63 +107,94 @@ Do not include any other formatting or additional sections in your response.
             response: The raw response from the LLM
 
         Returns:
-            Tuple[str, str]: (selected_tool, explanation)
+            Union[List[str], str]: Either a prioritized list of tools or a single tool name
         """
-        # Default values
-        selected_tool = ""
-        explanation = ""
-
         # Clean the response
         response = response.strip()
-
-        # Try different parsing strategies
-        # Strategy 1: Look for exact headers
-        selected_library_match = re.search(r"SELECTED_LIBRARY:[\s]*(.+?)(?:\n|$)", response, re.IGNORECASE)
-        explanation_match = re.search(
-            r"EXPLANATION:[\s]*(.+?)(?=SELECTED_LIBRARY:|$)", response, re.IGNORECASE | re.DOTALL
+        
+        # Strategy 1: Look for ranked libraries section
+        ranked_libraries_section = re.search(
+            r"RANKED_LIBRARIES:(.*?)(?=EXPLANATION:|$)", 
+            response, 
+            re.IGNORECASE | re.DOTALL
         )
-
+        
         # Strategy 2: Fallback to more lenient parsing
-        if not selected_library_match:
-            selected_library_match = re.search(
-                r"(?:selected|chosen|recommended).*?(?:library|tool):[\s]*(.+?)(?:\n|$)", response, re.IGNORECASE
+        if not ranked_libraries_section:
+            ranked_libraries_section = re.search(
+                r"(?:ranking|ranked|prioritized|priority).*?(?:libraries|tools):(.*?)(?=explanation:|$)",
+                response,
+                re.IGNORECASE | re.DOTALL
             )
-
+        
+        # Extract explanation
+        explanation_match = re.search(
+            r"EXPLANATION:[\s]*(.+?)$", 
+            response, 
+            re.IGNORECASE | re.DOTALL
+        )
+        
         if not explanation_match:
             explanation_match = re.search(
-                r"(?:explanation|reasoning|rationale):[\s]*(.+?)(?=$)", response, re.IGNORECASE | re.DOTALL
+                r"(?:explanation|reasoning|rationale):[\s]*(.+?)$", 
+                response, 
+                re.IGNORECASE | re.DOTALL
             )
-
-        # Extract and clean the matches
-        if selected_library_match:
-            selected_tool = selected_library_match.group(1).strip()
-        if explanation_match:
-            explanation = explanation_match.group(1).strip()
-
-        # Validate against available tools
+        
+        explanation = explanation_match.group(1).strip() if explanation_match else "No explanation provided by the model."
+        
+        # Parse the ranked libraries
+        prioritized_tools = []
+        
+        if ranked_libraries_section:
+            # Get the list section
+            ranked_section = ranked_libraries_section.group(1).strip()
+            
+            # Try to find numbered list items
+            list_items = re.findall(r"^\s*\d+\.\s*(.+?)$", ranked_section, re.MULTILINE)
+            
+            if list_items:
+                # Found a numbered list
+                for item in list_items:
+                    tool_name = item.strip()
+                    if tool_name:
+                        prioritized_tools.append(tool_name)
+            else:
+                # Try to find bullet points or just lines
+                list_items = re.findall(r"(?:^|\n)\s*(?:[-*•])?\s*(.+?)(?:$|\n)", ranked_section)
+                for item in list_items:
+                    tool_name = item.strip()
+                    if tool_name:
+                        prioritized_tools.append(tool_name)
+        
+        # Validate against available tools and clean up
         available_tools = set(registry.tools.keys())
-        if selected_tool and selected_tool not in available_tools:
-            # Try to find the closest match
-            closest_match = min(available_tools, key=lambda x: len(set(x.lower()) ^ set(selected_tool.lower())))
-            logger.warning(
-                f"Selected tool '{selected_tool}' not in available tools. " f"Using closest match: '{closest_match}'"
-            )
-            selected_tool = closest_match
-
-        # Final validation
-        if not selected_tool:
-            logger.error("Failed to extract selected tool from LLM response")
-            selected_tool = list(registry.tools.keys())[0]  # Default to first available tool
-            logger.warning(f"Defaulting to: {selected_tool}")
-
-        if not explanation:
-            logger.error("Failed to extract explanation from LLM response")
-            explanation = "No explanation provided by the model."
-
+        validated_tools = []
+        
+        for tool in prioritized_tools:
+            if tool in available_tools:
+                validated_tools.append(tool)
+            else:
+                # Try to find the closest match
+                closest_match = min(available_tools, key=lambda x: len(set(x.lower()) ^ set(tool.lower())))
+                logger.warning(
+                    f"Tool '{tool}' not in available tools. Using closest match: '{closest_match}'"
+                )
+                validated_tools.append(closest_match)
+        
+        # Final validation - if we couldn't parse any tools, default to original behavior
+        if not validated_tools:
+            logger.error("Failed to extract ranked tools from LLM response")
+            default_tool = list(registry.tools.keys())[0]  # Default to first available tool
+            logger.warning(f"Defaulting to single tool: {default_tool}")
+            self._log_results(response, default_tool, explanation)
+            return default_tool
+        
         # Log the results
-        self._log_results(response, selected_tool, explanation)
-
-        return selected_tool
+        tools_str = ", ".join(validated_tools)
+        self._log_results(response, tools_str, explanation)
+        
+        return validated_tools
 
     def _log_results(self, response: str, selected_tool: str, explanation: str):
         """Log the parsing results."""

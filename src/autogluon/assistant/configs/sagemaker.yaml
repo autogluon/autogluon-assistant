@@ -11,7 +11,7 @@ num_tutorial_retrievals: 30
 max_num_tutorials: 5
 max_user_input_length: 2048
 max_tutorial_length: 32768
-create_venv: false
+configure_env: false
 condense_tutorials: True
 use_tutorial_summary: True
 continuous_improvement: False

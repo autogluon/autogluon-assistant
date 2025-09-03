@@ -197,7 +197,7 @@ class VariableRegistry:
         # Best code related
         self.register(
             VariableDefinition(
-                name="best_code_prompt",
+                name="code_improvement_prompt",
                 description="Examples of high-quality code",
             )
         )

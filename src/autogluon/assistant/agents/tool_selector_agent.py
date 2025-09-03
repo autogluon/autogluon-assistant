@@ -1,5 +1,5 @@
 import logging
-from typing import Tuple
+from typing import Tuple, List, Union
 
 from ..prompts import ToolSelectorPrompt
 from .base_agent import BaseAgent
@@ -10,14 +10,15 @@ logger = logging.getLogger(__name__)
 
 class ToolSelectorAgent(BaseAgent):
     """
-    Select the most appropriate tool based on data description and task requirements.
+    Select and rank the most appropriate tools based on data description and task requirements.
 
     Agent Input:
     - data_prompt: Text string containing data prompt
     - description: Description of the task/data from previous analysis
 
     Agent Output:
-    - str: Selected tool name
+    - List[str]: Prioritized list of tool names
+    - str: Selected tool name (for backward compatibility)
     """
 
     def __init__(self, config, manager, llm_config, prompt_template):
@@ -39,8 +40,8 @@ class ToolSelectorAgent(BaseAgent):
                 multi_turn=self.tool_selector_llm_config.multi_turn,
             )
 
-    def __call__(self) -> Tuple[str, str]:
-        self.manager.log_agent_start("ToolSelectorAgent: choosing the most appropriate ML library for the task.")
+    def __call__(self) -> Union[List[str], str]:
+        self.manager.log_agent_start("ToolSelectorAgent: choosing and ranking ML libraries for the task.")
 
         # Build prompt for tool selection
         prompt = self.tool_selector_prompt.build()
@@ -54,8 +55,13 @@ class ToolSelectorAgent(BaseAgent):
 
         response = self.tool_selector_llm.assistant_chat(prompt)
 
-        selected_tool = self.tool_selector_prompt.parse(response)
+        tools = self.tool_selector_prompt.parse(response)
 
-        self.manager.log_agent_end(f"ToolSelectorAgent: selected {selected_tool}.")
+        if isinstance(tools, list) and tools:
+            tools_str = ", ".join(tools)
+            self.manager.log_agent_end(f"ToolSelectorAgent: selected tools in priority order: {tools_str}")
+        else:
+            # Handle the case where a single tool is returned (for backward compatibility)
+            self.manager.log_agent_end(f"ToolSelectorAgent: selected {tools}.")
 
-        return selected_tool
+        return tools

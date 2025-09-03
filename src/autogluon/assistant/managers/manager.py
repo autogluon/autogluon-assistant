@@ -179,9 +179,9 @@ class Manager:
 
         self.selected_tool = self.ts_agent()
 
-        # TODO: remove the hard code for "create_venv" (add in tool registry if need installation)
+        # TODO: remove the hard code for "configure_env" (add in tool registry if need installation)
         if self.selected_tool.lower() in ["machine learning", "huggingface", "fairseq"]:
-            self.config.create_venv = True
+            self.config.configure_env = True
 
         # Get tool-specific template and requirements if they exist
         tool_info = registry.get_tool(self.selected_tool)
@@ -647,3 +647,26 @@ class Manager:
     def __del__(self):
         """Destructor to ensure cleanup."""
         self.cleanup()
+
+    @property
+    def configure_env(self,):
+        if self.selected_tool.lower() in ["machine learning", "huggingface", "fairseq"]:
+            return True
+        else:
+            return self.config.configure_env
+
+    @property
+    def code_to_improve(self,):
+        if self.best_step >= 0:
+            return self.python_codes[self.best_step]
+        elif self.last_successful_step >= 0:
+            return self.python_codes[self.last_successful_step]
+        else:
+            return None
+
+    @property
+    def code_to_debug(self,):
+        if self.previous_error_message:
+            return self.python_codes[self.time_step-1]
+        else:
+            return None
