@@ -74,7 +74,8 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
 {user_input_truncate_end_2048}
 
 ### Previous Errors
-{all_error_analyses}
+These errors were encountered across different implementation approaches and may not be directly related to your current implementation. Use them as reference material to identify potential pitfalls and avoid similar mistakes in your implementation.
+{all_previous_error_analyses}
 
 ### Tutorials for Reference
 {tutorial_prompt}

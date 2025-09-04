@@ -175,6 +175,9 @@ def run_mcts_agent(
             if not config.continuous_improvement:
                 logger.brief("Stopping search - solution found and continuous improvement is disabled")
                 break
+        elif success is None:
+            logger.brief(f"Stopping search - all nodes are terminal.")
+            break
         else:
             # Increment successive failure counter
             successive_failures += 1
@@ -191,6 +194,7 @@ def run_mcts_agent(
         if iteration >= max_iterations:
             logger.warning(f"[bold red]Warning: Reached maximum iterations ({max_iterations})[/bold red]")
     
+    manager.visualize_results()
     # Report token usage and validation score summary
     manager.cleanup()
     

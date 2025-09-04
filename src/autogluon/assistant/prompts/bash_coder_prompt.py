@@ -36,7 +36,7 @@ Execute the Python script: {python_file_path}
 {python_code}
 
 ### Previous Error
-{all_error_analyses}
+{all_previous_error_analyses}
 
 ### Previous failed bash script:
 {previous_bash_script}

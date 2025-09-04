@@ -35,7 +35,7 @@ ERROR_SUMMARY: [Brief technical description of the root cause in 1-3 sentences]
 SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
 
 ### Error Message
-{previous_error_message_truncate_mid_8192}
+{error_message_truncate_mid_8192}
 
 ### Task Description
 {task_description}
@@ -47,13 +47,13 @@ SUGGESTED_FIX: [Specific debugging directions in 1-3 sentences without code]
 {user_input}
 
 ### Previous Python Code:
-{previous_python_code}
+{python_code}
 
 ### Previous Bash Script to Execute the Python Code:
-{previous_bash_script}
+{bash_script}
 
 ### Relevant Tutorials
-{previous_tutorial_prompt}
+{tutorial_prompt}
 """
 
     def _build(self, **kwargs) -> str:

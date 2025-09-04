@@ -51,6 +51,7 @@ class Node:
     
     # Node state tracking
     is_successful: bool = False  # Did the execution succeed?
+    is_debug_successful: bool = False  # Did the debug in the subtree succeed?
     is_terminal: bool = False   # Should this node not be expanded further?
     debug_attempts: int = 0  # Number of debug attempts on this node
     
@@ -229,6 +230,9 @@ class NodeManager:
         
         # User inputs storage
         self.user_inputs = []
+
+        # Error analysis storage
+        self._all_error_analyses = []
         
         # Tool tracking
         self.used_tools = set()
@@ -448,7 +452,7 @@ class NodeManager:
         node = self.root_node
         
         # Traverse the tree until we find a node to expand
-        while not node.is_leaf:
+        while node is not None and not node.is_leaf:
             # If the node is not fully expanded, return it
             if not self._is_fully_expanded(node):
                 return node
@@ -475,7 +479,7 @@ class NodeManager:
         # For debug nodes, stop expanding after getting a successful node
         if node.stage == "debug":
             # TODO: better debugging workflow?
-            if any(child.is_successful for child in node.children):
+            if node.is_debug_successful:
                 return True
             return node.num_children >= 3  # Max 3 debug attempts
             
@@ -487,7 +491,7 @@ class NodeManager:
     
     def _uct_select(self, node: Node) -> Node:
         """
-        Select the best child node according to UCT.
+        Select the best child node according to UCT, excluding terminal nodes.
         
         Args:
             node: The parent node
@@ -495,7 +499,14 @@ class NodeManager:
         Returns:
             The selected child node
         """
-        return max(node.children, key=lambda child: child.uct_value(self.exploration_constant))
+        non_terminal_children = [child for child in node.children if not child.is_terminal]
+        if not non_terminal_children:
+            # Fallback case - this shouldn't happen if backpropagation is working correctly
+            assert node.is_terminal, f"All children of node {node.id} are terminal but node itself is not marked terminal"
+            logger.info("All nodes are terminal. Run complete.")
+            return None
+
+        return max(non_terminal_children, key=lambda child: child.uct_value(self.exploration_constant))
     
     def expand(self) -> Node:
         """
@@ -548,7 +559,7 @@ class NodeManager:
         # Check if we've exceeded the maximum debug attempts for this node
         if self.current_node.debug_attempts >= self.max_debug_attempts:
             logger.warning(f"Node {self.current_node.id} has reached the maximum number of debug attempts ({self.max_debug_attempts}). Marking as terminal.")
-            self.current_node.is_terminal = True
+            self.mark_node_terminal(self.current_node)
 
         # Generate code for the node
         self._generate_code()
@@ -707,15 +718,32 @@ class NodeManager:
             self.last_successful_node = self.current_node
             self.last_successful_step = self.time_step
             self.current_node.error_message = ""
+            
+            # If this is a debug node, find the origin of the debug chain
+            if self.current_node.stage == "debug":
+                # Find the original node that started this debugging chain
+                debug_origin = self._find_debug_origin(self.current_node)
+
+                # Add this successful node as a sibling to the original buggy node
+                self.current_node.parent = debug_origin.parent
+                debug_origin.parent.add_child(self.current_node)
+                
+                self.mark_node_terminal(debug_origin)
+                
+                logger.info(f"Replaced debug origin node {debug_origin.id} with successful debug node {self.current_node.id}")
+            
             # TODO: use a reward based on validation score?
+            # REF: https://github.com/sjtu-sai-agents/ML-Master/blob/0f463e1c230667768a4da1ada45af60fba955def/agent/mcts_agent.py#L721C9-L721C24
             return 1.0  # Successful execution reward
         else:
             self.current_node.is_successful = False
             self.current_node.error_message = f"stderr: {stderr}\n\n" if stderr else ""
             self.current_node.error_message += f"Error summary: {error_summary}"
             
-            # Get error analysis
+            # Get error analysis. TODO (IMPORTANT) use current error messages: 
             self.current_node.error_analysis = self.error_analyzer()
+
+            self._all_error_analyses.append(self.current_node.error_analysis)
             
             # If this is a debug node and it failed, check parent's debug attempts
             if self.current_node.stage == "debug" and self.current_node.parent:
@@ -725,19 +753,18 @@ class NodeManager:
                 # If parent has reached max debug attempts, mark it as terminal
                 if self.current_node.parent.debug_attempts >= self.max_debug_attempts:
                     logger.warning(f"Parent node {self.current_node.parent.id} has reached the maximum debug attempts. Marking as terminal.")
-                    self.current_node.parent.is_terminal = True
+                    self.mark_node_terminal(self.current_node.parent)
             
-            return -1.0  # Failed execution penalty
+            return 0.0  # Failed execution penalty
     
     def backpropagate(self, reward: float):
         """
-        Backpropagate the reward up the tree.
+        Backpropagate the reward up the tree and update terminal status.
         
         Args:
             reward: The reward value
         """
         # TODO (IMPORTANT): also update error analysis
-        # REF: https://github.com/sjtu-sai-agents/ML-Master/blob/0f463e1c230667768a4da1ada45af60fba955def/agent/mcts_agent.py#L721C9-L721C24
         node = self.current_node
         while node is not None:
             node.update(reward)
@@ -752,6 +779,8 @@ class NodeManager:
         """
         # Selection: select a node to expand
         self.current_node = self.select_node()
+        if self.current_node is None:
+            return None
         
         # Expansion: create a new child node
         # Note: time_step is now incremented in the creation methods
@@ -764,6 +793,55 @@ class NodeManager:
         self.backpropagate(reward)
         
         return self.current_node.is_successful
+
+    def mark_node_terminal(self, node):
+        """
+        Mark a node and all its descendants as terminal.
+        Then check if any ancestors should be marked terminal.
+        
+        Args:
+            node: The node to mark as terminal
+        """
+        # Mark the node itself and all descendants as terminal
+        self._mark_subtree_terminal(node)
+        
+        # Check if any ancestors should be marked terminal
+        self._check_ancestors_terminal(node.parent)
+    
+    def _mark_subtree_terminal(self, node):
+        """
+        Recursively mark a node and all its descendants as terminal.
+        
+        Args:
+            node: The node to mark as terminal
+        """
+        if node.is_terminal:
+            return
+            
+        node.is_terminal = True
+        logger.info(f"Marking node {node.id} as terminal")
+        
+        # Recursively mark all children
+        for child in node.children:
+            self._mark_subtree_terminal(child)
+    
+    def _check_ancestors_terminal(self, node):
+        """
+        Recursively check if ancestors should be marked as terminal.
+        An ancestor is terminal if fully expanded and all children are terminal.
+        
+        Args:
+            node: The ancestor node to check
+        """
+        if node is None:
+            return
+            
+        if self._is_fully_expanded(node) and all(child.is_terminal for child in node.children):
+            node.is_terminal = True
+            logger.info(f"Marking ancestor node {node.id} as terminal (all children terminal)")
+            
+            # Continue checking up the tree
+            self._check_ancestors_terminal(node.parent)
 
     def _get_all_nodes(self) -> List[Node]:
         """
@@ -896,9 +974,43 @@ class NodeManager:
         if hasattr(self, "retriever"):
             self.retriever.cleanup()
     
+    def _find_debug_origin(self, node: Node) -> Optional[Node]:
+        """
+        Find the original node that started this debugging chain.
+        
+        Args:
+            node: The current node in the debug chain
+            
+        Returns:
+            The original node that started the debug chain
+        """
+        # Go up the tree until we find a non-debug node
+        current = node
+        while current.parent and current.parent.stage == "debug":
+            current = current.parent
+        
+        debug_origin = current.parent
+        assert not debug_origin.is_successful
+
+        return debug_origin
+        
     def __del__(self):
         """Destructor to ensure cleanup."""
         self.cleanup()
+        
+    def visualize_results(self, output_path: Optional[str] = None) -> str:
+        """
+        Generate a PDF visualization of the node structure.
+        
+        Args:
+            output_path: Path to save the PDF. If not provided, it will be saved to
+                        the output folder.
+                        
+        Returns:
+            The path to the generated PDF file
+        """
+        from .node_visualizer import visualize_results
+        return visualize_results(self, output_path)
     
     # Properties to maintain compatibility with Manager API
     @property
@@ -977,6 +1089,8 @@ class NodeManager:
     def all_previous_error_analyses(self) -> str:
         """Get all error analyses from previous nodes."""
         # TODO: make this recursive, handle debugging code and successful ones differently
+        return "\n\n".join(self._all_error_analyses)
+
         if not self.current_node:
             return ""
             
