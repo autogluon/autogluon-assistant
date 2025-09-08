@@ -1,5 +1,5 @@
 import logging
-from typing import Tuple, List, Union
+from typing import List, Union
 
 from ..prompts import ToolSelectorPrompt
 from .base_agent import BaseAgent

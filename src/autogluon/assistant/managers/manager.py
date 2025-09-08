@@ -649,14 +649,18 @@ class Manager:
         self.cleanup()
 
     @property
-    def configure_env(self,):
+    def configure_env(
+        self,
+    ):
         if self.selected_tool.lower() in ["machine learning", "huggingface", "fairseq"]:
             return True
         else:
             return self.config.configure_env
 
     @property
-    def code_to_improve(self,):
+    def code_to_improve(
+        self,
+    ):
         if self.best_step >= 0:
             return self.python_codes[self.best_step]
         elif self.last_successful_step >= 0:
@@ -665,8 +669,10 @@ class Manager:
             return None
 
     @property
-    def code_to_debug(self,):
+    def code_to_debug(
+        self,
+    ):
         if self.previous_error_message:
-            return self.python_codes[self.time_step-1]
+            return self.python_codes[self.time_step - 1]
         else:
             return None

@@ -1,2 +1,2 @@
 from .manager import Manager
-from .node_manager import NodeManager, Node
+from .node_manager import Node, NodeManager

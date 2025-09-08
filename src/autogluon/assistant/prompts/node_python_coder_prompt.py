@@ -6,11 +6,7 @@ when using the NodeManager with MCTS.
 """
 
 import logging
-from typing import Dict, Optional, Tuple
 
-from ..utils import get_cpu_count, get_gpu_count
-from .base_prompt import BasePrompt
-from .utils import extract_code
 from .python_coder_prompt import PythonCoderPrompt
 
 logger = logging.getLogger(__name__)
@@ -35,10 +31,12 @@ class NodePythonCoderPrompt(PythonCoderPrompt):
 
             code_improvement_prompt.append("### Previous Successful Code")
             if parent_score is not None:
-                code_improvement_prompt.append(f"The following code achieved a validation score of {parent_score:.4f}:")
+                code_improvement_prompt.append(
+                    f"The following code achieved a validation score of {parent_score:.4f}:"
+                )
             else:
                 code_improvement_prompt.append("The following code executed successfully:")
-                
+
             code_improvement_prompt.append("```python")
             code_improvement_prompt.append(parent_code)
             code_improvement_prompt.append("```")
@@ -46,10 +44,13 @@ class NodePythonCoderPrompt(PythonCoderPrompt):
             code_improvement_prompt.append(
                 "Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority."
             )
-            
-            if hasattr(self.manager.config, "optimize_system_resources") and self.manager.config.optimize_system_resources:
+
+            if (
+                hasattr(self.manager.config, "optimize_system_resources")
+                and self.manager.config.optimize_system_resources
+            ):
                 code_improvement_prompt.append(self._generate_system_resources_prompt())
-        
+
         # Check if we have a best node
         elif self.manager.best_node and self.manager.best_node != current_node:
             # Use the best node's code
@@ -67,10 +68,13 @@ class NodePythonCoderPrompt(PythonCoderPrompt):
             code_improvement_prompt.append(
                 "Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority."
             )
-            
-            if hasattr(self.manager.config, "optimize_system_resources") and self.manager.config.optimize_system_resources:
+
+            if (
+                hasattr(self.manager.config, "optimize_system_resources")
+                and self.manager.config.optimize_system_resources
+            ):
                 code_improvement_prompt.append(self._generate_system_resources_prompt())
-        
+
         # Check if we have a last successful node (different from best node)
         elif self.manager.last_successful_node and self.manager.last_successful_node != current_node:
             successful_code = self.manager.last_successful_node.python_code
@@ -84,14 +88,17 @@ class NodePythonCoderPrompt(PythonCoderPrompt):
             code_improvement_prompt.append(
                 "Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority."
             )
-            
-            if hasattr(self.manager.config, "optimize_system_resources") and self.manager.config.optimize_system_resources:
+
+            if (
+                hasattr(self.manager.config, "optimize_system_resources")
+                and self.manager.config.optimize_system_resources
+            ):
                 code_improvement_prompt.append(self._generate_system_resources_prompt())
-        
+
         # For debug nodes, always show the parent's code that needs debugging
         elif current_node and current_node.stage == "debug" and current_node.parent:
             parent_code = current_node.parent.python_code
-            
+
             code_improvement_prompt.append("### Code To Debug")
             code_improvement_prompt.append("The following code has errors that need to be fixed:")
             code_improvement_prompt.append("```python")
@@ -101,7 +108,7 @@ class NodePythonCoderPrompt(PythonCoderPrompt):
             code_improvement_prompt.append(
                 "Please identify and fix the errors in the code above. Make minimal changes necessary to fix the issues."
             )
-            
+
         # Do nothing if there's no successful code
         else:
             code_improvement_prompt = []

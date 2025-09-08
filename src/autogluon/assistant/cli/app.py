@@ -21,6 +21,7 @@ multiprocessing.resource_tracker.ensure_running = _noop
 
 app = typer.Typer(add_completion=False)
 
+
 @app.callback(invoke_without_command=True)
 def main(
     # === Run parameters ===
@@ -111,6 +112,7 @@ def main(
         extract_archives_to=extract_archives_to,
         verbosity=verbosity,
     )
+
 
 if __name__ == "__main__":
     app()

@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Dict, Tuple, List, Union
+from typing import Dict, List, Union
 
 from ..tools_registry import registry
 from .base_prompt import BasePrompt
@@ -111,48 +111,42 @@ Do not include any other formatting or additional sections in your response.
         """
         # Clean the response
         response = response.strip()
-        
+
         # Strategy 1: Look for ranked libraries section
         ranked_libraries_section = re.search(
-            r"RANKED_LIBRARIES:(.*?)(?=EXPLANATION:|$)", 
-            response, 
-            re.IGNORECASE | re.DOTALL
+            r"RANKED_LIBRARIES:(.*?)(?=EXPLANATION:|$)", response, re.IGNORECASE | re.DOTALL
         )
-        
+
         # Strategy 2: Fallback to more lenient parsing
         if not ranked_libraries_section:
             ranked_libraries_section = re.search(
                 r"(?:ranking|ranked|prioritized|priority).*?(?:libraries|tools):(.*?)(?=explanation:|$)",
                 response,
-                re.IGNORECASE | re.DOTALL
+                re.IGNORECASE | re.DOTALL,
             )
-        
+
         # Extract explanation
-        explanation_match = re.search(
-            r"EXPLANATION:[\s]*(.+?)$", 
-            response, 
-            re.IGNORECASE | re.DOTALL
-        )
-        
+        explanation_match = re.search(r"EXPLANATION:[\s]*(.+?)$", response, re.IGNORECASE | re.DOTALL)
+
         if not explanation_match:
             explanation_match = re.search(
-                r"(?:explanation|reasoning|rationale):[\s]*(.+?)$", 
-                response, 
-                re.IGNORECASE | re.DOTALL
+                r"(?:explanation|reasoning|rationale):[\s]*(.+?)$", response, re.IGNORECASE | re.DOTALL
             )
-        
-        explanation = explanation_match.group(1).strip() if explanation_match else "No explanation provided by the model."
-        
+
+        explanation = (
+            explanation_match.group(1).strip() if explanation_match else "No explanation provided by the model."
+        )
+
         # Parse the ranked libraries
         prioritized_tools = []
-        
+
         if ranked_libraries_section:
             # Get the list section
             ranked_section = ranked_libraries_section.group(1).strip()
-            
+
             # Try to find numbered list items
             list_items = re.findall(r"^\s*\d+\.\s*(.+?)$", ranked_section, re.MULTILINE)
-            
+
             if list_items:
                 # Found a numbered list
                 for item in list_items:
@@ -166,22 +160,20 @@ Do not include any other formatting or additional sections in your response.
                     tool_name = item.strip()
                     if tool_name:
                         prioritized_tools.append(tool_name)
-        
+
         # Validate against available tools and clean up
         available_tools = set(registry.tools.keys())
         validated_tools = []
-        
+
         for tool in prioritized_tools:
             if tool in available_tools:
                 validated_tools.append(tool)
             else:
                 # Try to find the closest match
                 closest_match = min(available_tools, key=lambda x: len(set(x.lower()) ^ set(tool.lower())))
-                logger.warning(
-                    f"Tool '{tool}' not in available tools. Using closest match: '{closest_match}'"
-                )
+                logger.warning(f"Tool '{tool}' not in available tools. Using closest match: '{closest_match}'")
                 validated_tools.append(closest_match)
-        
+
         # Final validation - if we couldn't parse any tools, default to original behavior
         if not validated_tools:
             logger.error("Failed to extract ranked tools from LLM response")
@@ -189,11 +181,11 @@ Do not include any other formatting or additional sections in your response.
             logger.warning(f"Defaulting to single tool: {default_tool}")
             self._log_results(response, default_tool, explanation)
             return default_tool
-        
+
         # Log the results
         tools_str = ", ".join(validated_tools)
         self._log_results(response, tools_str, explanation)
-        
+
         return validated_tools
 
     def _log_results(self, response: str, selected_tool: str, explanation: str):
