@@ -1,6 +1,6 @@
 # Bedrock Configuration
 
-per_execution_timeout: 86400
+per_execution_timeout: 3600
 
 # Data Perception
 max_file_group_size_to_show: 5
@@ -35,12 +35,12 @@ llm: &default_llm
 
 python_coder:
   <<: *default_llm  # Merge llm_config
-  multi_turn: True
+  multi_turn: False
   apply_meta_prompting: True
 
 bash_coder:
   <<: *default_llm  # Merge llm_config
-  multi_turn: True
+  multi_turn: False
 
 executer:
   <<: *default_llm  # Merge llm_config

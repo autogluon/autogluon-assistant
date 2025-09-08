@@ -96,7 +96,7 @@ python_coder:
     {user_input_truncate_end_2048}
 
     ### Previous Errors
-    {all_error_analyses}
+    {all_previous_error_analyses}
 
     ### Tutorials for Reference
     {tutorial_prompt}

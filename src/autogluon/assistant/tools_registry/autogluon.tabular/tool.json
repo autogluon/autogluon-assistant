@@ -4,6 +4,7 @@
   "description": "AutoGluon Tabular automates ML model training for tabular data, excelling at numerical and categorical data processing. It doesn't support NLP or image-based tasks.",
   "requirements": [],
   "prompt_template": [
+    "try to use presets=\"extreme\"",
     "DO NOT create validation dataset from training data. Validation score is provided during the training process.",
     "AutoGluon Tabular requires converting multiple label columns into either a single combined label for mutually exclusive cases or training separate predictors for each label in non-exclusive scenarios."
   ]

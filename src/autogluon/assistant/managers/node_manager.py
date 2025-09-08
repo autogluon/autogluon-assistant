@@ -47,7 +47,11 @@ class Node:
     
     # MCTS statistics
     visits: int = 0
-    total_reward: float = 0.0
+    validated_visits: int = 0  # Number of successful runs with validation scores
+    failure_visits: int = 0  # Number of failed runs
+    unvalidated_visits: int = 0  # Number of successful runs without validation scores
+    validated_reward: float = 0.0  # Total reward from validated runs
+    # total_reward: float = 0.0  # Replaced by separate reward tracking
     
     # Node state tracking
     is_successful: bool = False  # Did the execution succeed?
@@ -94,8 +98,16 @@ class Node:
         """
         Add a child node to this node.
         """
+        logger.detail(f"Node {child.id} is added to children of Node {self.id}.")
         self.children.add(child)
     
+    def remove_child(self, child: "Node") -> None:
+        """
+        Remove a child node of this node.
+        """
+        logger.detail(f"Node {child.id} is removed from children of Node {self.id}.")
+        self.children.remove(child)
+
     @property
     def is_leaf(self) -> bool:
         """
@@ -115,23 +127,36 @@ class Node:
         if self.parent and self.parent.tutorial_prompt:
             return self.parent.tutorial_prompt
     
-    def update(self, reward: float) -> None:
+    def update(self, reward: float, is_validated: bool = False, is_failure: bool = False) -> None:
         """
         Update the node's statistics with a new reward.
         
         Args:
-            reward: The reward value to add
+            reward: The raw validation score (for validated runs) or None
+            is_validated: Whether this reward comes from a validated run
+            is_failure: Whether this run was a failure
         """
         with self._lock:
             self.visits += 1
-            self.total_reward += reward
+            
+            if is_failure:
+                self.failure_visits += 1
+            elif is_validated and reward is not None:
+                # For validated runs, store the raw validation score
+                self.validated_visits += 1
+                self.validated_reward += reward  # Sum up the raw scores, will be normalized in UCT
+            else:
+                # For successful runs without validation
+                self.unvalidated_visits += 1
     
-    def uct_value(self, exploration_constant: float = 1.414) -> float:
+    def uct_value(self, exploration_constant: float = 1.414, best_score: Optional[float] = None, worst_score: Optional[float] = None, failure_offset: float = 0) -> float:
         """
         Calculate the UCT (Upper Confidence Bound for Trees) value of the node.
         
         Args:
             exploration_constant: The constant that controls exploration vs exploitation
+            best_score: The best validation score seen so far (for scaling)
+            worst_score: The worst validation score seen so far (for scaling)
             
         Returns:
             The UCT value
@@ -146,12 +171,35 @@ class Node:
         else:
             parent_visits = 1
 
+        # Calculate exploitation term based on node stats
+        self.normalized_failure_visit = max(0, self.failure_visits - failure_offset)
+        self.failure_penalty = -0.5 * self.normalized_failure_visit / self.visits
             
-        # Calculate exploitation and exploration terms
-        exploitation = self.total_reward / self.visits
-        exploration = exploration_constant * math.sqrt(math.log(parent_visits) / self.visits)
+        # Calculate the validated rewards part
+        if self.validated_visits > 0:
+            if best_score is not None and worst_score is not None and best_score > worst_score:
+                # Normalize the validated_reward using best and worst scores
+                # First get the average raw score
+                self.avg_raw_score = self.validated_reward / self.validated_visits
+                # Then normalize it between 0 and 1
+                self.normalized_score = (self.avg_raw_score - worst_score) / (best_score - worst_score)
+                self.validated_weight = self.validated_visits / self.visits
+                self.validated_contribution = self.validated_weight * self.normalized_score
+            else:
+                # If can't normalize
+                self.validated_contribution = 1.0
+        else:
+            self.validated_contribution = 0.0
+            
+        # Unvalidated contribution (nodes that succeeded but have no score) use a score of 0. and thus can be ignored
+            
+        # Total exploitation is the weighted sum of all components
+        self.exploitation = self.validated_contribution + self.failure_penalty
+            
+        # Calculate exploration term    
+        self.exploration = exploration_constant * math.sqrt(math.log(parent_visits) / self.visits)
         
-        return exploitation + exploration
+        return self.exploitation + self.exploration
     
     def __eq__(self, other):
         if not isinstance(other, Node):
@@ -211,6 +259,7 @@ class NodeManager:
         # Track best nodes and metrics
         self._best_node = None
         self._best_validation_score = None
+        self._worst_validation_score = None
         self.last_successful_node = None
         
         # Key node tracking
@@ -506,7 +555,32 @@ class NodeManager:
             logger.info("All nodes are terminal. Run complete.")
             return None
 
-        return max(non_terminal_children, key=lambda child: child.uct_value(self.exploration_constant))
+        # Pass the best and worst validation scores for proper scaling
+        # If current node is root, adjust exploration constant based on tool index
+        if node == self.root_node:
+            # Get each child's tool index in the available tools list
+            def get_child_uct(child):
+                # Tools earlier in the list get higher exploration constants
+                tool_index = self.available_tools.index(child.tool_used)
+                # Scale exploration constant - earlier tools get higher values
+                tool_specific_exploration = self.exploration_constant * max(0.25, 1.0 - 0.25 * tool_index)
+                # For each tool we have 2 free failures
+                uct_value = child.uct_value(
+                    tool_specific_exploration,
+                    self._best_validation_score,
+                    self._worst_validation_score,
+                    failure_offset=2,
+                )
+                logger.detail(f"UCT Value is {uct_value} for Node {child.id}")
+                return uct_value
+            return max(non_terminal_children, key=get_child_uct)
+        else:
+            # For non-root nodes, use the standard exploration constant
+            def get_child_uct(child):
+                uct_value = self.compute_uct_value(child)
+                logger.detail(f"UCT Value is {uct_value} for Node {child.id}")
+                return uct_value
+        return max(non_terminal_children, key=get_child_uct)
     
     def expand(self) -> Node:
         """
@@ -679,12 +753,15 @@ class NodeManager:
         
         self.user_inputs.append(user_input)
     
-    def simulate(self) -> float:
+    def simulate(self) -> tuple:
         """
         Simulate execution of current node and evaluate the result.
             
         Returns:
-            The reward value from the simulation
+            Tuple containing: (validation_score, is_validated, is_failure)
+                validation_score: The raw validation score (or None if not available)
+                is_validated: True if this run has a validation score
+                is_failure: True if this run failed
         """
         # Execute the code
         planner_decision, error_summary, validation_score, planner_prompt, stderr, stdout = self.executer(
@@ -705,12 +782,19 @@ class NodeManager:
         # Update validation score
         self.current_node.validation_score = validation_score
         
-        # Track the best node
+        # Track the best and worst validation scores for scaling in UCT calculation
         if validation_score is not None:
+            # Update best validation score
             if self._best_node is None or validation_score > self._best_validation_score:
                 self._best_node = self.current_node
                 self._best_validation_score = validation_score
                 self.best_step = self.time_step
+            
+            # Track worst validation score (initialize if not set yet)
+            if not hasattr(self, '_worst_validation_score') or self._worst_validation_score is None:
+                self._worst_validation_score = validation_score
+            else:
+                self._worst_validation_score = min(self._worst_validation_score, validation_score)
         
         # Determine if the execution was successful
         if planner_decision == "SUCCESS":
@@ -725,6 +809,7 @@ class NodeManager:
                 debug_origin = self._find_debug_origin(self.current_node)
 
                 # Add this successful node as a sibling to the original buggy node
+                self.current_node.parent.remove_child(self.current_node)
                 self.current_node.parent = debug_origin.parent
                 debug_origin.parent.add_child(self.current_node)
                 
@@ -732,15 +817,14 @@ class NodeManager:
                 
                 logger.info(f"Replaced debug origin node {debug_origin.id} with successful debug node {self.current_node.id}")
             
-            # TODO: use a reward based on validation score?
-            # REF: https://github.com/sjtu-sai-agents/ML-Master/blob/0f463e1c230667768a4da1ada45af60fba955def/agent/mcts_agent.py#L721C9-L721C24
-            return 1.0  # Successful execution reward
+            # Return the raw validation score (for tracking), is_validated flag, and is_failure flag
+            return (validation_score, validation_score is not None, False)
         else:
             self.current_node.is_successful = False
             self.current_node.error_message = f"stderr: {stderr}\n\n" if stderr else ""
             self.current_node.error_message += f"Error summary: {error_summary}"
             
-            # Get error analysis. TODO (IMPORTANT) use current error messages: 
+            # Get error analysis
             self.current_node.error_analysis = self.error_analyzer()
 
             self._all_error_analyses.append(self.current_node.error_analysis)
@@ -755,19 +839,22 @@ class NodeManager:
                     logger.warning(f"Parent node {self.current_node.parent.id} has reached the maximum debug attempts. Marking as terminal.")
                     self.mark_node_terminal(self.current_node.parent)
             
-            return 0.0  # Failed execution penalty
+            # For failures, we return None score, not validated, and is_failure=True
+            return (None, False, True)
     
-    def backpropagate(self, reward: float):
+    def backpropagate(self, simulation_result):
         """
         Backpropagate the reward up the tree and update terminal status.
         
         Args:
-            reward: The reward value
+            simulation_result: Tuple of (validation_score, is_validated, is_failure)
         """
-        # TODO (IMPORTANT): also update error analysis
+        # Extract simulation results
+        validation_score, is_validated, is_failure = simulation_result
+        
         node = self.current_node
         while node is not None:
-            node.update(reward)
+            node.update(validation_score, is_validated, is_failure)
             node = node.parent
     
     def step(self):
@@ -787,10 +874,10 @@ class NodeManager:
         self.expand()
         
         # Simulation: execute the code and get results
-        reward = self.simulate()
+        simulation_result = self.simulate()
         
         # Backpropagation: update node statistics
-        self.backpropagate(reward)
+        self.backpropagate(simulation_result)
         
         return self.current_node.is_successful
 
@@ -1012,6 +1099,9 @@ class NodeManager:
         from .node_visualizer import visualize_results
         return visualize_results(self, output_path)
     
+    def compute_uct_value(self, node):
+        return node.uct_value(self.exploration_constant, self._best_validation_score, self._worst_validation_score)
+
     # Properties to maintain compatibility with Manager API
     @property
     def user_input(self) -> str:

@@ -1,6 +1,13 @@
 # Tutorial Prompt Generator Configuration
 
-per_execution_timeout: 1800
+per_execution_timeout: 7200
+
+# MTCS
+exploration_constant: 1.414
+max_debug_depth: 5
+max_evolve_attempts: 10
+max_debug_attempts: 5
+metric_improvement_threshold: 5
 
 # Data Perception
 max_file_group_size_to_show: 5

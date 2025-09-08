@@ -223,7 +223,7 @@ class NodeVisualizer:
             "error_analysis": node.error_analysis,
             "validation_score": node.validation_score,
             "parent_id": node.parent.id if node.parent else None,
-            "child_ids": [child.id for child in node.children]
+            "child_ids": [child.id for child in node.children],
         }
 
     def _get_all_nodes(self) -> List[Node]:
@@ -271,6 +271,7 @@ class NodeVisualizer:
         
         # Create a table for node properties
         property_data = [["Property", "Value"]]
+        property_data.append(["uct_value", f"{self.node_manager.compute_uct_value(node):.4f}"])
         
         # Helper function to truncate long strings
         def truncate_string(s, max_len=500):
