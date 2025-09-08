@@ -61,9 +61,6 @@ class NodeTree(Flowable):
 
         collect_by_level(root)
 
-        # Calculate maximum number of nodes at any level
-        max_nodes_at_level = max(len(level_nodes) for level_nodes in nodes_by_level)
-
         # Level height - ensure enough vertical space between levels
         level_height = self.height / (max_depth + 2)
 

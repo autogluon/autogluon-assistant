@@ -181,7 +181,7 @@ class Node:
 
         # Calculate exploitation term based on node stats
         self.normalized_failure_visit = max(0, self.failure_visits - failure_offset)
-        self.failure_penalty = -0.5 * self.normalized_failure_visit / self.visits
+        self.failure_penalty = -self.failure_penalty_weight * self.normalized_failure_visit / self.visits
 
         # Calculate the validated rewards part
         if self.validated_visits > 0:
@@ -275,11 +275,10 @@ class NodeManager:
         self.last_successful_step = -1
 
         # MCTS parameters
-        self.exploration_constant = getattr(self.config, "exploration_constant", 1.414)
-        self.max_debug_depth = getattr(self.config, "max_debug_depth", 5)
-        self.max_evolve_attempts = getattr(self.config, "max_evolve_attempts", 3)
-        self.max_debug_attempts = getattr(self.config, "max_debug_attempts", 5)
-        self.metric_improvement_threshold = getattr(self.config, "metric_improvement_threshold", 0.01)
+        self.exploration_constant = self.config.exploration_constant
+        self.max_debug_depth = self.config.max_debug_depth
+        self.failure_offset = self.config.failure_offset
+        self.failure_penalty_weight = self.config.failure_penalty_weight
 
         # Tracking for thread safety
         self._node_lock = threading.Lock()
@@ -349,7 +348,7 @@ class NodeManager:
         )
 
         # Initialize meta-prompting
-        self.enable_meta_prompting = getattr(self.config, "enable_meta_prompting", False)
+        self.enable_meta_prompting = self.config.enable_meta_prompting
         self.meta_prompting_agent = MetaPromptingAgent(
             config=self.config,
             manager=self,
@@ -531,18 +530,18 @@ class NodeManager:
         """
         # Root node
         if node.stage == "root":
-            return node.num_children >= 5 or self._get_unused_tool() is None  # Allow 5 initial nodes
+            return node.num_children >= self.config.initial_root_children or self._get_unused_tool() is None
 
         # For debug nodes, stop expanding after getting a successful node
         if node.stage == "debug":
             # TODO: better debugging workflow?
             if node.is_debug_successful:
                 return True
-            return node.num_children >= 3  # Max 3 debug attempts
+            return node.num_children >= self.config.max_debug_children
 
         # For evolve nodes
         if node.stage == "evolve":
-            return node.num_children >= 3  # Max 3 evolve attempts
+            return node.num_children >= self.config.max_evolve_children
 
         return False
 
@@ -574,12 +573,12 @@ class NodeManager:
                 tool_index = self.available_tools.index(child.tool_used)
                 # Scale exploration constant - earlier tools get higher values
                 tool_specific_exploration = self.exploration_constant * max(0.25, 1.0 - 0.25 * tool_index)
-                # For each tool we have 2 free failures
+                # Use config for failure offset
                 uct_value = child.uct_value(
                     tool_specific_exploration,
                     self._best_validation_score,
                     self._worst_validation_score,
-                    failure_offset=2,
+                    failure_offset=self.failure_offset,
                 )
                 logger.detail(f"UCT Value is {uct_value} for Node {child.id}")
                 return uct_value
@@ -645,9 +644,9 @@ class NodeManager:
         )
 
         # Check if we've exceeded the maximum debug attempts for this node
-        if self.current_node.debug_attempts >= self.max_debug_attempts:
+        if self.current_node.debug_attempts >= self.max_debug_depth:
             logger.warning(
-                f"Node {self.current_node.id} has reached the maximum number of debug attempts ({self.max_debug_attempts}). Marking as terminal."
+                f"Node {self.current_node.id} has reached the maximum debug depth ({self.max_debug_depth}). Marking as terminal."
             )
             self.mark_node_terminal(self.current_node)
 
@@ -858,13 +857,13 @@ class NodeManager:
             if self.current_node.stage == "debug" and self.current_node.parent:
                 self.current_node.parent.debug_attempts += 1
                 logger.warning(
-                    f"Debug attempt failed. Debug attempts on parent node {self.current_node.parent.id}: {self.current_node.parent.debug_attempts}/{self.max_debug_attempts}"
+                    f"Debug attempt failed. Debug attempts on parent node {self.current_node.parent.id}: {self.current_node.parent.debug_attempts}/{self.max_debug_depth}"
                 )
 
                 # If parent has reached max debug attempts, mark it as terminal
-                if self.current_node.parent.debug_attempts >= self.max_debug_attempts:
+                if self.current_node.parent.debug_attempts >= self.max_debug_depth:
                     logger.warning(
-                        f"Parent node {self.current_node.parent.id} has reached the maximum debug attempts. Marking as terminal."
+                        f"Parent node {self.current_node.parent.id} has reached the maximum debug depth. Marking as terminal."
                     )
                     self.mark_node_terminal(self.current_node.parent)
 
