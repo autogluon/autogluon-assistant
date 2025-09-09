@@ -1,6 +1,6 @@
 """
-Node-based manager using pure Monte Carlo Tree Search. It implements a tree-based 
-search strategy that allows for more flexible exploration and exploitation of solution 
+Node-based manager using pure Monte Carlo Tree Search. It implements a tree-based
+search strategy that allows for more flexible exploration and exploitation of solution
 space. It also ensures all available tools are tried during the exploration process.
 """
 
@@ -155,6 +155,7 @@ class Node:
         best_score: Optional[float] = None,
         worst_score: Optional[float] = None,
         failure_offset: float = 0,
+        failure_penalty_weight: float = 0.5,
     ) -> float:
         """
         Calculate the UCT (Upper Confidence Bound for Trees) value of the node.
@@ -179,7 +180,7 @@ class Node:
 
         # Calculate exploitation term based on node stats
         self.normalized_failure_visit = max(0, self.failure_visits - failure_offset)
-        self.failure_penalty = -self.failure_penalty_weight * self.normalized_failure_visit / self.visits
+        self.failure_penalty = -failure_penalty_weight * self.normalized_failure_visit / self.visits
 
         # Calculate the validated rewards part
         if self.validated_visits > 0:
@@ -577,6 +578,7 @@ class NodeManager:
                     self._best_validation_score,
                     self._worst_validation_score,
                     failure_offset=self.failure_offset,
+                    failure_penalty_weight=self.failure_penalty_weight,
                 )
                 logger.detail(f"UCT Value is {uct_value} for Node {child.id}")
                 return uct_value
@@ -1143,7 +1145,13 @@ class NodeManager:
         logger.info(f"Full token usage detail:\n{usage}")
 
     def compute_uct_value(self, node):
-        return node.uct_value(self.exploration_constant, self._best_validation_score, self._worst_validation_score)
+        return node.uct_value(
+            self.exploration_constant,
+            self._best_validation_score,
+            self._worst_validation_score,
+            failure_offset=self.failure_offset,
+            failure_penalty_weight=self.failure_penalty_weight,
+        )
 
     # Properties to maintain compatibility with Manager API
     @property
