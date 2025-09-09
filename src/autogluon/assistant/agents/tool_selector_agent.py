@@ -57,6 +57,6 @@ class ToolSelectorAgent(BaseAgent):
 
         tools = self.tool_selector_prompt.parse(response)
 
-        self.manager.log_agent_end(f"ToolSelectorAgent: selected tools in priority order: {tools_str}")
+        self.manager.log_agent_end(f"ToolSelectorAgent: selected tools in priority order: {", ".join(tools)}")
 
         return tools
