@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, List, Literal, Optional, Set
 
+from ..llm import ChatLLMFactory
 from ..tools_registry import registry
 
 logger = logging.getLogger(__name__)
