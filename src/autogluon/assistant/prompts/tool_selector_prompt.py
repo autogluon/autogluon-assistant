@@ -62,21 +62,22 @@ You are a data science expert tasked with selecting and ranking the most appropr
 
 IMPORTANT: Your response MUST follow this exact format:
 ---
+EXPLANATION: <provide your detailed reasoning process for evaluating the libraries>
+
 RANKED_LIBRARIES:
 1. <first choice library name>
 2. <second choice library name>
 3. <third choice library name>
 ...
-
-EXPLANATION: <provide your detailed reasoning for the ranking>
 ---
 
 Requirements for your response:
-1. The library names must be exactly as shown in the available libraries list
-2. Provide a ranking of at least 3 libraries (if available)
-3. Use the exact headers "RANKED_LIBRARIES:" and "EXPLANATION:"
-4. Provide a clear, detailed explanation of why you ranked the libraries in this order
-5. Consider the task requirements, data characteristics, and library features
+1. First provide a detailed explanation of your reasoning process using the "EXPLANATION:" header
+2. Then provide a ranking of libraries using the "RANKED_LIBRARIES:" header
+3. The library names must be exactly as shown in the available libraries list
+4. Provide a ranking of at least 3 libraries (if available)
+5. In your explanation, analyze each library's strengths and weaknesses for this specific task
+6. Consider the task requirements, data characteristics, and library features
 
 Do not include any other formatting or additional sections in your response.
 """
@@ -112,30 +113,32 @@ Do not include any other formatting or additional sections in your response.
         # Clean the response
         response = response.strip()
 
-        # Strategy 1: Look for ranked libraries section
-        ranked_libraries_section = re.search(
-            r"RANKED_LIBRARIES:(.*?)(?=EXPLANATION:|$)", response, re.IGNORECASE | re.DOTALL
+        # Extract explanation first
+        explanation_match = re.search(
+            r"EXPLANATION:[\s]*(.+?)(?=RANKED_LIBRARIES:|$)", response, re.IGNORECASE | re.DOTALL
         )
-
-        # Strategy 2: Fallback to more lenient parsing
-        if not ranked_libraries_section:
-            ranked_libraries_section = re.search(
-                r"(?:ranking|ranked|prioritized|priority).*?(?:libraries|tools):(.*?)(?=explanation:|$)",
-                response,
-                re.IGNORECASE | re.DOTALL,
-            )
-
-        # Extract explanation
-        explanation_match = re.search(r"EXPLANATION:[\s]*(.+?)$", response, re.IGNORECASE | re.DOTALL)
 
         if not explanation_match:
             explanation_match = re.search(
-                r"(?:explanation|reasoning|rationale):[\s]*(.+?)$", response, re.IGNORECASE | re.DOTALL
+                r"(?:explanation|reasoning|rationale):[\s]*(.+?)(?=RANKED_LIBRARIES:|ranking|ranked|prioritized|priority|$)",
+                response,
+                re.IGNORECASE | re.DOTALL,
             )
 
         explanation = (
             explanation_match.group(1).strip() if explanation_match else "No explanation provided by the model."
         )
+
+        # Strategy 1: Look for ranked libraries section
+        ranked_libraries_section = re.search(r"RANKED_LIBRARIES:(.*?)$", response, re.IGNORECASE | re.DOTALL)
+
+        # Strategy 2: Fallback to more lenient parsing
+        if not ranked_libraries_section:
+            ranked_libraries_section = re.search(
+                r"(?:ranking|ranked|prioritized|priority).*?(?:libraries|tools):(.*?)$",
+                response,
+                re.IGNORECASE | re.DOTALL,
+            )
 
         # Parse the ranked libraries
         prioritized_tools = []
