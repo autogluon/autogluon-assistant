@@ -1,10 +1,7 @@
 """
-Node-based manager using pure Monte Carlo Tree Search.
-
-This module provides an alternative approach to the sequential iteration-based
-execution in AutoGluon Assistant. It implements a tree-based search strategy
-that allows for more flexible exploration and exploitation of solution space.
-It also ensures all available tools are tried during the exploration process.
+Node-based manager using pure Monte Carlo Tree Search. It implements a tree-based 
+search strategy that allows for more flexible exploration and exploitation of solution 
+space. It also ensures all available tools are tried during the exploration process.
 """
 
 import logging
