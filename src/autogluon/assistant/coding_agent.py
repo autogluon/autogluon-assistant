@@ -1,11 +1,3 @@
-"""
-MCTS-based search for AutoGluon Assistant.
-
-This module provides an alternative approach to the sequential iteration-based
-execution in AutoGluon Assistant. It implements a tree-based search strategy
-using Monte Carlo Tree Search (MCTS) to explore the solution space more effectively.
-"""
-
 import logging
 import os
 import time
@@ -32,6 +24,7 @@ def run_agent(
     enable_per_iteration_instruction=False,
     initial_user_input=None,
     extract_archives_to=None,
+    manager=None,
     verbosity=1,
 ):
     """
@@ -62,7 +55,7 @@ def run_agent(
         # Generate a random UUID4
         random_uuid = uuid.uuid4()
         # Create the folder name using the pattern
-        folder_name = f"mcts-{current_datetime}-{random_uuid}"
+        folder_name = f"mlzero-mcts-{current_datetime}-{random_uuid}"
 
         # Create the full path for the new folder
         output_folder = os.path.join(working_dir, folder_name)
@@ -125,29 +118,18 @@ def run_agent(
     if enable_meta_prompting is not None:
         config.enable_meta_prompting = enable_meta_prompting
 
-    # Add specific MCTS configuration parameters
-    config.exploration_constant = getattr(config, "exploration_constant", 1.414)
-    config.max_debug_depth = getattr(config, "max_debug_depth", 5)
-    config.max_evolve_attempts = getattr(config, "max_evolve_attempts", 3)
-    config.max_debug_attempts = getattr(config, "max_debug_attempts", 3)
-    config.metric_improvement_threshold = getattr(config, "metric_improvement_threshold", 0.01)
-
-    # Create a new NodeManager instance
-    manager = NodeManager(
-        input_data_folder=input_data_folder,
-        output_folder=output_folder,
-        config=config,
-        enable_per_iteration_instruction=enable_per_iteration_instruction,
-        initial_user_input=initial_user_input,
-    )
+    if manager is None:
+        # Create a new NodeManager instance
+        manager = NodeManager(
+            input_data_folder=input_data_folder,
+            output_folder=output_folder,
+            config=config,
+            enable_per_iteration_instruction=enable_per_iteration_instruction,
+            initial_user_input=initial_user_input,
+        )
 
     # Initialize the manager (generate initial prompts)
     manager.initialize()
-
-    # Variables for tracking best solutions
-    best_success_found = False
-    successive_failures = 0
-    max_successive_failures = 5
 
     # Execute the MCTS search
     iteration = 0
@@ -161,12 +143,6 @@ def run_agent(
         success = manager.step()
 
         if success:
-            # Reset the successive failure counter
-            successive_failures = 0
-
-            # Flag that we've found at least one successful solution
-            best_success_found = True
-
             # Create a best run copy when we find a successful solution
             manager.create_best_run_copy()
 
@@ -178,15 +154,7 @@ def run_agent(
             logger.brief("Stopping search - all nodes are terminal.")
             break
         else:
-            # Increment successive failure counter
-            successive_failures += 1
-
-            # If we've had too many successive failures, but we have a successful solution, stop
-            if successive_failures >= max_successive_failures and best_success_found:
-                logger.warning(
-                    f"Stopping search after {successive_failures} successive failures with a successful solution found"
-                )
-                break
+            pass
 
         # Increment iteration counter
         iteration += 1
@@ -196,6 +164,7 @@ def run_agent(
             logger.warning(f"[bold red]Warning: Reached maximum iterations ({max_iterations})[/bold red]")
 
     manager.visualize_results()
+    manager.report_token_usage()
     # Report token usage and validation score summary
     manager.cleanup()
 
@@ -205,7 +174,6 @@ def run_agent(
     logger.brief(f"Total nodes explored: {manager.time_step + 1}")
     logger.brief(f"Best validation score: {manager.best_validation_score}")
     logger.brief(f"Tools used: {', '.join(manager.used_tools)}")
-    logger.brief(f"Tools not used: {', '.join(set(manager.available_tools) - manager.used_tools)}")
     logger.brief(f"Output saved in {output_dir}")
 
 

@@ -1132,6 +1132,18 @@ class NodeManager:
 
         return visualize_results(self, output_path)
 
+    def report_token_usage(self):
+        token_usage_path = os.path.join(self.output_folder, "token_usage.json")
+        usage = ChatLLMFactory.get_total_token_usage(save_path=token_usage_path)
+        total = usage["total"]
+        logger.brief(
+            f"Total tokens — input: {total['total_input_tokens']}, "
+            f"output: {total['total_output_tokens']}, "
+            f"sum: {total['total_tokens']}"
+        )
+
+        logger.info(f"Full token usage detail:\n{usage}")
+
     def compute_uct_value(self, node):
         return node.uct_value(self.exploration_constant, self._best_validation_score, self._worst_validation_score)
 
