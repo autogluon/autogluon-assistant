@@ -8,6 +8,9 @@ LOGO_DAY_PATH = PACKAGE_ROOT / "webui" / "static" / "sidebar_logo_blue.png"
 LOGO_NIGHT_PATH = PACKAGE_ROOT / "webui" / "static" / "sidebar_icon.png"
 LOGO_PATH = PACKAGE_ROOT / "webui" / "static" / "page_icon.png"
 
+### Default Library
+DEFAULT_LIBRARY = "machine learning"
+
 ### WebUI
 
 VALID_CODING_LANGUAGES = ["python", "bash"]

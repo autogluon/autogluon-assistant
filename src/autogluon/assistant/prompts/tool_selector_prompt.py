@@ -2,6 +2,7 @@ import logging
 import re
 from typing import Dict, List, Union
 
+from ..constants import DEFAULT_LIBRARY
 from ..tools_registry import registry
 from .base_prompt import BasePrompt
 
@@ -180,10 +181,10 @@ Do not include any other formatting or additional sections in your response.
         # Final validation - if we couldn't parse any tools, default to original behavior
         if not validated_tools:
             logger.error("Failed to extract ranked tools from LLM response")
-            default_tool = list(registry.tools.keys())[0]  # Default to first available tool
+            default_tool = DEFAULT_LIBRARY
             logger.warning(f"Defaulting to single tool: {default_tool}")
             self._log_results(response, default_tool, explanation)
-            return default_tool
+            return [default_tool]
 
         # Log the results
         tools_str = ", ".join(validated_tools)
