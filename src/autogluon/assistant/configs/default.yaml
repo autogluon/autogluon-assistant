@@ -35,10 +35,6 @@ llm: &default_llm
   #       and requires AWS credentials
   provider: bedrock
   model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
-  #provider: openai
-  #model: gpt-4o-2024-08-06
-  #provider: anthropic
-  # model: claude-3-7-sonnet-20250219
   max_tokens: 65535
   proxy_url: null
   temperature: 0.1
