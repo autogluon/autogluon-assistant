@@ -19,6 +19,11 @@
 
 AutoGluon Assistant (aka MLZero) is a multi-agent system that automates end-to-end multimodal machine learning or deep learning workflows by transforming raw multimodal data into high-quality ML solutions with zero human intervention.
 
+## News
+**✨ Accepted to NeurIPS 2025** as a poster presentation
+
+**🔄 Performance enhancement release** coming late October 2025
+
 ## Documentation
 
 For detailed usage instructions and advanced options, please refer to our tutorials:
