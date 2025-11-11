@@ -22,7 +22,7 @@ AutoGluon Assistant (aka MLZero) is a multi-agent system that automates end-to-e
 ## News
 **✨ Accepted to NeurIPS 2025** as a poster presentation
 
-**🔄 Performance enhancement release** coming late October 2025
+**🔄 Performance enhancement release** coming late November 2025
 
 ## Documentation
 
