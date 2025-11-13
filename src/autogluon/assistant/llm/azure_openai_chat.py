@@ -8,6 +8,7 @@ from openai import AzureOpenAI
 from .base_chat import BaseAssistantChat
 
 logger = logging.getLogger(__name__)
+NO_TEMPERATURE_MODELS = {"o1", "o1-mini", "o3", "o3-mini"}
 
 
 class AssistantAzureChatOpenAI(AzureChatOpenAI, BaseAssistantChat):
@@ -53,7 +54,7 @@ def create_azure_openai_chat(config, session_name: str) -> AssistantAzureChatOpe
         "max_tokens": config.max_tokens,
     }
 
-    if hasattr(config, "temperature"):
+    if hasattr(config, "temperature") and model not in NO_TEMPERATURE_MODELS:
         kwargs["temperature"] = config.temperature
 
     if hasattr(config, "verbose"):

@@ -34,25 +34,65 @@ As an AutoML Agent, you will be given a folder containing data and description f
 ONLY save files to the working directory: {per_iteration_output_folder}.
 
 1. Data preprocessing:
-   - Remove training data samples without valid labels (drop NA values from training dataset ONLY, NOT from test dataset) unless explicitly instructed otherwise.
-   - Remove the unneccesary index column (if applicable)
+   - Remove training data samples without valid labels (drop NA values from the training dataset ONLY, NOT from test dataset) unless explicitly instructed otherwise.
+   - Remove any unneccesary index column (if present).
+   - If the environment variable MLZERO_SAMPLE_SIZE is set and the training dataset contains more than MLZERO_SAMPLE_SIZE rows, draw a random sample:
+        ```python
+        import os
 
-2. Model training:
+        if "MLZERO_SAMPLE_SIZE" in os.environ:
+            sample_size = int(os.getenv("MLZERO_SAMPLE_SIZE"))
+            if len(train_data) > sample_size:
+                train_data = train_data.sample(n=sample_size, random_state=42)
+            else:
+                print(f"Training dataset has {len(train_data)} rows, which is less than MLZERO_SAMPLE_SIZE {sample_size}. Skipping sampling.")
+        ```
+
+2. Data enrichment:
+    - Perform this step only if UPGINI_API_KEY is set in the environment and the data is tabular. Otherwise, skip this step.
+    - Use Upgini to enrich the data and select the most relevant features from internal and external sources.
+    - Example of usage:
+        ```python
+        from upgini import FeaturesEnricher
+        enricher = FeaturesEnricher()
+        train_data_features = enricher.fit_transform(train_data.drop(columns=label), train_data[label], eval_set=(test_data.drop(columns=label, errors='ignore'), ), calculate_metrics=False)
+        train_data = pd.concat([train_data_features, train_data[[label]]], axis=1)
+        test_data_for_prediction = enricher.transform(test_data.drop(columns=label), errors='ignore')
+        # If the dataset includes a stable identifier column (e.g., id, row_id, key, uid, or any column with 100% unique values), after enrichment, include it in the test data for prediction
+        test_data_for_prediction = pd.concat([test_data[[id_column_name]], test_data_for_prediction], axis=1)
+        ```
+    - If there are multiple target columns, enrich the data separately for each target:
+        ```python
+        train_data_features = dict()
+        test_data_for_prediction = dict()
+        for label in labels:
+            train_data_features[label] = enricher.fit_transform(train_data.drop(columns=labels), train_data[label], eval_set=(test_data.drop(columns=labels, errors='ignore'), ), calculate_metrics=False)
+            test_data_features = enricher.transform(test_data.drop(columns=labels, errors='ignore'), errors='ignore')
+            test_data_for_prediction[label] = pd.concat([test_data[[id_column_name]], test_data_features], axis=1)
+
+        predictions = dict()
+        for label in labels:
+            predictor = ...
+            predictor.fit(train_data=train_data_features[label], ...)
+            predictions[label] = predictor.predict(test_data_for_prediction[label])
+        ```
+
+3. Model training:
    - Use {selected_tool} with appropriate parameters for the task
    - If a model is trained, save it in a folder with random timestamp within {per_iteration_output_folder}
 
-3. Prediction:
+4. Prediction:
    - Make predictions on the test data. Always preserve and use the ORIGINAL INDICES from the test data to maintain exact row correspondence - DO NOT generate new indices or rely on assumed ordering.
    - Save the predicted results to {per_iteration_output_folder}, result file name should be "results", the format and extension should be same as the test data file
    - Output column names must exactly match those in the training or sample submission files without adding "predicted_" prefixes or creating any new columns.
    - At the end, implement validation checks that assert the prediction file maintains exact test data indices, verify correct column names match requirements, and confirm proper output format.
 
-4. Documentation:
+5. Documentation:
    - Add a brief docstring at the beginning of the script explaining its purpose
    - Include additional installation steps with comments at the beginning of the script
    - Include comments explaining any complex operations or design decisions
 
-5. Others:
+6. Others:
    - To avoid DDP errors, wrap the code in: if __name__ == "__main__":
    - Ensure errors are propagated up and not silently caught - do not use try/except blocks unless you explicitly re-raise the exception.
 
