@@ -12,3 +12,4 @@ python-dateutil
 datasets>=3.6
 six
 pyarrow
+upgini

@@ -95,7 +95,7 @@ def main(
     # 3) Invoke the core run_agent function
     # Override config path if provider is specified and config path is default
     provider_config_path = config_path
-    if llm_provider in ["bedrock", "openai", "anthropic", "sagemaker"] and config_path == DEFAULT_CONFIG_PATH:
+    if llm_provider in ["bedrock", "openai", "anthropic", "sagemaker", "azure"] and config_path == DEFAULT_CONFIG_PATH:
         provider_config_path = Path(DEFAULT_CONFIG_PATH).parent / f"{llm_provider}.yaml"
         if not provider_config_path.exists():
             provider_config_path = DEFAULT_CONFIG_PATH
