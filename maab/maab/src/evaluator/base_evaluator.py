@@ -1,4 +1,6 @@
 import os
+import time
+import fcntl
 from abc import ABC, abstractmethod
 from typing import Any, Dict
 
@@ -87,16 +89,73 @@ class BaseEvaluator(ABC):
             raise ValueError(f"Error loading file {file_path}: {str(e)}")
 
     def write_results(self, results_path: str, metadata: Dict[str, Any], score: float, agent_name: str):
-        """Write evaluation results to a file (CSV format)"""
-        results_df = pd.DataFrame()
-        if os.path.exists(results_path):
-            results_df = pd.read_csv(results_path)
+        """Write evaluation results to a file (CSV format) with only 5 columns:
+        agent_name, dataset_name, problem_type, metric_name, metric_value
 
-        new_row = {**metadata, "result": score, "agent_name": agent_name}
+        Uses file locking to safely handle concurrent writes from multiple processes.
+        Will retry several times if the file is locked.
+        """
+        # Create a new row with only the 5 required columns
+        new_row = {
+            "agent_name": agent_name,
+            "dataset_name": metadata["dataset_name"],
+            "problem_type": metadata["problem_type"],
+            "metric_name": metadata["metric_name"],
+            "metric_value": score
+        }
         new_row_df = pd.DataFrame([new_row])
-        results_df = pd.concat([results_df, new_row_df], ignore_index=True)
-        results_df.to_csv(results_path, index=False)
-        print(f"Results written to {results_path}")
+
+        # Create lock file path
+        lock_path = f"{results_path}.lock"
+
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(results_path), exist_ok=True)
+
+        # Try to acquire lock and write results
+        max_retries = 60
+        retry_delay = 2  # seconds
+
+        for attempt in range(max_retries):
+            try:
+                # Open the lock file
+                with open(lock_path, "a") as lock_file:
+                    # Acquire an exclusive lock (will block if another process has the lock)
+                    fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+                    try:
+                        # Read existing results if file exists
+                        if os.path.exists(results_path) and os.path.getsize(results_path) > 0:
+                            results_df = pd.read_csv(results_path)
+                        else:
+                            # Create new DataFrame with the right columns
+                            results_df = pd.DataFrame(columns=[
+                                "agent_name", "dataset_name", "problem_type", "metric_name", "metric_value"
+                            ])
+
+                        # Append new row and write back to file
+                        results_df = pd.concat([results_df, new_row_df], ignore_index=True)
+                        results_df.to_csv(results_path, index=False)
+                        print(f"Results written to {results_path}")
+
+                    finally:
+                        # Release the lock
+                        fcntl.flock(lock_file, fcntl.LOCK_UN)
+
+                # If we get here, the write was successful
+                break
+
+            except IOError:
+                # Failed to acquire lock
+                print(f"File is locked, retrying in {retry_delay} seconds (attempt {attempt+1}/{max_retries})...")
+                time.sleep(retry_delay)
+                continue
+
+            except Exception as e:
+                print(f"Error writing results: {str(e)}")
+                raise
+        else:
+            # We've exhausted all retries
+            raise IOError(f"Failed to write results after {max_retries} attempts: file {results_path} is locked")
 
     def evaluate(
         self,
