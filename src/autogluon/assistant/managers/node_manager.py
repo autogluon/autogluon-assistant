@@ -907,6 +907,11 @@ class NodeManager:
         # Backpropagation: update node statistics
         self.backpropagate(simulation_result)
 
+        # Generate a visualization of the node tree after each iteration
+        from .node_visualizer import visualize_tree_only
+
+        visualize_tree_only(self)
+
         return self.current_node.is_successful
 
     def mark_node_terminal(self, node):
@@ -1062,6 +1067,21 @@ class NodeManager:
 
         except Exception as e:
             logger.error(f"Failed to copy folder: {e}")
+
+    def remove_current_iteration_folder(self):
+        if not self.current_node:
+            logger.warning("Current node is None.")
+            return
+        source_folder = self.get_iteration_folder(self.current_node)
+        if os.path.exists(source_folder):
+            import shutil
+
+            try:
+                shutil.rmtree(source_folder)
+                logger.info(f"Removed iteration folder of Node {target_node.id} to save disk space.")
+            except Exception as e:
+                logger.error(f"Failed to remove existing current iteration folder folder: {e}")
+                return
 
     def get_validation_score_summary(self) -> str:
         """

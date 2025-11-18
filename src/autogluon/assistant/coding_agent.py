@@ -156,6 +156,8 @@ def run_agent(
         else:
             pass
 
+        manager.remove_current_iteration_folder()
+
         # Increment iteration counter
         iteration += 1
 

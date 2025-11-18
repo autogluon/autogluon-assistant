@@ -138,6 +138,14 @@ class NodeTree(Flowable):
         self.canv.setFont("Helvetica", 8)
         self.canv.drawCentredString(x, y - 2, str(node_id))
 
+        # Draw validation score below the node if available
+        validation_score = node_data.get("validation_score")
+        if validation_score is not None:
+            self.canv.setFont("Helvetica", 7)
+            # Format validation score to 2 decimal places
+            score_text = f"{validation_score:.2f}"
+            self.canv.drawCentredString(x, y - radius - 8, score_text)
+
         # Standard PDF link approach
 
         # Add clickable area with larger detection area for easier clicking
@@ -341,6 +349,79 @@ class NodeVisualizer:
         elements.append(Spacer(1, 20))
         return elements
 
+    def visualize_tree_only(self, output_path: Optional[str] = None) -> str:
+        """
+        Generate a PDF visualization of just the node tree structure (without node details).
+
+        Args:
+            output_path: Path to save the PDF. If not provided, it will be saved to
+                        the node manager's output folder with a name indicating the iteration.
+
+        Returns:
+            The path to the generated PDF file
+        """
+        # Set default output path
+        if output_path is None:
+            # Use the current time step to create a unique filename
+            time_step = self.node_manager.time_step
+            output_path = os.path.join(self.node_manager.output_folder, f"node_tree_iteration_{time_step}.pdf")
+
+        # Get all nodes
+        all_nodes = self._get_all_nodes()
+
+        # Create PDF document
+        doc = SimpleDocTemplate(
+            output_path, pagesize=landscape(letter), topMargin=20, bottomMargin=20, leftMargin=20, rightMargin=20
+        )
+
+        # Main elements for the document
+        elements = []
+
+        # Add title
+        elements.append(Paragraph(f"Node Tree (Iteration {self.node_manager.time_step})", self.styles["Heading1"]))
+
+        # Add summary statistics
+        best_score_text = (
+            f"Best Validation Score: {self.node_manager.best_validation_score:.4f} (Node {self.node_manager.best_step})"
+            if self.node_manager.best_validation_score > 0
+            else "No validation scores available"
+        )
+
+        elements.append(Paragraph(f"Total Nodes: {len(all_nodes)} | {best_score_text}", self.styles["Normal"]))
+        elements.append(Spacer(1, 10))
+
+        # Create node info dictionary for the tree visualization
+        node_info = {node.id: self._create_node_info_dict(node) for node in all_nodes}
+
+        # Add the tree visualization - sized to fit within page margins
+        elements.append(NodeTree(self.node_manager.root_node, node_info, width=700, height=500))
+        elements.append(Spacer(1, 20))
+
+        # Add legend
+        legend_data = [["Status", "Color"], ["Success", "Green"], ["Failure", "Red"], ["Neutral", "Blue"]]
+        legend_table = Table(legend_data, colWidths=[100, 100])
+        legend_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (1, 0), colors.grey),
+                    ("TEXTCOLOR", (0, 0), (1, 0), colors.whitesmoke),
+                    ("BACKGROUND", (1, 1), (1, 1), colors.lightgreen),
+                    ("BACKGROUND", (1, 2), (1, 2), colors.lightcoral),
+                    ("BACKGROUND", (1, 3), (1, 3), colors.lightblue),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("FONTNAME", (0, 0), (1, 0), "Helvetica-Bold"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                ]
+            )
+        )
+        elements.append(legend_table)
+
+        # Build the document
+        doc.build(elements)
+        logger.info(f"Node tree visualization generated at: {output_path}")
+
+        return output_path
+
     def visualize_nodes(self, output_path: Optional[str] = None) -> str:
         """
         Generate a PDF visualization of the node structure.
@@ -465,6 +546,22 @@ class NodeVisualizer:
         logger.info(f"Node visualization generated at: {output_path}")
 
         return output_path
+
+
+def visualize_tree_only(node_manager: NodeManager, output_path: Optional[str] = None) -> str:
+    """
+    Generate a PDF visualization of just the node tree structure (without node details).
+
+    Args:
+        node_manager: The NodeManager instance
+        output_path: Path to save the PDF. If not provided, it will be saved to
+                    the node manager's output folder with a name indicating the iteration.
+
+    Returns:
+        The path to the generated PDF file
+    """
+    visualizer = NodeVisualizer(node_manager)
+    return visualizer.visualize_tree_only(output_path)
 
 
 def visualize_results(node_manager: NodeManager, output_path: Optional[str] = None) -> str:
