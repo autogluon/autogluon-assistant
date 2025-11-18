@@ -102,11 +102,11 @@ Create and configure a conda environment in "{ENV_FOLDER_NAME}" folder under {it
  - Python version: 3.11
  - Activate the environment
  - pip install uv
- - Install required packages from {common_env_file} and {selected_tool_env_file} using uv pip install -r {selected_tool_env_file} -r {common_env_file}"""
+ - Install required packages from {common_env_file} and {selected_tool_env_file} using uv pip install -r {selected_tool_env_file} --prerelease=allow -r {common_env_file}"""
 
         if not configure_env:
-            env_prompt += f"\n - Do not install or update any package unless there is an error due to the missing package.\n - Do NOT upgrade {selected_tool} which is already installed."
+            env_prompt += f"\n - Only install the exact packages specified in the requirements files with their dependencies.\n - Do NOT upgrade or reinstall {selected_tool} if it's already at the correct version specified in the requirements."
         else:
-            env_prompt += "\n - Install any packages that are needed in the python script"
+            env_prompt += "\n - Install any additional packages that are needed for the python script to run successfully"
 
         return env_prompt

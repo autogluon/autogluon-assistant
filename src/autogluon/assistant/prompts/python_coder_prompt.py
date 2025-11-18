@@ -45,7 +45,7 @@ ONLY save files to the working directory: {per_iteration_output_folder}.
    - Make predictions on the test data. Always preserve and use the ORIGINAL INDICES from the test data to maintain exact row correspondence - DO NOT generate new indices or rely on assumed ordering.
    - Save the predicted results to {per_iteration_output_folder}, result file name should be "results", the format and extension should be same as the test data file
    - Output column names must exactly match those in the training or sample submission files without adding "predicted_" prefixes or creating any new columns.
-   - At the end, implement validation checks that assert the prediction file maintains exact test data indices, verify correct column names match requirements, and confirm proper output format.
+   - IMPORTANT: At the end, implement validation checks that assert the prediction file maintains exact test data indices, verify correct column names match requirements, confirm proper output format, and if applicable, sanity check output predictions are valid and correct.
 
 4. Documentation:
    - Add a brief docstring at the beginning of the script explaining its purpose
@@ -128,8 +128,8 @@ These errors were encountered across different implementation approaches and may
     def _generate_validation_prompt(self) -> str:
         """Generate the validation section of the prompt."""
         if self.manager.config.continuous_improvement:
-            return """6. Validation:
-   - If no validation data is given, hold out a validation dataset (10 percent of the data) at the start, train only on the remaining data.
+            return """6. Validation (only when there is labeled training data):
+   - If there is training and but no validation data is given, hold out a validation dataset (10 percent of the data) at the start, train only on the remaining data.
    - At the end compute and print the final evaluation metric score on the validation set.
    - Use a try-except block for the validation step - if validation fails, it's acceptable to continue.
 """
