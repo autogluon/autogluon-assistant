@@ -56,6 +56,9 @@ class ToolSelectorAgent(BaseAgent):
         response = self.tool_selector_llm.assistant_chat(prompt)
 
         tools = self.tool_selector_prompt.parse(response)
+        # Select only top #tools required
+        if len(tools) > self.manager.config.initial_root_children:
+            tools = tools[:self.manager.config.initial_root_children]
 
         tools_str = ", ".join(tools)
         self.manager.log_agent_end(f"ToolSelectorAgent: selected tools in priority order: {tools_str}")
