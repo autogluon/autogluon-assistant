@@ -31,6 +31,8 @@ cdk.out/
 .langchain.db
 output_*.csv
 runs/
+*.index
+*.metadata
 
 # MCP specific
 .flask.pid

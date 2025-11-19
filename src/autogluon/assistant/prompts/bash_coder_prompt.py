@@ -97,12 +97,13 @@ Notes:
         common_env_file = self.manager.common_env_file
         selected_tool_env_file = self.manager.selected_tool_env_file
 
+        install_cmd = f"uv pip install --system -r {selected_tool_env_file} -r {common_env_file}"
         env_prompt = f"""
 Create and configure a conda environment in "{ENV_FOLDER_NAME}" folder under {iteration_folder}:
  - Python version: 3.11
- - Activate the environment
+ - Activate the environment (conda activate "{ENV_FOLDER_NAME}")
  - pip install uv
- - Install required packages from {common_env_file} and {selected_tool_env_file} using uv pip install -r {selected_tool_env_file} -r {common_env_file}"""
+ - Install required packages from {common_env_file} and {selected_tool_env_file} using {install_cmd}"""
 
         if not create_venv:
             env_prompt += f"\n - Do not install or update any package unless there is an error due to the missing package.\n - Do NOT upgrade {selected_tool} which is already installed."

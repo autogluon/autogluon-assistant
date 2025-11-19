@@ -76,6 +76,18 @@ AutoGluon Assistant provides multiple interfaces:
 
 ![Demo](https://github.com/autogluon/autogluon-assistant/blob/main/docs/assets/mcp_demo.gif)
 
+### Integration with Upgini
+
+To enable Upgini integration for enriching your dataset with additional relevant features and selecting the most relevant features from the input dataset, set the `UPGINI_API_KEY` environment variable before invoking MLZero. You can obtain your API key in your [Upgini profile](https://profile.upgini.com).
+
+```bash
+export UPGINI_API_KEY="<your-upgini-api-key>"
+# then run MLZero as usual
+mlzero -i <input_data_folder>
+```
+
+
+
 ## Citation
 If you use Autogluon Assistant (MLZero) in your research, please cite our paper:
 
