@@ -107,6 +107,8 @@ Create and configure a conda environment in "{ENV_FOLDER_NAME}" folder under {it
         if not configure_env:
             env_prompt += f"\n - Only install the exact packages specified in the requirements files with their dependencies.\n - Do NOT upgrade or reinstall {selected_tool} if it's already at the correct version specified in the requirements."
         else:
-            env_prompt += "\n - Install any additional packages that are needed for the python script to run successfully"
+            env_prompt += (
+                "\n - Install any additional packages that are needed for the python script to run successfully"
+            )
 
         return env_prompt

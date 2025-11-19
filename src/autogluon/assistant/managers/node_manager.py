@@ -1078,7 +1078,7 @@ class NodeManager:
 
             try:
                 shutil.rmtree(source_folder)
-                logger.info(f"Removed iteration folder of Node {target_node.id} to save disk space.")
+                logger.info(f"Removed iteration folder of Node {self.current_node.id} to save disk space.")
             except Exception as e:
                 logger.error(f"Failed to remove existing current iteration folder folder: {e}")
                 return
