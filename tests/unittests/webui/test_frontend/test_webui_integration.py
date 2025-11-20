@@ -10,8 +10,12 @@ class TestWebUIIntegration:
     def test_webui_ui_rendering(self):
         """Test WebUI can render task history and results correctly"""
 
-        # 1. Initialize Streamlit AppTest
-        at = AppTest.from_file("src/autogluon/assistant/webui/Launch_MLZero.py")
+        # 1. Initialize Streamlit AppTest with the correct path
+        # Get the absolute path to the Launch_MLZero.py file
+        webui_dir = Path(__file__).parent.parent.parent.parent.parent / "src" / "autogluon" / "assistant" / "webui"
+        launch_file = webui_dir / "Launch_MLZero.py"
+
+        at = AppTest.from_file(str(launch_file))
         at.run()
 
         # 2. Verify initial welcome message is displayed
@@ -45,7 +49,7 @@ class TestWebUIIntegration:
         at.run()
 
         # 4. Simulate a completed task in history
-        # Import required classes
+        # Import required classes - use correct import path
         from autogluon.assistant.webui.Launch_MLZero import Message
 
         # Create temporary output directory with mock results
