@@ -74,17 +74,17 @@ class TestWebUIIntegration:
         assert processor.phase_states["Reading"].status == "complete"
         assert len(processor.phase_states["Reading"].logs) == 3
 
-        # Process iteration logs (MCTS iterations are 0-indexed)
+        # Process iteration logs (MCTS iterations are 1-indexed in logs)
         iter_logs = [
-            {"level": "INFO", "text": "Starting MCTS iteration 0"},
+            {"level": "INFO", "text": "Starting MCTS iteration 1"},
             {"level": "INFO", "text": "PythonCoderAgent: generating code"},
             {"level": "INFO", "text": "Node tree visualization generated at: /tmp/tree.png"},
         ]
         processor.process_new_logs(iter_logs)
 
-        # Verify iteration phase (iterations are 0-indexed in logs)
-        assert "Iteration 0" in processor.phase_states
-        assert processor.phase_states["Iteration 0"].status == "complete"
+        # Verify iteration phase (iterations are 1-indexed in actual logs)
+        assert "Iteration 1" in processor.phase_states
+        assert processor.phase_states["Iteration 1"].status == "complete"
 
         # Process output phase
         output_logs = [
@@ -143,12 +143,12 @@ class TestWebUIIntegration:
         processor.current_phase = None
         assert processor.progress == pytest.approx(0.25, abs=0.01)
 
-        # Complete iteration 0 (iterations are 0-indexed)
-        processor.phase_states["Iteration 0"] = type("PhaseInfo", (), {"status": "complete"})()
+        # Complete iteration 1 (iterations are 1-indexed in logs: 1, 2, ...)
+        processor.phase_states["Iteration 1"] = type("PhaseInfo", (), {"status": "complete"})()
         assert processor.progress == pytest.approx(0.5, abs=0.01)
 
-        # Complete iteration 1
-        processor.phase_states["Iteration 1"] = type("PhaseInfo", (), {"status": "complete"})()
+        # Complete iteration 2
+        processor.phase_states["Iteration 2"] = type("PhaseInfo", (), {"status": "complete"})()
         assert processor.progress == pytest.approx(0.75, abs=0.01)
 
         # Complete output
@@ -162,7 +162,7 @@ class TestWebUIIntegration:
         log_entries = [
             {"level": "INFO", "text": "DataPerceptionAgent: beginning to scan data folder and group similar files."},
             {"level": "INFO", "text": "ToolSelectorAgent: selected python"},
-            {"level": "INFO", "text": "Starting MCTS iteration 0"},
+            {"level": "INFO", "text": "Starting MCTS iteration 1"},
             {"level": "INFO", "text": "Node tree visualization generated at: /tmp/tree.png"},
         ]
 
@@ -175,4 +175,4 @@ class TestWebUIIntegration:
 
         # Verify phases were detected
         assert "Reading" in result["phase_states"]
-        assert "Iteration 0" in result["phase_states"]
+        assert "Iteration 1" in result["phase_states"]
