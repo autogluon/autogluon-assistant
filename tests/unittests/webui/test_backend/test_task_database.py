@@ -19,11 +19,21 @@ class TestTaskDatabase:
             db_path = Path(temp_dir) / "test_queue.db"
 
             # Get the absolute path to the queuedb script
-            script_dir = Path(__file__).parent.parent.parent.parent.parent / "src" / "autogluon" / "assistant" / "webui" / "backend" / "queue"
+            script_dir = (
+                Path(__file__).parent.parent.parent.parent.parent
+                / "src"
+                / "autogluon"
+                / "assistant"
+                / "webui"
+                / "backend"
+                / "queue"
+            )
             script_path = script_dir / "queuedb"
 
             # Create database using the queuedb script with a custom path
-            result = subprocess.run([str(script_path), "--db-path", str(db_path), "create"], capture_output=True, text=True)
+            result = subprocess.run(
+                [str(script_path), "--db-path", str(db_path), "create"], capture_output=True, text=True
+            )
 
             # Verify that the script ran successfully
             assert result.returncode == 0, f"Failed to create db: {result.stderr}"
@@ -40,17 +50,29 @@ class TestTaskDatabase:
             db_path = Path(temp_dir) / "test_create.db"
 
             # Get the absolute path to the queuedb script
-            script_dir = Path(__file__).parent.parent.parent.parent.parent / "src" / "autogluon" / "assistant" / "webui" / "backend" / "queue"
+            script_dir = (
+                Path(__file__).parent.parent.parent.parent.parent
+                / "src"
+                / "autogluon"
+                / "assistant"
+                / "webui"
+                / "backend"
+                / "queue"
+            )
             script_path = script_dir / "queuedb"
 
             # First creation
-            result = subprocess.run([str(script_path), "--db-path", str(db_path), "create"], capture_output=True, text=True)
+            result = subprocess.run(
+                [str(script_path), "--db-path", str(db_path), "create"], capture_output=True, text=True
+            )
             assert result.returncode == 0
             assert "Database created and initialized" in result.stdout
             assert db_path.exists()
 
             # Second creation (should show already exists)
-            result = subprocess.run([str(script_path), "--db-path", str(db_path), "create"], capture_output=True, text=True)
+            result = subprocess.run(
+                [str(script_path), "--db-path", str(db_path), "create"], capture_output=True, text=True
+            )
             assert result.returncode == 0
             assert "already exist" in result.stdout
 
@@ -63,7 +85,15 @@ class TestTaskDatabase:
 
             try:
                 # Get the absolute path to the queuedb script
-                script_dir = Path(__file__).parent.parent.parent.parent.parent / "src" / "autogluon" / "assistant" / "webui" / "backend" / "queue"
+                script_dir = (
+                    Path(__file__).parent.parent.parent.parent.parent
+                    / "src"
+                    / "autogluon"
+                    / "assistant"
+                    / "webui"
+                    / "backend"
+                    / "queue"
+                )
                 script_path = script_dir / "queuedb"
 
                 # Do not specify --db-path, should use default path
@@ -83,7 +113,15 @@ class TestTaskDatabase:
     def test_queuedb_script_help(self):
         """Test queuedb --help command"""
         # Get the absolute path to the queuedb script
-        script_dir = Path(__file__).parent.parent.parent.parent.parent / "src" / "autogluon" / "assistant" / "webui" / "backend" / "queue"
+        script_dir = (
+            Path(__file__).parent.parent.parent.parent.parent
+            / "src"
+            / "autogluon"
+            / "assistant"
+            / "webui"
+            / "backend"
+            / "queue"
+        )
         script_path = script_dir / "queuedb"
 
         result = subprocess.run([str(script_path), "--help"], capture_output=True, text=True)
@@ -205,7 +243,15 @@ class TestTaskDatabase:
         db_path = db.db_path
 
         # Get the absolute path to the queuedb script
-        script_dir = Path(__file__).parent.parent.parent.parent.parent / "src" / "autogluon" / "assistant" / "webui" / "backend" / "queue"
+        script_dir = (
+            Path(__file__).parent.parent.parent.parent.parent
+            / "src"
+            / "autogluon"
+            / "assistant"
+            / "webui"
+            / "backend"
+            / "queue"
+        )
         script_path = script_dir / "queuedb"
 
         result = subprocess.run([str(script_path), "--db-path", db_path, "dump"], capture_output=True, text=True)
@@ -231,7 +277,15 @@ class TestTaskDatabase:
         db_path = db.db_path
 
         # Get the absolute path to the queuedb script
-        script_dir = Path(__file__).parent.parent.parent.parent.parent / "src" / "autogluon" / "assistant" / "webui" / "backend" / "queue"
+        script_dir = (
+            Path(__file__).parent.parent.parent.parent.parent
+            / "src"
+            / "autogluon"
+            / "assistant"
+            / "webui"
+            / "backend"
+            / "queue"
+        )
         script_path = script_dir / "queuedb"
 
         result = subprocess.run([str(script_path), "--db-path", db_path, "reset"], capture_output=True, text=True)
