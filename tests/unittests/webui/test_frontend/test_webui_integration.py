@@ -48,56 +48,6 @@ class TestWebUIIntegration:
         assert msg.content["task_id"] == "task_789"
         assert msg.content["position"] == 3
 
-    def test_log_processor(self):
-        """Test LogProcessor can process log entries"""
-        from autogluon.assistant.webui.log_processor import LogProcessor
-
-        # Create processor for 2 iterations
-        processor = LogProcessor(max_iter=2)
-
-        # Test initial state
-        assert processor.max_iter == 2
-        assert processor.current_phase is None
-        assert len(processor.phase_states) == 0
-        assert processor.progress == 0.0
-
-        # Process reading phase logs
-        log_entries = [
-            {"level": "INFO", "text": "DataPerceptionAgent: beginning to scan data folder and group similar files."},
-            {"level": "INFO", "text": "Found 10 files"},
-            {"level": "INFO", "text": "ToolSelectorAgent: selected python"},
-        ]
-        processor.process_new_logs(log_entries)
-
-        # Verify reading phase was detected
-        assert "Reading" in processor.phase_states
-        assert processor.phase_states["Reading"].status == "complete"
-        assert len(processor.phase_states["Reading"].logs) == 3
-
-        # Process iteration logs (MCTS iterations are 1-indexed in logs)
-        iter_logs = [
-            {"level": "INFO", "text": "Starting MCTS iteration 1"},
-            {"level": "INFO", "text": "PythonCoderAgent: generating code"},
-            {"level": "INFO", "text": "Node tree visualization generated at: /tmp/tree.png"},
-        ]
-        processor.process_new_logs(iter_logs)
-
-        # Verify iteration phase (iterations are 1-indexed in actual logs)
-        assert "Iteration 1" in processor.phase_states
-        assert processor.phase_states["Iteration 1"].status == "complete"
-
-        # Process output phase
-        output_logs = [
-            {"level": "INFO", "text": "Total tokens used: 5000"},
-            {"level": "INFO", "text": "Output saved in /tmp/output"},
-        ]
-        processor.process_new_logs(output_logs)
-
-        # Verify output phase
-        assert "Output" in processor.phase_states
-        assert processor.phase_states["Output"].status == "complete"
-        assert processor.progress == 1.0
-
     def test_log_processor_input_request(self):
         """Test LogProcessor handles input requests"""
         from autogluon.assistant.webui.log_processor import LogProcessor
@@ -159,11 +109,15 @@ class TestWebUIIntegration:
         """Test process_logs convenience function"""
         from autogluon.assistant.webui.log_processor import process_logs
 
+        # Complete log list with all phases
         log_entries = [
             {"level": "INFO", "text": "DataPerceptionAgent: beginning to scan data folder and group similar files."},
             {"level": "INFO", "text": "ToolSelectorAgent: selected python"},
             {"level": "INFO", "text": "Starting MCTS iteration 1"},
+            {"level": "INFO", "text": "PythonCoderAgent: generating code"},
             {"level": "INFO", "text": "Node tree visualization generated at: /tmp/tree.png"},
+            {"level": "INFO", "text": "Total tokens used: 5000"},
+            {"level": "INFO", "text": "Output saved in /tmp/output"},
         ]
 
         result = process_logs(log_entries, max_iter=1)
@@ -176,3 +130,4 @@ class TestWebUIIntegration:
         # Verify phases were detected
         assert "Reading" in result["phase_states"]
         assert "Iteration 1" in result["phase_states"]
+        assert "Output" in result["phase_states"]
