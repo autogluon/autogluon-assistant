@@ -254,7 +254,6 @@ def get_status(run_id: str) -> dict:
 
         # Check debugging_logs.txt for completion markers
         if not finished and info.get("output_dir"):
-            import os
             from pathlib import Path
 
             debug_log_path = Path(info["output_dir"]) / "debugging_logs.txt"
@@ -271,12 +270,17 @@ def get_status(run_id: str) -> dict:
 
                         # Check for completion markers in new lines
                         for line in new_lines:
-                            if any(marker in line for marker in [
-                                "Created best_run folder",  # Printed AFTER best_run copy completes
-                                "MCTS search completed",     # Printed after all iterations
-                                "Output saved in"            # Final completion marker
-                            ]):
-                                logger.info(f"Task {run_id[:8]} detected as complete via debug log: {line.strip()[:100]}")
+                            if any(
+                                marker in line
+                                for marker in [
+                                    "Created best_run folder",  # Printed AFTER best_run copy completes
+                                    "MCTS search completed",  # Printed after all iterations
+                                    "Output saved in",  # Final completion marker
+                                ]
+                            ):
+                                logger.info(
+                                    f"Task {run_id[:8]} detected as complete via debug log: {line.strip()[:100]}"
+                                )
                                 finished = True
                                 info["finished"] = True
                                 break

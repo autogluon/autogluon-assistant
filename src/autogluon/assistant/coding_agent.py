@@ -183,4 +183,4 @@ def run_agent(
 
     # Cleanup resources
     manager.cleanup()
-    logger.debug(f"Clean Up Successful.")
+    logger.debug("Clean Up Successful.")

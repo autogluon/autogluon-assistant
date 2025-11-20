@@ -34,9 +34,9 @@ if webui_logger.handlers:
     webui_logger.handlers.clear()
 
 # File handler with immediate flush
-file_handler = logging.FileHandler(str(webui_log_file), mode='a')
+file_handler = logging.FileHandler(str(webui_log_file), mode="a")
 file_handler.setLevel(logging.DEBUG)
-file_formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+file_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 file_handler.setFormatter(file_formatter)
 # Force immediate flush after each log
 file_handler.flush = lambda: file_handler.stream.flush() if file_handler.stream else None
@@ -1530,7 +1530,9 @@ class TaskManager:
 
         # Get status
         status = BackendAPI.check_status(run_id)
-        webui_logger.debug(f"Status for run_id {run_id[:8]}: finished={status.get('finished', False)}, status_data={status}")
+        webui_logger.debug(
+            f"Status for run_id {run_id[:8]}: finished={status.get('finished', False)}, status_data={status}"
+        )
 
         # Display running task
         with st.chat_message("assistant"):
@@ -1582,7 +1584,9 @@ class TaskManager:
 
                 # If task completed but best_run not yet created, show copying message
                 if task_completed_seen and not best_run_created_seen:
-                    st.info("⏳ **Copying best solution files to best_run folder**\n\nThis may take 5-10 minutes depending on environment size. Please wait...")
+                    st.info(
+                        "⏳ **Copying best solution files to best_run folder**\n\nThis may take 5-10 minutes depending on environment size. Please wait..."
+                    )
 
         # Check if finished
         if status.get("finished", False):
@@ -1803,9 +1807,11 @@ class TaskManager:
             if output_dir:
                 try:
                     run_debug_log = Path(output_dir) / "webui_debug.log"
-                    run_debug_handler = logging.FileHandler(str(run_debug_log), mode='a')
+                    run_debug_handler = logging.FileHandler(str(run_debug_log), mode="a")
                     run_debug_handler.setLevel(logging.DEBUG)
-                    run_debug_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+                    run_debug_handler.setFormatter(
+                        logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+                    )
                     webui_logger.addHandler(run_debug_handler)
                     webui_logger.info(f"Per-run debug log created: {run_debug_log}")
                 except Exception as e:
@@ -1830,12 +1836,12 @@ class TaskManager:
             # Add success or failure message
             if not task_failed:
                 # Use a special message type for success to render with st.success()
-                webui_logger.debug(f"Adding success message")
+                webui_logger.debug("Adding success message")
                 for handler in webui_logger.handlers:
                     handler.flush()
                 SessionState.add_message(Message.text(SUCCESS_MESSAGE))
             else:
-                webui_logger.debug(f"Adding failure message")
+                webui_logger.debug("Adding failure message")
                 for handler in webui_logger.handlers:
                     handler.flush()
                 SessionState.add_message(Message.text("❌ Task failed. Please check the logs for details."))
@@ -1845,10 +1851,12 @@ class TaskManager:
                 webui_logger.debug(f"Adding task_results message with output_dir: {output_dir}")
                 SessionState.add_message(Message.task_results(st.session_state.run_id, output_dir))
             else:
-                webui_logger.debug(f"No output_dir found, skipping task_results message")
+                webui_logger.debug("No output_dir found, skipping task_results message")
 
-        webui_logger.debug(f"Calling SessionState.finish_task()")
-        webui_logger.info(f"Task completion process finished at {datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
+        webui_logger.debug("Calling SessionState.finish_task()")
+        webui_logger.info(
+            f"Task completion process finished at {datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}"
+        )
         SessionState.finish_task()
 
 

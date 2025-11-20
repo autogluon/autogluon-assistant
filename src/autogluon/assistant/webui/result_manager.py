@@ -100,7 +100,9 @@ class ResultManager:
         viz_files = [Path(f) for f in glob.glob(pattern)]
         # Sort by iteration number (extract from filename)
         viz_files.sort(
-            key=lambda x: int(re.search(r"iteration_(\d+)", x.name).group(1)) if re.search(r"iteration_(\d+)", x.name) else 0
+            key=lambda x: (
+                int(re.search(r"iteration_(\d+)", x.name).group(1)) if re.search(r"iteration_(\d+)", x.name) else 0
+            )
         )
         return viz_files
 
@@ -176,7 +178,9 @@ class ResultManager:
         has_model = self.find_latest_model() is not None
         has_results = self.find_results_file() is not None
         has_token_usage = self.find_token_usage_file() is not None
-        has_visualizations = len(self.find_node_tree_visualizations()) > 0 or self.find_full_node_visualization() is not None
+        has_visualizations = (
+            len(self.find_node_tree_visualizations()) > 0 or self.find_full_node_visualization() is not None
+        )
 
         # Selection options
         download_options = []
@@ -373,7 +377,7 @@ class ResultManager:
                         st.markdown(f"**Iteration {iter_num}**")
                         with open(viz_file, "rb") as f:
                             st.download_button(
-                                label=f"📊 Download",
+                                label="📊 Download",
                                 data=f.read(),
                                 file_name=viz_file.name,
                                 mime="application/pdf",
