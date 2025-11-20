@@ -21,6 +21,31 @@ import yaml
 from botocore.exceptions import ClientError, NoCredentialsError
 from streamlit_theme import st_theme
 
+from autogluon.assistant.constants import (
+    API_URL,
+    DEFAULT_CONFIG_PATH,
+    LOGO_DAY_PATH,
+    LOGO_NIGHT_PATH,
+    LOGO_PATH,
+    PROVIDER_DEFAULTS,
+    SUCCESS_MESSAGE,
+    VERBOSITY_MAP,
+)
+from autogluon.assistant.prompts import (
+    BashCoderPrompt,
+    DescriptionFileRetrieverPrompt,
+    ErrorAnalyzerPrompt,
+    ExecuterPrompt,
+    PythonCoderPrompt,
+    PythonReaderPrompt,
+    RerankerPrompt,
+    RetrieverPrompt,
+    TaskDescriptorPrompt,
+    ToolSelectorPrompt,
+)
+from autogluon.assistant.webui.file_uploader import handle_uploaded_files
+from autogluon.assistant.webui.log_processor import messages, process_logs, render_task_logs
+
 # Setup webui debug logging
 webui_log_file = Path.home() / ".autogluon_assistant" / "webui_debug.log"
 webui_log_file.parent.mkdir(parents=True, exist_ok=True)
@@ -47,33 +72,6 @@ webui_logger.propagate = False
 
 # Log startup
 webui_logger.info(f"WebUI Debug logging initialized. Log file: {webui_log_file}")
-
-from autogluon.assistant.constants import (
-    API_URL,
-    DEFAULT_CONFIG_PATH,
-    LOGO_DAY_PATH,
-    LOGO_NIGHT_PATH,
-    LOGO_PATH,
-    PROVIDER_DEFAULTS,
-    SUCCESS_MESSAGE,
-    VERBOSITY_MAP,
-)
-
-# Import prompt classes for default templates
-from autogluon.assistant.prompts import (
-    BashCoderPrompt,
-    DescriptionFileRetrieverPrompt,
-    ErrorAnalyzerPrompt,
-    ExecuterPrompt,
-    PythonCoderPrompt,
-    PythonReaderPrompt,
-    RerankerPrompt,
-    RetrieverPrompt,
-    TaskDescriptorPrompt,
-    ToolSelectorPrompt,
-)
-from autogluon.assistant.webui.file_uploader import handle_uploaded_files
-from autogluon.assistant.webui.log_processor import messages, process_logs, render_task_logs
 
 BEDROCK_ONLY_MODE = os.environ.get("AUTOGLUON_BEDROCK_ONLY", "false").lower() == "true"
 
