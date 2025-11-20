@@ -1023,20 +1023,30 @@ class NodeManager:
                 return
 
         try:
+            # Log completion marker BEFORE starting the slow copy operation
+            # This allows WebUI to detect task success immediately
+            logger.brief(f"Task completed successfully! Best node: {target_node.id} with validation score {target_node.validation_score}")
+
             # Copy all files from source_output_folder to self.output_folder
             import shutil
 
+            logger.debug(f"Starting copy of output folder contents from {source_output_folder} to {self.output_folder}")
             for item in os.listdir(source_output_folder):
                 source_item = os.path.join(source_output_folder, item)
                 dest_item = os.path.join(self.output_folder, item)
 
+                logger.debug(f"Copying item: {item}")
                 if os.path.isfile(source_item):
                     shutil.copy2(source_item, dest_item)
                 elif os.path.isdir(source_item):
                     shutil.copytree(source_item, dest_item, dirs_exist_ok=True)
+            logger.debug(f"Finished copying output folder contents")
 
             # Copy the entire source folder to best_run folder
+            logger.debug(f"Starting copytree from {source_folder} to {best_run_folder}")
+            logger.info(f"Copying best solution to best_run folder (this may take several minutes for large environments)")
             shutil.copytree(source_folder, best_run_folder, dirs_exist_ok=True)
+            logger.debug(f"Finished copytree to best_run folder")
 
             logger.info(f"Created best_run folder (copied from node {target_node.id} - {copy_reason})")
 

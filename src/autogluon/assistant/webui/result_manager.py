@@ -13,6 +13,8 @@ from typing import Dict, List, Optional, Tuple
 import pandas as pd
 import streamlit as st
 
+from autogluon.assistant.constants import NODE_FULL_VISUALIZATION_FILE, NODE_TREE_VISUALIZATION_PATTERN
+
 
 class ResultManager:
     """Manages task results viewing and downloading"""
@@ -27,8 +29,8 @@ class ResultManager:
         logs = output_phase.get("logs", [])
 
         for log in reversed(logs):
-            # Look for "output saved in" pattern and extract the path
-            match = re.search(r"output saved in\s+([^\s]+)", log)
+            # Look for "Output saved in" pattern (case-insensitive) and extract the path
+            match = re.search(r"[Oo]utput saved in\s+([^\s]+)", log, re.IGNORECASE)
             if match:
                 output_dir = match.group(1).strip()
                 # Remove any trailing punctuation
@@ -67,21 +69,45 @@ class ResultManager:
         return token_file if token_file.exists() else None
 
     def find_latest_generation_iter(self) -> Optional[Path]:
-        """Find the latest generation_iter directory"""
-        generation_dirs = []
-        pattern = re.compile(r"generation_iter_(\d+)")
+        """Find the latest generation directory (best_run or highest node_N)"""
+        # First check for best_run directory (preferred)
+        best_run_dir = self.output_dir / "best_run"
+        if best_run_dir.exists() and best_run_dir.is_dir():
+            return best_run_dir
+
+        # Fall back to node_N directories
+        node_pattern = re.compile(r"node_(\d+)")
+        node_dirs = []
 
         for item in self.output_dir.iterdir():
-            if item.is_dir() and pattern.match(item.name):
-                match = pattern.match(item.name)
-                iter_num = int(match.group(1))
-                generation_dirs.append((iter_num, item))
+            if item.is_dir() and node_pattern.match(item.name):
+                match = node_pattern.match(item.name)
+                node_num = int(match.group(1))
+                node_dirs.append((node_num, item))
 
-        if generation_dirs:
-            # Sort by iteration number and return the latest
-            generation_dirs.sort(key=lambda x: x[0], reverse=True)
-            return generation_dirs[0][1]
+        if node_dirs:
+            # Sort by node number and return the highest
+            node_dirs.sort(key=lambda x: x[0], reverse=True)
+            return node_dirs[0][1]
+
         return None
+
+    def find_node_tree_visualizations(self) -> List[Path]:
+        """Find all node tree visualization PDF files"""
+        import glob
+
+        pattern = str(self.output_dir / NODE_TREE_VISUALIZATION_PATTERN)
+        viz_files = [Path(f) for f in glob.glob(pattern)]
+        # Sort by iteration number (extract from filename)
+        viz_files.sort(
+            key=lambda x: int(re.search(r"iteration_(\d+)", x.name).group(1)) if re.search(r"iteration_(\d+)", x.name) else 0
+        )
+        return viz_files
+
+    def find_full_node_visualization(self) -> Optional[Path]:
+        """Find the full node visualization PDF file"""
+        viz_file = self.output_dir / NODE_FULL_VISUALIZATION_FILE
+        return viz_file if viz_file.exists() else None
 
     def create_download_zip(self, include_items: List[str]) -> bytes:
         """Create a zip file with selected items"""
@@ -118,6 +144,19 @@ class ResultManager:
                             arcname = Path(self.output_dir.name) / token_file.name
                             zipf.write(token_file, arcname)
 
+                    if "visualizations" in include_items:
+                        # Add node tree visualizations
+                        viz_files = self.find_node_tree_visualizations()
+                        for viz_file in viz_files:
+                            arcname = Path(self.output_dir.name) / viz_file.name
+                            zipf.write(viz_file, arcname)
+
+                        # Add full node visualization if exists
+                        full_viz = self.find_full_node_visualization()
+                        if full_viz:
+                            arcname = Path(self.output_dir.name) / full_viz.name
+                            zipf.write(full_viz, arcname)
+
             # Read the zip file content
             with open(tmp_file.name, "rb") as f:
                 zip_data = f.read()
@@ -137,6 +176,7 @@ class ResultManager:
         has_model = self.find_latest_model() is not None
         has_results = self.find_results_file() is not None
         has_token_usage = self.find_token_usage_file() is not None
+        has_visualizations = len(self.find_node_tree_visualizations()) > 0 or self.find_full_node_visualization() is not None
 
         # Selection options
         download_options = []
@@ -180,6 +220,21 @@ class ResultManager:
                     if not disabled:
                         download_options.append("token_usage")
                 st.caption("Token usage statistics (JSON)")
+                st.markdown("")
+
+            # Visualizations option
+            if has_visualizations:
+                if st.checkbox("Node tree visualizations", disabled=disabled, key=f"download_viz_{self.output_dir}"):
+                    if not disabled:
+                        download_options.append("visualizations")
+                viz_count = len(self.find_node_tree_visualizations())
+                full_viz_exists = self.find_full_node_visualization() is not None
+                caption_parts = []
+                if viz_count > 0:
+                    caption_parts.append(f"{viz_count} iteration tree(s)")
+                if full_viz_exists:
+                    caption_parts.append("full visualization")
+                st.caption(f"MCTS tree visualizations ({', '.join(caption_parts)})")
 
         # Download button - centered
         st.markdown("")
@@ -264,6 +319,73 @@ class ResultManager:
 
         if not exec_script.exists() and not gen_code.exists():
             st.info("No code files found in the latest generation directory.")
+
+    def render_visualizations_tab(self):
+        """Render the node tree visualizations tab"""
+        viz_files = self.find_node_tree_visualizations()
+        full_viz = self.find_full_node_visualization()
+
+        if not viz_files and not full_viz:
+            st.info(
+                "No node tree visualizations found. Visualizations are generated during the MCTS search process and show the exploration tree structure."
+            )
+            return
+
+        st.markdown("### Node Tree Visualizations")
+        st.markdown(
+            "These visualizations show the Monte Carlo Tree Search (MCTS) exploration process. "
+            "Each node represents a solution attempt, with colors indicating success (green), failure (red), or neutral (blue) states."
+        )
+
+        # Full visualization with node details
+        if full_viz:
+            st.markdown("#### Complete Node Tree Visualization")
+            st.markdown("This PDF contains the full tree structure plus detailed information for each node.")
+            with open(full_viz, "rb") as f:
+                st.download_button(
+                    label=f"📄 Download {full_viz.name}",
+                    data=f.read(),
+                    file_name=full_viz.name,
+                    mime="application/pdf",
+                    key=f"download_full_viz_{self.output_dir}",
+                    use_container_width=True,
+                )
+            st.markdown("")
+
+        # Iteration-specific visualizations
+        if viz_files:
+            st.markdown("#### Iteration-Specific Tree Visualizations")
+            st.markdown(
+                "These PDFs show the tree structure at the end of each iteration, "
+                "allowing you to see how the search space was explored over time."
+            )
+
+            # Display in a grid format
+            cols_per_row = 3
+            for i in range(0, len(viz_files), cols_per_row):
+                cols = st.columns(cols_per_row)
+                for j, viz_file in enumerate(viz_files[i : i + cols_per_row]):
+                    with cols[j]:
+                        # Extract iteration number
+                        match = re.search(r"iteration_(\d+)", viz_file.name)
+                        iter_num = match.group(1) if match else "?"
+
+                        st.markdown(f"**Iteration {iter_num}**")
+                        with open(viz_file, "rb") as f:
+                            st.download_button(
+                                label=f"📊 Download",
+                                data=f.read(),
+                                file_name=viz_file.name,
+                                mime="application/pdf",
+                                key=f"download_viz_{viz_file.name}_{self.output_dir}",
+                                use_container_width=True,
+                            )
+
+        st.markdown("---")
+        st.markdown(
+            "💡 **Tip:** These visualizations help understand how the AutoML Agent explored different solutions and "
+            "made decisions during the automated machine learning process."
+        )
 
     def find_input_dir(self) -> Optional[Path]:
         """Find the input directory associated with this output"""
@@ -395,7 +517,7 @@ class ResultManager:
             return
 
         # Create tabs
-        tabs = st.tabs(["Download", "See Results", "See Code", "Feedback & Privacy"])
+        tabs = st.tabs(["Download", "See Results", "See Code", "Tree Visualizations", "Feedback & Privacy"])
 
         with tabs[0]:
             self.render_download_tab()
@@ -407,6 +529,9 @@ class ResultManager:
             self.render_code_tab()
 
         with tabs[3]:
+            self.render_visualizations_tab()
+
+        with tabs[4]:
             self.render_feedback_tab()
 
 
@@ -418,8 +543,8 @@ def render_task_results(run_id: str, phase_states: Dict):
 
     output_dir = None
     for log in reversed(logs):
-        # Look for "output saved in" pattern and extract the path
-        match = re.search(r"output saved in\s+([^\s]+)", log)
+        # Look for "Output saved in" pattern (case-insensitive) and extract the path
+        match = re.search(r"[Oo]utput saved in\s+([^\s]+)", log, re.IGNORECASE)
         if match:
             output_dir = match.group(1).strip()
             # Remove any trailing punctuation

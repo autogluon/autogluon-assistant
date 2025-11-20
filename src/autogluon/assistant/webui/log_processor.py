@@ -14,10 +14,10 @@ class PhasePatterns:
 
     READING_START = "DataPerceptionAgent: beginning to scan data folder and group similar files."
     READING_END = "ToolSelectorAgent: selected"
-    ITER_START = re.compile(r"Starting iteration (\d+)!")
-    ITER_END = re.compile(r"Code generation (failed|successful)")
+    ITER_START = re.compile(r"Starting MCTS iteration (\d+)")
+    ITER_END = re.compile(r"Node tree visualization generated at:")
     OUTPUT_START = "Total tokens"
-    OUTPUT_END = "output saved in"
+    OUTPUT_END = "Output saved in"  # Capital O to match actual log message
 
 
 @dataclass
@@ -44,17 +44,18 @@ class LogProcessor:
     @property
     def progress(self) -> float:
         """Calculate current progress"""
-        total_stages = self.max_iter + 2
+        total_stages = self.max_iter + 2  # Reading + max_iter iterations + Output
 
         # Progress of current phase
+        # Stages: Reading (1), Iteration 1 (2), Iteration 2 (3), ..., Output (max_iter+2)
         if self.current_phase == "Reading":
             return 1.0 / total_stages
         elif self.current_phase == "Output":
-            return (self.max_iter + 1) / total_stages
+            return (self.max_iter + 2) / total_stages  # Last stage, should be 1.0
         elif self.current_phase and self.current_phase.startswith("Iteration"):
             try:
-                idx = int(self.current_phase.split()[1])
-                return (idx + 2) / total_stages
+                idx = int(self.current_phase.split()[1])  # Extract iteration number (1, 2, ...)
+                return (idx + 1) / total_stages  # Iteration N is at stage N+1
             except:
                 pass
 
@@ -103,15 +104,17 @@ class LogProcessor:
         text = re.sub(r"\[bold red\](.*?)\[/bold red\]", r":red[**\1**]", text)
 
         # Handle special cases
-        # Planner decision: FINISH (green) or FIX (red)
+        # Planner decision: SUCCESS/FINISH (green) or FIX (red)
         if "Planner decision:" in text:
-            if "FINISH" in text:
+            if "SUCCESS" in text:
+                text = text.replace("SUCCESS", ":green[**SUCCESS**]")
+            elif "FINISH" in text:
                 text = text.replace("FINISH", ":green[**FINISH**]")
             elif "FIX" in text:
                 text = text.replace("FIX", ":red[**FIX**]")
 
-        # Starting iteration X! (green)
-        if re.match(r"Starting iteration \d+!", text):
+        # Starting MCTS iteration X/Y (green)
+        if re.match(r"Starting MCTS iteration \d+", text):
             text = f":green[**{text}**]"
 
         return text
@@ -178,7 +181,8 @@ class LogProcessor:
             st.progress(self.progress)
 
         # Render each phase
-        phase_order = ["Reading"] + [f"Iteration {i}" for i in range(self.max_iter)] + ["Output"]
+        # Iterations are numbered starting from 1, not 0
+        phase_order = ["Reading"] + [f"Iteration {i}" for i in range(1, self.max_iter + 1)] + ["Output"]
 
         for phase_name in phase_order:
             if phase_name in self.phase_states:

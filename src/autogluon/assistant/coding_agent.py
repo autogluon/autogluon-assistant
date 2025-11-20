@@ -7,7 +7,7 @@ from pathlib import Path
 
 from omegaconf import OmegaConf
 
-from .constants import DEFAULT_CONFIG_PATH
+from .constants import DEFAULT_CONFIG_PATH, WEBUI_OUTPUT_DIR
 from .rich_logging import configure_logging
 from .utils import extract_archives
 
@@ -67,6 +67,10 @@ def run_agent(
 
     configure_logging(verbosity=verbosity, output_dir=output_dir)
     from .managers.node_manager import NodeManager
+
+    # Log output directory for WebUI backend detection
+    if os.environ.get("AUTOGLUON_WEBUI") == "true":
+        logger.debug(f"{WEBUI_OUTPUT_DIR} {output_dir}")
 
     if extract_archives_to is not None:
         if extract_archives_to and extract_archives_to != input_data_folder:
@@ -156,7 +160,8 @@ def run_agent(
         else:
             pass
 
-        manager.remove_current_iteration_folder()
+        # TODO: make this configurable
+        # manager.remove_current_iteration_folder()
 
         # Increment iteration counter
         iteration += 1
@@ -167,13 +172,15 @@ def run_agent(
 
     manager.visualize_results()
     manager.report_token_usage()
-    # Report token usage and validation score summary
-    manager.cleanup()
 
-    # Log summary
+    # Log summary BEFORE cleanup
     elapsed_time = time.time() - start_time
     logger.brief(f"MCTS search completed in {elapsed_time:.2f} seconds")
     logger.brief(f"Total nodes explored: {manager.time_step + 1}")
     logger.brief(f"Best validation score: {manager.best_validation_score}")
     logger.brief(f"Tools used: {', '.join(manager.used_tools)}")
     logger.brief(f"Output saved in {output_dir}")
+
+    # Cleanup resources
+    manager.cleanup()
+    logger.debug(f"Clean Up Successful.")

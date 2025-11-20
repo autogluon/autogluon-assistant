@@ -1,5 +1,6 @@
 # src/autogluon/assistant/webui/pages/Launch_MLZero.py
 
+import logging
 import os
 import re
 import shutil
@@ -19,6 +20,33 @@ import streamlit.components.v1 as components
 import yaml
 from botocore.exceptions import ClientError, NoCredentialsError
 from streamlit_theme import st_theme
+
+# Setup webui debug logging
+webui_log_file = Path.home() / ".autogluon_assistant" / "webui_debug.log"
+webui_log_file.parent.mkdir(parents=True, exist_ok=True)
+
+# Create logger
+webui_logger = logging.getLogger("webui_debug")
+webui_logger.setLevel(logging.DEBUG)
+
+# Remove existing handlers to avoid duplicates
+if webui_logger.handlers:
+    webui_logger.handlers.clear()
+
+# File handler with immediate flush
+file_handler = logging.FileHandler(str(webui_log_file), mode='a')
+file_handler.setLevel(logging.DEBUG)
+file_formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+file_handler.setFormatter(file_formatter)
+# Force immediate flush after each log
+file_handler.flush = lambda: file_handler.stream.flush() if file_handler.stream else None
+webui_logger.addHandler(file_handler)
+
+# Prevent propagation to root logger
+webui_logger.propagate = False
+
+# Log startup
+webui_logger.info(f"WebUI Debug logging initialized. Log file: {webui_log_file}")
 
 from autogluon.assistant.constants import (
     API_URL,
@@ -680,8 +708,14 @@ class BackendAPI:
     @staticmethod
     def check_status(run_id: str) -> Dict:
         """Check task status"""
-        response = requests.get(f"{API_URL}/status", params={"run_id": run_id})
-        return response.json()
+        try:
+            response = requests.get(f"{API_URL}/status", params={"run_id": run_id}, timeout=5)
+            status_data = response.json()
+            webui_logger.debug(f"Backend API check_status for {run_id[:8]}: {status_data}")
+            return status_data
+        except Exception as e:
+            webui_logger.error(f"Error checking status for {run_id[:8]}: {e}")
+            return {"finished": False, "error": str(e)}
 
     @staticmethod
     def check_queue_status(task_id: str) -> Dict:
@@ -1117,6 +1151,15 @@ class UI:
                     ]
                     st.rerun()
 
+            # Debug log location at bottom of sidebar
+            st.markdown("---")
+            with st.expander("🔍 Debug Info", expanded=False):
+                st.caption("**Global debug log:**")
+                st.code(f"{webui_log_file}", language="")
+                st.caption("**Per-run debug log:**")
+                st.caption("Located in each run's output directory as `webui_debug.log`")
+                st.caption("Contains detailed timing and decision flow for task completion")
+
         return config
 
     @staticmethod
@@ -1141,8 +1184,10 @@ class UI:
             if "output_dir" in content and content["output_dir"]:
                 from autogluon.assistant.webui.result_manager import ResultManager
 
-                manager = ResultManager(content["output_dir"], content["run_id"])
-                manager.render()
+                # Use an expander to make results more visible and auto-expanded
+                with st.expander("📊 View Results & Download", expanded=True):
+                    manager = ResultManager(content["output_dir"], content["run_id"])
+                    manager.render()
 
     @staticmethod
     def render_messages():
@@ -1485,6 +1530,7 @@ class TaskManager:
 
         # Get status
         status = BackendAPI.check_status(run_id)
+        webui_logger.debug(f"Status for run_id {run_id[:8]}: finished={status.get('finished', False)}, status_data={status}")
 
         # Display running task
         with st.chat_message("assistant"):
@@ -1520,10 +1566,31 @@ class TaskManager:
                     SessionState.set_waiting_for_input(True, input_prompt, iteration)
                     # Don't rerun here - let the fragment cycle handle it
 
+            # Check if we're in the copying phase
+            # This happens after task completes but before best_run folder is created
+            if not error_found and not status.get("finished", False):
+                task_completed_seen = False
+                best_run_created_seen = False
+
+                # Check recent logs for markers
+                for log_entry in st.session_state.current_task_logs[-20:]:
+                    log_text = log_entry.get("text", "") if isinstance(log_entry, dict) else str(log_entry)
+                    if "Task completed successfully!" in log_text:
+                        task_completed_seen = True
+                    if "Created best_run folder" in log_text:
+                        best_run_created_seen = True
+
+                # If task completed but best_run not yet created, show copying message
+                if task_completed_seen and not best_run_created_seen:
+                    st.info("⏳ **Copying best solution files to best_run folder**\n\nThis may take 5-10 minutes depending on environment size. Please wait...")
+
         # Check if finished
         if status.get("finished", False):
+            webui_logger.debug(f"Task finished detected for run_id {run_id[:8]}, calling _complete_task()")
             self._complete_task()
             st.rerun()
+        else:
+            webui_logger.debug(f"Task still running for run_id {run_id[:8]}, will check again on next rerun")
 
     def monitor_running_task(self):
         """Monitor running task"""
@@ -1591,14 +1658,14 @@ class TaskManager:
 
     def _extract_current_iteration(self) -> int:
         """Extract current iteration number from logs"""
-        # Look for "Starting iteration X!" in recent logs
+        # Look for "Starting MCTS iteration X/Y" in recent logs
         for entry in reversed(st.session_state.current_task_logs[-20:]):  # Check last 20 entries
             text = entry.get("text", "")
-            if "Starting iteration" in text:
+            if "Starting MCTS iteration" in text:
                 try:
                     import re
 
-                    match = re.search(r"Starting iteration (\d+)!", text)
+                    match = re.search(r"Starting MCTS iteration (\d+)", text)
                     if match:
                         return int(match.group(1))
                 except:
@@ -1681,8 +1748,8 @@ class TaskManager:
         for log in reversed(logs):
             import re
 
-            # Look for "output saved in" pattern and extract the path
-            match = re.search(r"output saved in\s+([^\s]+)", log)
+            # Look for "Output saved in" pattern (case-insensitive) and extract the path
+            match = re.search(r"[Oo]utput saved in\s+([^\s]+)", log, re.IGNORECASE)
             if match:
                 output_dir = match.group(1).strip()
                 # Remove any trailing punctuation
@@ -1705,13 +1772,17 @@ class TaskManager:
         last_iter_logs = phase_states.get(last_iteration, {}).get("logs", [])
         for log in last_iter_logs:
             # Check if the log contains the success marker
-            if "[bold green]Code generation successful" in log or "Code generation successful" in log:
+            if "Planner decision: SUCCESS" in log:
                 return False  # Found success message, task succeeded
 
         return True  # No success message found, task failed
 
     def _complete_task(self):
         """Complete task"""
+        run_id = st.session_state.run_id
+        webui_logger.debug(f"_complete_task() called for run_id {run_id[:8] if run_id else 'None'}")
+        webui_logger.info(f"Task completion process started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
+
         # Clear placeholder
         if st.session_state.prev_iter_placeholder:
             st.session_state.prev_iter_placeholder.empty()
@@ -1719,10 +1790,26 @@ class TaskManager:
 
         # Save task logs
         if st.session_state.current_task_logs:
+            webui_logger.debug(f"Processing {len(st.session_state.current_task_logs)} log entries")
             processed = process_logs(st.session_state.current_task_logs, st.session_state.running_config.max_iter)
+
+            webui_logger.debug(f"Phase states: {list(processed['phase_states'].keys())}")
 
             # Extract output directory
             output_dir = self._extract_output_dir(processed["phase_states"])
+            webui_logger.debug(f"Extracted output_dir: {output_dir}")
+
+            # Add per-run debug log file
+            if output_dir:
+                try:
+                    run_debug_log = Path(output_dir) / "webui_debug.log"
+                    run_debug_handler = logging.FileHandler(str(run_debug_log), mode='a')
+                    run_debug_handler.setLevel(logging.DEBUG)
+                    run_debug_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+                    webui_logger.addHandler(run_debug_handler)
+                    webui_logger.info(f"Per-run debug log created: {run_debug_log}")
+                except Exception as e:
+                    webui_logger.error(f"Failed to create per-run debug log: {e}")
 
             SessionState.add_message(
                 Message.task_log(
@@ -1736,18 +1823,32 @@ class TaskManager:
 
             # Check if task failed
             task_failed = self._check_task_failed(processed["phase_states"])
+            webui_logger.debug(f"Task failed check: {task_failed}")
+            for handler in webui_logger.handlers:
+                handler.flush()
 
             # Add success or failure message
             if not task_failed:
                 # Use a special message type for success to render with st.success()
+                webui_logger.debug(f"Adding success message")
+                for handler in webui_logger.handlers:
+                    handler.flush()
                 SessionState.add_message(Message.text(SUCCESS_MESSAGE))
             else:
+                webui_logger.debug(f"Adding failure message")
+                for handler in webui_logger.handlers:
+                    handler.flush()
                 SessionState.add_message(Message.text("❌ Task failed. Please check the logs for details."))
 
             # Add task results message if output directory found
             if output_dir:
+                webui_logger.debug(f"Adding task_results message with output_dir: {output_dir}")
                 SessionState.add_message(Message.task_results(st.session_state.run_id, output_dir))
+            else:
+                webui_logger.debug(f"No output_dir found, skipping task_results message")
 
+        webui_logger.debug(f"Calling SessionState.finish_task()")
+        webui_logger.info(f"Task completion process finished at {datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
         SessionState.finish_task()
 
 

@@ -26,6 +26,10 @@ WEBUI_INPUT_REQUEST = "###WEBUI_INPUT_REQUEST###"
 WEBUI_INPUT_MARKER = "###WEBUI_USER_INPUT###"
 WEBUI_OUTPUT_DIR = "###WEBUI_OUTPUT_DIR###"
 
+# Node tree visualization file patterns
+NODE_TREE_VISUALIZATION_PATTERN = "node_tree_iteration_*.pdf"
+NODE_FULL_VISUALIZATION_FILE = "node_visualization.pdf"
+
 # Success message displayed after task completion
 SUCCESS_MESSAGE = """🎉🎉 Task completed successfully! If you found this useful, please consider:
 ⭐ [Starring our repository](https://github.com/autogluon/autogluon-assistant)
@@ -44,9 +48,9 @@ VERBOSITY_MAP = {
 
 # Provider defaults
 PROVIDER_DEFAULTS = {
-    "bedrock": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+    "bedrock": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
     "openai": "gpt-4o-2024-08-06",
-    "anthropic": "claude-3-7-sonnet-20250219",
+    "anthropic": "claude-sonnet-4-5-20250929",
 }
 
 ### MLZero
