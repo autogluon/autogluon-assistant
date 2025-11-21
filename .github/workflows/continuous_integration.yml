@@ -133,7 +133,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_CI_ROLE_ARN }}
-          role-duration-seconds: 7200
+          role-duration-seconds: 3600
           aws-region: us-west-2
       - name: Build Doc(For push)
         if: ${{ github.event_name == 'push' }}
