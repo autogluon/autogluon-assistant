@@ -15,7 +15,7 @@ runs:
       with:
         role-to-assume: ${{ inputs.aws-role-arn }}
         aws-region: us-west-2
-        role-duration-seconds: 1800
+        role-duration-seconds: 7200
 
     - name: Run Tests
       shell: bash -l {0}
