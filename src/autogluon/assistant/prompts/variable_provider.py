@@ -70,7 +70,7 @@ class VariableProvider:
                 "bash_script": lambda: self.manager.bash_script,
                 "previous_bash_script": lambda: self.manager.previous_bash_script,
                 "previous_error_message": lambda: self.manager.previous_error_message,
-                "all_error_analyses": lambda: self.manager.all_previous_error_analyses,
+                "all_previous_error_analyses": lambda: self.manager.all_previous_error_analyses,
                 "tutorial_prompt": lambda: self.manager.tutorial_prompt,
                 "previous_tutorial_prompt": lambda: self.manager.previous_tutorial_prompt,
                 "selected_tool": lambda: self.manager.selected_tool,

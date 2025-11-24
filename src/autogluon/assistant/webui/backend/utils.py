@@ -72,6 +72,13 @@ def start_run(task_id: str, cmd: List[str], credentials: Optional[Dict[str, str]
     # Generate unique run_id
     run_id = uuid.uuid4().hex
 
+    # Extract output directory from command arguments
+    output_dir = None
+    for i, arg in enumerate(cmd):
+        if arg == "--output-folder" and i + 1 < len(cmd):
+            output_dir = cmd[i + 1]
+            break
+
     _runs[run_id] = {
         "process": None,
         "logs": [],
@@ -79,7 +86,9 @@ def start_run(task_id: str, cmd: List[str], credentials: Optional[Dict[str, str]
         "finished": False,
         "waiting_for_input": False,
         "input_prompt": None,
-        "output_dir": None,
+        "output_dir": output_dir,
+        "debug_log_file": None,
+        "debug_log_position": 0,
         "lock": threading.Lock(),
         "task_id": task_id,  # Store task_id for reference
     }
@@ -144,13 +153,6 @@ def start_run(task_id: str, cmd: List[str], credentials: Optional[Dict[str, str]
 
                     # Skip None results (empty lines, etc.)
                     if parsed is None:
-                        continue
-
-                    # Check if this is output directory notification
-                    if parsed.get("special") == "output_dir":
-                        _runs[run_id]["output_dir"] = parsed["text"]
-                        logger.info(f"Task {task_id[:8]} output directory: {parsed['text']}")
-                        # Don't add this to logs
                         continue
 
                     # Check if this is an input request
@@ -240,14 +242,53 @@ def get_logs(run_id: str) -> List[str]:
 def get_status(run_id: str) -> dict:
     """
     Return task status including whether it's waiting for input and output directory.
+
+    Checks debugging_logs.txt for completion markers since they are written at DEBUG level.
     """
     info = _runs.get(run_id)
     if info is None:
         return {"finished": True, "error": "run_id not found"}
 
     with info["lock"]:
+        finished = info["finished"]
+
+        # Check debugging_logs.txt for completion markers
+        if not finished and info.get("output_dir"):
+            from pathlib import Path
+
+            debug_log_path = Path(info["output_dir"]) / "debugging_logs.txt"
+
+            # Read new lines from debugging log file
+            if debug_log_path.exists():
+                try:
+                    with open(debug_log_path, "r") as f:
+                        # Seek to last read position
+                        f.seek(info["debug_log_position"])
+                        new_lines = f.readlines()
+                        # Update position
+                        info["debug_log_position"] = f.tell()
+
+                        # Check for completion markers in new lines
+                        for line in new_lines:
+                            if any(
+                                marker in line
+                                for marker in [
+                                    "Created best_run folder",  # Printed AFTER best_run copy completes
+                                    "MCTS search completed",  # Printed after all iterations
+                                    "Output saved in",  # Final completion marker
+                                ]
+                            ):
+                                logger.info(
+                                    f"Task {run_id[:8]} detected as complete via debug log: {line.strip()[:100]}"
+                                )
+                                finished = True
+                                info["finished"] = True
+                                break
+                except Exception as e:
+                    logger.error(f"Error reading debug log for {run_id[:8]}: {e}")
+
         return {
-            "finished": info["finished"],
+            "finished": finished,
             "waiting_for_input": info.get("waiting_for_input", False),
             "input_prompt": info.get("input_prompt", None),
             "output_dir": info.get("output_dir", None),

@@ -41,11 +41,11 @@ Considerations for rewriting this template:
 ## Execution Results
 ### Standard Output (stdout)
 
-{stdout_truncate_mid_8192}
+{stdout_truncate_start_8192}
 
 ### Standard Error (stderr)
 
-{stderr_truncate_mid_8192}
+{stderr_truncate_start_8192}
 
 Evaluate the execution results and decide on one of the following actions:
 1. SUCCESS - If the execution was completely successful and met all requirements.
@@ -60,7 +60,7 @@ The error summary should be brief but informative enough for another agent to un
 Even if the code executed without throwing errors, it might still have issues with logic or not meet all requirements.
 
 For validation scores:
-- If there is a validation score present in the execution results, extract it
+- If there is a validation score present in the execution results, extract it (e.g. the last validation score reported in the training process).
 - Convert the score to ensure higher values indicate better performance (multiply "lower is better" metrics like RMSE, MAE, or loss by -1)
 - Return the converted score that follows the "higher is better" convention"""
 

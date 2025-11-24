@@ -1,6 +1,15 @@
 # Tutorial Prompt Generator Configuration
 
-per_execution_timeout: 86400
+per_execution_timeout: 28800
+
+# MCTS (Monte Carlo Tree Search) parameters
+exploration_constant: 1.414    # Controls exploration vs exploitation trade-off in UCT formula (higher = more exploration)
+max_debug_depth: 3         # Maximum depth of debug nodes in the search tree
+failure_offset: 2             # Number of failures to ignore before applying failure penalty
+failure_penalty_weight: 0.5   # Weight of the penalty for failed executions in UCT calculation
+initial_root_children: 3      # Maximum number of child nodes from root before considering fully expanded
+max_debug_children: 2         # Maximum number of debug child nodes for a single parent node
+max_evolve_children: 2        # Maximum number of evolution child nodes for a single parent node
 
 # Data Perception
 max_file_group_size_to_show: 5
@@ -11,7 +20,7 @@ num_tutorial_retrievals: 30
 max_num_tutorials: 5
 max_user_input_length: 2048
 max_tutorial_length: 32768
-create_venv: false
+configure_env: false
 condense_tutorials: True
 use_tutorial_summary: True
 continuous_improvement: False
@@ -25,11 +34,7 @@ llm: &default_llm
   # Note: bedrock is only supported in limited AWS regions
   #       and requires AWS credentials
   provider: bedrock
-  model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
-  #provider: openai
-  #model: gpt-4o-2024-08-06
-  #provider: anthropic
-  # model: claude-3-7-sonnet-20250219
+  model: "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
   max_tokens: 65535
   proxy_url: null
   temperature: 0.1

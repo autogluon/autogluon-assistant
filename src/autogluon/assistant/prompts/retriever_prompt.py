@@ -39,7 +39,7 @@ You are an expert at generating search queries to find relevant machine learning
 {user_input}
 
 ### Previous Error Analysis
-{all_error_analyses}
+{all_previous_error_analyses}
 
 ### Selected Tool/Library
 {selected_tool}

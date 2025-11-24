@@ -1,12 +1,13 @@
 import logging
 import os
+import time
 import uuid
 from datetime import datetime
 from pathlib import Path
 
 from omegaconf import OmegaConf
 
-from .constants import DEFAULT_CONFIG_PATH
+from .constants import DEFAULT_CONFIG_PATH, WEBUI_OUTPUT_DIR
 from .rich_logging import configure_logging
 from .utils import extract_archives
 
@@ -17,7 +18,7 @@ def run_agent(
     input_data_folder,
     output_folder=None,
     config_path=None,
-    max_iterations=5,
+    max_iterations=10,  # Default higher for MCTS search
     continuous_improvement=None,
     enable_meta_prompting=None,
     enable_per_iteration_instruction=False,
@@ -26,6 +27,24 @@ def run_agent(
     manager=None,
     verbosity=1,
 ):
+    """
+    Run the AutoGluon Assistant with MCTS-based search strategy.
+
+    Args:
+        input_data_folder: Path to input data directory
+        output_folder: Path to output directory
+        config_path: Path to configuration file
+        max_iterations: Maximum number of iterations
+        continuous_improvement: Whether to continue after finding a valid solution
+        enable_meta_prompting: Whether to enable meta-prompting
+        enable_per_iteration_instruction: Whether to ask for user input at each iteration
+        initial_user_input: Initial user instruction
+        extract_archives_to: Path to extract archives to
+        verbosity: Verbosity level
+
+    Returns:
+        None
+    """
     # Get the directory of the current file
     current_file_dir = Path(__file__).parent
 
@@ -36,7 +55,7 @@ def run_agent(
         # Generate a random UUID4
         random_uuid = uuid.uuid4()
         # Create the folder name using the pattern
-        folder_name = f"mlzero-{current_datetime}-{random_uuid}"
+        folder_name = f"mlzero-mcts-{current_datetime}-{random_uuid}"
 
         # Create the full path for the new folder
         output_folder = os.path.join(working_dir, folder_name)
@@ -47,7 +66,11 @@ def run_agent(
     output_dir.mkdir(parents=False, exist_ok=True)
 
     configure_logging(verbosity=verbosity, output_dir=output_dir)
-    from .managers import Manager
+    from .managers.node_manager import NodeManager
+
+    # Log output directory for WebUI backend detection
+    if os.environ.get("AUTOGLUON_WEBUI") == "true":
+        logger.debug(f"{WEBUI_OUTPUT_DIR} {output_dir}")
 
     if extract_archives_to is not None:
         if extract_archives_to and extract_archives_to != input_data_folder:
@@ -100,7 +123,8 @@ def run_agent(
         config.enable_meta_prompting = enable_meta_prompting
 
     if manager is None:
-        manager = Manager(
+        # Create a new NodeManager instance
+        manager = NodeManager(
             input_data_folder=input_data_folder,
             output_folder=output_folder,
             config=config,
@@ -108,30 +132,55 @@ def run_agent(
             initial_user_input=initial_user_input,
         )
 
-    manager.set_initial_user_input(
-        enable_per_iteration_instruction=enable_per_iteration_instruction, initial_user_input=initial_user_input
-    )
+    # Initialize the manager (generate initial prompts)
+    manager.initialize()
 
-    while manager.time_step + 1 < max_iterations:
-        logger.brief(f"Starting iteration {manager.time_step + 1}!")
+    # Execute the MCTS search
+    iteration = 0
+    start_time = time.time()
 
-        manager.step()
+    while iteration < max_iterations:
+        # Log the current iteration
+        logger.brief(f"Starting MCTS iteration {iteration + 1}/{max_iterations}")
 
-        # Generate code
-        manager.update_python_code()
-        manager.update_bash_script()
+        # Perform one step of the Monte Carlo Tree Search
+        success = manager.step()
 
-        successful = manager.execute_code()
-
-        if successful:
+        if success:
+            # Create a best run copy when we find a successful solution
             manager.create_best_run_copy()
-            if not config.continuous_improvement:
-                break
 
-        if manager.time_step + 1 >= max_iterations:
+            # If not in continuous improvement mode, we can stop
+            if not config.continuous_improvement:
+                logger.brief("Stopping search - solution found and continuous improvement is disabled")
+                break
+        elif success is None:
+            logger.brief("Stopping search - all nodes are terminal.")
+            break
+        else:
+            pass
+
+        # TODO: make this configurable
+        # manager.remove_current_iteration_folder()
+
+        # Increment iteration counter
+        iteration += 1
+
+        # Check if we've exceeded the maximum iterations
+        if iteration >= max_iterations:
             logger.warning(f"[bold red]Warning: Reached maximum iterations ({max_iterations})[/bold red]")
 
+    manager.visualize_results()
     manager.report_token_usage()
-    manager.get_validation_score_summary()
-    logger.brief(f"output saved in {output_dir}.")
+
+    # Log summary BEFORE cleanup
+    elapsed_time = time.time() - start_time
+    logger.brief(f"MCTS search completed in {elapsed_time:.2f} seconds")
+    logger.brief(f"Total nodes explored: {manager.time_step + 1}")
+    logger.brief(f"Best validation score: {manager.best_validation_score}")
+    logger.brief(f"Tools used: {', '.join(manager.used_tools)}")
+    logger.brief(f"Output saved in {output_dir}")
+
+    # Cleanup resources
     manager.cleanup()
+    logger.debug("Clean Up Successful.")

@@ -4,6 +4,7 @@
   "description": "AutoGluon TimeSeries automates forecasting model training for time series data, supporting both univariate and multivariate predictions.",
   "requirements": [],
   "prompt_template": [
+    "use presets: best_quality",
     "DO NOT drop any data samples (to make sure the frequency is regular).",
     "DO NOT create validation dataset from training data. Validation score is provided during the training process.",
     "Note that the prediction is given in a column named \"mean\". You need to rename the column in the result.",

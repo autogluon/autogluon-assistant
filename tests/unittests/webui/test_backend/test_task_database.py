@@ -18,9 +18,22 @@ class TestTaskDatabase:
             # Define the database path
             db_path = Path(temp_dir) / "test_queue.db"
 
+            # Get the absolute path to the queuedb script
+            script_dir = (
+                Path(__file__).parent.parent.parent.parent.parent
+                / "src"
+                / "autogluon"
+                / "assistant"
+                / "webui"
+                / "backend"
+                / "queue"
+            )
+            script_path = script_dir / "queuedb"
+
             # Create database using the queuedb script with a custom path
-            script_path = "src/autogluon/assistant/webui/backend/queue/queuedb"
-            result = subprocess.run([script_path, "--db-path", str(db_path), "create"], capture_output=True, text=True)
+            result = subprocess.run(
+                [str(script_path), "--db-path", str(db_path), "create"], capture_output=True, text=True
+            )
 
             # Verify that the script ran successfully
             assert result.returncode == 0, f"Failed to create db: {result.stderr}"
@@ -35,16 +48,31 @@ class TestTaskDatabase:
         """Test the queuedb create command"""
         with tempfile.TemporaryDirectory() as temp_dir:
             db_path = Path(temp_dir) / "test_create.db"
-            script_path = "src/autogluon/assistant/webui/backend/queue/queuedb"
+
+            # Get the absolute path to the queuedb script
+            script_dir = (
+                Path(__file__).parent.parent.parent.parent.parent
+                / "src"
+                / "autogluon"
+                / "assistant"
+                / "webui"
+                / "backend"
+                / "queue"
+            )
+            script_path = script_dir / "queuedb"
 
             # First creation
-            result = subprocess.run([script_path, "--db-path", str(db_path), "create"], capture_output=True, text=True)
+            result = subprocess.run(
+                [str(script_path), "--db-path", str(db_path), "create"], capture_output=True, text=True
+            )
             assert result.returncode == 0
             assert "Database created and initialized" in result.stdout
             assert db_path.exists()
 
             # Second creation (should show already exists)
-            result = subprocess.run([script_path, "--db-path", str(db_path), "create"], capture_output=True, text=True)
+            result = subprocess.run(
+                [str(script_path), "--db-path", str(db_path), "create"], capture_output=True, text=True
+            )
             assert result.returncode == 0
             assert "already exist" in result.stdout
 
@@ -56,10 +84,20 @@ class TestTaskDatabase:
             os.environ["HOME"] = temp_home
 
             try:
-                script_path = "src/autogluon/assistant/webui/backend/queue/queuedb"
+                # Get the absolute path to the queuedb script
+                script_dir = (
+                    Path(__file__).parent.parent.parent.parent.parent
+                    / "src"
+                    / "autogluon"
+                    / "assistant"
+                    / "webui"
+                    / "backend"
+                    / "queue"
+                )
+                script_path = script_dir / "queuedb"
 
                 # Do not specify --db-path, should use default path
-                result = subprocess.run([script_path, "create"], capture_output=True, text=True)
+                result = subprocess.run([str(script_path), "create"], capture_output=True, text=True)
                 assert result.returncode == 0
 
                 # Check if default path db was created
@@ -74,9 +112,19 @@ class TestTaskDatabase:
 
     def test_queuedb_script_help(self):
         """Test queuedb --help command"""
-        script_path = "src/autogluon/assistant/webui/backend/queue/queuedb"
+        # Get the absolute path to the queuedb script
+        script_dir = (
+            Path(__file__).parent.parent.parent.parent.parent
+            / "src"
+            / "autogluon"
+            / "assistant"
+            / "webui"
+            / "backend"
+            / "queue"
+        )
+        script_path = script_dir / "queuedb"
 
-        result = subprocess.run([script_path, "--help"], capture_output=True, text=True)
+        result = subprocess.run([str(script_path), "--help"], capture_output=True, text=True)
         assert result.returncode == 0
         assert "Usage:" in result.stdout
         assert "--db-path" in result.stdout
@@ -194,8 +242,19 @@ class TestTaskDatabase:
         # Use same database path
         db_path = db.db_path
 
-        script_path = "src/autogluon/assistant/webui/backend/queue/queuedb"
-        result = subprocess.run([script_path, "--db-path", db_path, "dump"], capture_output=True, text=True)
+        # Get the absolute path to the queuedb script
+        script_dir = (
+            Path(__file__).parent.parent.parent.parent.parent
+            / "src"
+            / "autogluon"
+            / "assistant"
+            / "webui"
+            / "backend"
+            / "queue"
+        )
+        script_path = script_dir / "queuedb"
+
+        result = subprocess.run([str(script_path), "--db-path", db_path, "dump"], capture_output=True, text=True)
 
         assert result.returncode == 0
         assert "Database:" in result.stdout
@@ -217,8 +276,19 @@ class TestTaskDatabase:
         # Use same database path
         db_path = db.db_path
 
-        script_path = "src/autogluon/assistant/webui/backend/queue/queuedb"
-        result = subprocess.run([script_path, "--db-path", db_path, "reset"], capture_output=True, text=True)
+        # Get the absolute path to the queuedb script
+        script_dir = (
+            Path(__file__).parent.parent.parent.parent.parent
+            / "src"
+            / "autogluon"
+            / "assistant"
+            / "webui"
+            / "backend"
+            / "queue"
+        )
+        script_path = script_dir / "queuedb"
+
+        result = subprocess.run([str(script_path), "--db-path", db_path, "reset"], capture_output=True, text=True)
 
         assert result.returncode == 0
         assert "All tasks cleared" in result.stdout

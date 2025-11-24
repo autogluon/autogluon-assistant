@@ -11,7 +11,7 @@ num_tutorial_retrievals: 30
 max_num_tutorials: 5
 max_user_input_length: 2048
 max_tutorial_length: 32768
-create_venv: false
+configure_env: false
 condense_tutorials: True
 use_tutorial_summary: True
 continuous_improvement: False
@@ -23,7 +23,7 @@ enable_meta_prompting: False
 # For each agent (coder, etc.) you can use a different one
 llm: &default_llm
   provider: bedrock
-  model: "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
+  model: "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
   max_tokens: 65535
   proxy_url: null
   temperature: 0.1
@@ -82,7 +82,7 @@ python_coder:
 
     {tool_prompt}
 
-    {best_code_prompt}
+    {code_improvement_prompt}
 
     Please provide the complete Python script that accomplishes these tasks, ensuring it's ready to run given the appropriate data inputs.
 
@@ -96,7 +96,7 @@ python_coder:
     {user_input_truncate_end_2048}
 
     ### Previous Errors
-    {all_error_analyses}
+    {all_previous_error_analyses}
 
     ### Tutorials for Reference
     {tutorial_prompt}

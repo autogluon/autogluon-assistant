@@ -45,7 +45,7 @@ ONLY save files to the working directory: {per_iteration_output_folder}.
    - Make predictions on the test data. Always preserve and use the ORIGINAL INDICES from the test data to maintain exact row correspondence - DO NOT generate new indices or rely on assumed ordering.
    - Save the predicted results to {per_iteration_output_folder}, result file name should be "results", the format and extension should be same as the test data file
    - Output column names must exactly match those in the training or sample submission files without adding "predicted_" prefixes or creating any new columns.
-   - At the end, implement validation checks that assert the prediction file maintains exact test data indices, verify correct column names match requirements, and confirm proper output format.
+   - IMPORTANT: At the end, implement validation checks that assert the prediction file maintains exact test data indices, verify correct column names match requirements, confirm proper output format, and if applicable, sanity check output predictions are valid and correct.
 
 4. Documentation:
    - Add a brief docstring at the beginning of the script explaining its purpose
@@ -60,7 +60,7 @@ ONLY save files to the working directory: {per_iteration_output_folder}.
 
 {tool_prompt}
 
-{best_code_prompt}
+{code_improvement_prompt}
 
 Please provide the complete Python script that accomplishes these tasks, ensuring it's ready to run given the appropriate data inputs.
 
@@ -74,7 +74,8 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
 {user_input_truncate_end_2048}
 
 ### Previous Errors
-{all_error_analyses}
+These errors were encountered across different implementation approaches and may not be directly related to your current implementation. Use them as reference material to identify potential pitfalls and avoid similar mistakes in your implementation.
+{all_previous_error_analyses}
 
 ### Tutorials for Reference
 {tutorial_prompt}
@@ -93,12 +94,12 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
         assert self.manager.time_step >= 0, "run manager.step(user_input) before retrieving the prompt"
 
         # Generate best code prompt and validation prompt
-        best_code_prompt = self._generate_best_code_prompt()
+        code_improvement_prompt = self._generate_code_improvement_prompt()
         validation_prompt = self._generate_validation_prompt()
 
         # Render the prompt using the variable provider with additional variables
         additional_vars = {
-            "best_code_prompt": best_code_prompt,  # Dynamically generated
+            "code_improvement_prompt": code_improvement_prompt,  # Dynamically generated
             "validation_prompt": validation_prompt,  # Dynamically generated
         }
 
@@ -127,8 +128,8 @@ Please provide the complete Python script that accomplishes these tasks, ensurin
     def _generate_validation_prompt(self) -> str:
         """Generate the validation section of the prompt."""
         if self.manager.config.continuous_improvement:
-            return """6. Validation:
-   - If no validation data is given, hold out a validation dataset (10 percent of the data) at the start, train only on the remaining data.
+            return """6. Validation (only when there is labeled training data):
+   - If there is training and but no validation data is given, hold out a validation dataset (10 percent of the data) at the start, train only on the remaining data.
    - At the end compute and print the final evaluation metric score on the validation set.
    - Use a try-except block for the validation step - if validation fails, it's acceptable to continue.
 """
@@ -143,51 +144,32 @@ Available GPUs: {get_gpu_count()}
 Please optimize your code to efficiently utilize the available hardware resources. 
 """
 
-    def _generate_best_code_prompt(self) -> str:
+    def _generate_code_improvement_prompt(self) -> str:
         """Generate prompt section about best/successful previous code."""
         if self.manager.time_step == 0:
             return ""  # No previous code on first iteration
 
-        best_code_prompt = []
-
-        # Check if we have a best step with validation score
-        if self.manager.best_step >= 0 and self.manager.best_step < self.manager.time_step:
-            best_code = self.manager.python_codes[self.manager.best_step]
-            best_score = self.manager.val_scores[self.manager.best_step]
-
-            best_code_prompt.append("### Previous Best Code")
-            best_code_prompt.append(
-                f"The following code achieved the best validation score so far ({best_score:.4f}):"
-            )
-            best_code_prompt.append("```python")
-            best_code_prompt.append(best_code)
-            best_code_prompt.append("```")
-            best_code_prompt.append("")
-            best_code_prompt.append(
-                "Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority."
-            )
-            if self.manager.config.optimize_system_resources:
-                best_code_prompt.append(self._generate_system_resources_prompt())
-        # Check if we have a last successful step (different from best step)
-        elif self.manager.last_successful_step >= 0 and self.manager.last_successful_step < self.manager.time_step:
-            successful_code = self.manager.python_codes[self.manager.last_successful_step]
-
-            best_code_prompt.append("### Previous Successful Code")
-            best_code_prompt.append("The following code executed successfully:")
-            best_code_prompt.append("```python")
-            best_code_prompt.append(successful_code)
-            best_code_prompt.append("```")
-            best_code_prompt.append("")
-            best_code_prompt.append(
-                "Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority."
-            )
-            if self.manager.config.optimize_system_resources:
-                best_code_prompt.append(self._generate_system_resources_prompt())
-        # Do nothing if there's no successful code
+        if self.manager.code_to_improve:
+            code_improvement_prompt = f"""### Previous Code to Improve
+```python
+{self.manager.code_to_improve}
+```
+Please prioritize model architecture improvements and training optimization to enhance performance. Feature engineering may also be applied but with lower priority.
+"""
+        elif self.manager.code_to_debug:
+            code_improvement_prompt = f"""### Previous Code to Debug
+```python
+{self.manager.code_to_debug}
+```
+Please fix the errors in the code above. Make minimal changes necessary to fix the issues.
+"""
         else:
-            best_code_prompt = []
+            code_improvement_prompt = ""
 
-        return "\n".join(best_code_prompt)
+        if self.manager.config.optimize_system_resources:
+            code_improvement_prompt += self._generate_system_resources_prompt()
+
+        return code_improvement_prompt
 
     def parse(self, response: Dict) -> Tuple[str, Optional[str]]:
         """Parse the LLM's response to generated python code"""

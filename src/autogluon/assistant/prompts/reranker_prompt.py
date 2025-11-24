@@ -82,7 +82,7 @@ Given the following context and list of tutorials with their summaries, select t
 {user_input}
 
 ### Previous Error Analysis
-{all_error_analyses}
+{all_previous_error_analyses}
 
 Available Tutorials:
 {tutorials_info}

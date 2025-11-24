@@ -26,6 +26,7 @@ def execute_code(code, language, timeout):
     import select
     import subprocess
     import time
+    from collections import deque
 
     try:
         # Set up the command based on language
@@ -45,6 +46,10 @@ def execute_code(code, language, timeout):
         )
 
         stdout_chunks, stderr_chunks = [], []
+
+        # Track last 100 unique lines for deduplication (separate for stdout and stderr)
+        recent_stdout_lines = deque(maxlen=100)
+        recent_stderr_lines = deque(maxlen=100)
 
         # Set up tracking of both output streams
         streams = [process.stdout, process.stderr]
@@ -98,10 +103,18 @@ def execute_code(code, language, timeout):
 
                     # Handle stdout
                     if stream == process.stdout:
+                        # Skip duplicate lines (exact match with any of the last 100 stdout lines)
+                        if line in recent_stdout_lines:
+                            continue
+                        recent_stdout_lines.append(line)
                         stdout_chunks.append(line)
                         logger.detail(line.rstrip())
                     # Handle stderr
                     else:
+                        # Skip duplicate lines (exact match with any of the last 100 stderr lines)
+                        if line in recent_stderr_lines:
+                            continue
+                        recent_stderr_lines.append(line)
                         stderr_chunks.append(line)
                         logger.detail(line.rstrip())
 

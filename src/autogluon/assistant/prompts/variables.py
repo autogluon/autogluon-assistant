@@ -91,15 +91,15 @@ class VariableRegistry:
         # Error-related variables
         self.register(
             VariableDefinition(
-                name="previous_error_message",
-                description="Error message in the previous iteration",
+                name="error_message",
+                description="Error message in the current iteration",
             )
         )
 
         # Error-related variables
         self.register(
             VariableDefinition(
-                name="all_error_analyses",
+                name="all_previous_error_analyses",
                 description="Error analysis in all completed iterations",
             )
         )
@@ -197,7 +197,7 @@ class VariableRegistry:
         # Best code related
         self.register(
             VariableDefinition(
-                name="best_code_prompt",
+                name="code_improvement_prompt",
                 description="Examples of high-quality code",
             )
         )

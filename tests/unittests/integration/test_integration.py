@@ -50,7 +50,7 @@ def test_titanic_prediction(titanic_data_path):
         input_data_folder=titanic_data_path,
         output_folder=output_dir,
         max_iterations=3,
-        initial_user_input="Complete the task within 3 minutes.",
+        initial_user_input="Use medium_quality presets. Set time_limit to three minutes.",
     )
     output_file = os.path.join(output_dir, "results.csv")
 
