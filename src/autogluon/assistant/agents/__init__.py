@@ -1,3 +1,4 @@
+from .chat_agent import ChatAgent
 from .coder_agent import CoderAgent
 from .data_perception_agent import DataPerceptionAgent
 from .description_file_retriever_agent import DescriptionFileRetrieverAgent
