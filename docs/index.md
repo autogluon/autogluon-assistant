@@ -39,6 +39,7 @@ AutoGluon-Assistant is an AI-powered assistant that helps users with AutoML task
 ## Key Features
 
 - **Intelligent ML Guidance**: Get expert advice on ML/DL workflows and best practices
+- **Chat Mode**: Interactive Q&A for conversational guidance without code execution
 - **Multiple Interfaces**: Use through CLI, Python API, WebUI, or MCP integration
 - **Flexible LLM Providers**: Choose from AWS Bedrock, Anthropic, OpenAI, or SageMaker
 - **Code Generation**: Generate code for any registered machine learning or deep learning framework (for unregistered frameworks, performance may be reduced due to limited framework-specific knowledge)
