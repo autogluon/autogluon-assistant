@@ -3,6 +3,7 @@
 <td width="70%">
 
 # AutoGluon Assistant (aka MLZero)
+
 [![Python Versions](https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12-blue)](https://pypi.org/project/autogluon.assistant/)
 [![GitHub license](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
 [![Continuous Integration](https://github.com/autogluon/autogluon-assistant/actions/workflows/continuous_integration.yml/badge.svg)](https://github.com/autogluon/autogluon-assistant/actions/workflows/continuous_integration.yml)
@@ -19,12 +20,18 @@
 
 AutoGluon Assistant (aka MLZero) is a multi-agent system that automates end-to-end multimodal machine learning or deep learning workflows by transforming raw multimodal data into high-quality ML solutions with zero human intervention.
 
-## News
-**✨ Accepted to NeurIPS 2025** as a poster presentation
+---
 
-**🔄 Performance Enhancement Release** (Node-Based Manager + MCTS, inspired by [ML-Master](https://github.com/sjtu-sai-agents/ML-Master) and [AIDE](https://github.com/codestoryai/aide)): Core algorithm merged and available to try now! Docker container coming soon.
+## 📰 Latest News
 
-## Documentation
+| Date | Update |
+|------|--------|
+| [2025-11-25] | 🔄 **Performance Enhancement Release** (Node-Based Manager + MCTS, inspired by [ML-Master](https://github.com/sjtu-sai-agents/ML-Master) and [AIDE](https://github.com/codestoryai/aide)): Core algorithm merged and available to try now! Docker container coming soon. |
+| [2025-10-23] | ✨ **Accepted to NeurIPS 2025** as a poster presentation |
+
+---
+
+## 📚 Documentation
 
 For detailed usage instructions and advanced options, please refer to our tutorials:
 
@@ -33,8 +40,11 @@ For detailed usage instructions and advanced options, please refer to our tutori
 - [Interfaces](docs/tutorials/interfaces.md) - Working with different interfaces (CLI, Python API, WebUI, MCP)
 - [Configuration](docs/tutorials/configuration.md) - Customizing AutoGluon Assistant settings
 
+---
+
 ## 💾 Installation
-Linux-only support at present. macOS version coming in a future update.
+
+Linux-only support at present.
 
 *Note: If you don't have conda installed, follow conda's [official installation guide](https://www.anaconda.com/docs/getting-started/miniconda/install#linux-2) to install it.*
 
@@ -44,7 +54,9 @@ For the latest features, install from source:
 pip install uv && uv pip install git+https://github.com/autogluon/autogluon-assistant.git
 ```
 
-## Quick Start
+---
+
+## 🚀 Quick Start
 
 MLZero supports multiple LLM providers with AWS Bedrock as the default:
 
@@ -60,7 +72,9 @@ To run MLZero in CLI:
 mlzero -i <input_data_folder>
 ```
 
-## Interfaces
+---
+
+## 🖥️ Interfaces
 
 AutoGluon Assistant provides multiple interfaces:
 
@@ -76,7 +90,10 @@ AutoGluon Assistant provides multiple interfaces:
 
 ![Demo](https://github.com/autogluon/autogluon-assistant/blob/main/docs/assets/mcp_demo.gif)
 
-## Citation
+---
+
+## 📝 Citation
+
 If you use Autogluon Assistant (MLZero) in your research, please cite our paper:
 
 ```bibtex
