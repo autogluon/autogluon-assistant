@@ -1,0 +1,48 @@
+# Chat Agent Configuration
+
+# Chat-specific settings
+max_file_size_mb: 10              # Maximum file size to read (in MB)
+max_length_per_file: 5000         # Maximum characters per file in prompt
+num_tutorial_retrievals: 10       # Number of tutorials to retrieve
+max_num_tutorials: 3              # Maximum number of tutorials to show
+max_tutorial_length: 8192         # Maximum length of tutorial content
+
+# Default LLM Configuration
+llm: &default_llm
+  provider: bedrock
+  model: "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+  max_tokens: 8192
+  proxy_url: null
+  temperature: 0.3  # Slightly higher for more conversational responses
+  top_p: 0.9
+  verbose: True
+  multi_turn: True  # Chat agent benefits from multi-turn conversations
+  template: null
+  add_coding_format_instruction: false
+  apply_meta_prompting: False
+
+# Chat agent configuration
+chat_agent:
+  <<: *default_llm
+  multi_turn: True
+  temperature: 0.3
+  max_tokens: 8192
+
+# Tool selector (for identifying relevant tools from user questions)
+tool_selector:
+  <<: *default_llm
+  temperature: 0.
+  top_p: 1.
+  multi_turn: False
+
+# Retriever (for fetching tutorials)
+retriever:
+  <<: *default_llm
+  multi_turn: False
+
+# Reranker (for selecting best tutorials)
+reranker:
+  <<: *default_llm
+  temperature: 0.
+  top_p: 1.
+  multi_turn: False

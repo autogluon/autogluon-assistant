@@ -26,6 +26,7 @@ AutoGluon Assistant (aka MLZero) is a multi-agent system that automates end-to-e
 
 | Date | Update |
 |------|--------|
+| [2025-12-01] | 💬 **Chat Mode**: New conversational Q&A mode (`mlzero chat`) for getting ML guidance without code execution. |
 | [2025-11-25] | 🔄 **Performance Enhancement Release** (Node-Based Manager + MCTS, inspired by [ML-Master](https://github.com/sjtu-sai-agents/ML-Master) and [AIDE](https://github.com/codestoryai/aide)): Core algorithm merged and available to try now! Docker container coming soon. |
 | [2025-10-23] | ✨ **Accepted to NeurIPS 2025** as a poster presentation |
 
@@ -39,6 +40,7 @@ For detailed usage instructions and advanced options, please refer to our tutori
 - [LLM Providers](docs/tutorials/llm_providers.md) - Using different AI providers (Bedrock, OpenAI, Anthropic, SageMaker)
 - [Interfaces](docs/tutorials/interfaces.md) - Working with different interfaces (CLI, Python API, WebUI, MCP)
 - [Configuration](docs/tutorials/configuration.md) - Customizing AutoGluon Assistant settings
+- [Chat Mode](docs/tutorials/chat_mode.md) - Interactive Q&A without code execution
 
 ---
 
