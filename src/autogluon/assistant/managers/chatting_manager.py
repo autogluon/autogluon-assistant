@@ -13,8 +13,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, List, Optional
 
-from ..tools_registry import registry
-
 logger = logging.getLogger(__name__)
 
 
@@ -23,6 +21,7 @@ class ChatMessage:
     """
     A single message in the chat conversation.
     """
+
     role: str  # 'user' or 'assistant'
     content: str
     timestamp: float = field(default_factory=lambda: time.time())
@@ -30,10 +29,10 @@ class ChatMessage:
     def to_dict(self):
         """Convert to dictionary for storage/display."""
         return {
-            'role': self.role,
-            'content': self.content,
-            'timestamp': self.timestamp,
-            'datetime': datetime.fromtimestamp(self.timestamp).strftime('%Y-%m-%d %H:%M:%S')
+            "role": self.role,
+            "content": self.content,
+            "timestamp": self.timestamp,
+            "datetime": datetime.fromtimestamp(self.timestamp).strftime("%Y-%m-%d %H:%M:%S"),
         }
 
 
@@ -42,6 +41,7 @@ class ChatSession:
     """
     A chat session containing conversation history and metadata.
     """
+
     session_id: str
     messages: List[ChatMessage] = field(default_factory=list)
     created_at: float = field(default_factory=lambda: time.time())
@@ -71,11 +71,11 @@ class ChatSession:
     def to_dict(self):
         """Convert to dictionary for storage/display."""
         return {
-            'session_id': self.session_id,
-            'created_at': self.created_at,
-            'last_updated': self.last_updated,
-            'message_count': len(self.messages),
-            'messages': [msg.to_dict() for msg in self.messages]
+            "session_id": self.session_id,
+            "created_at": self.created_at,
+            "last_updated": self.last_updated,
+            "message_count": len(self.messages),
+            "messages": [msg.to_dict() for msg in self.messages],
         }
 
 
@@ -136,7 +136,7 @@ class ChattingManager:
 
     def _init_agents(self):
         """Initialize required agents for chat functionality."""
-        from ..agents import ChatAgent, RetrieverAgent, RerankerAgent, ToolSelectorAgent
+        from ..agents import ChatAgent, RerankerAgent, RetrieverAgent, ToolSelectorAgent
 
         # Chat agent for handling conversations
         self.chat_agent = ChatAgent(
@@ -229,7 +229,7 @@ class ChattingManager:
             File content as string
         """
         if max_size_mb is None:
-            max_size_mb = getattr(self.config, 'max_file_size_mb', 10)
+            max_size_mb = getattr(self.config, "max_file_size_mb", 10)
 
         # Check file size
         size_mb = file_path.stat().st_size / (1024 * 1024)
@@ -238,14 +238,14 @@ class ChattingManager:
 
         # Try to read as text
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
             return content
         except UnicodeDecodeError:
             # Try other encodings
-            for encoding in ['latin-1', 'cp1252', 'iso-8859-1']:
+            for encoding in ["latin-1", "cp1252", "iso-8859-1"]:
                 try:
-                    with open(file_path, 'r', encoding=encoding) as f:
+                    with open(file_path, "r", encoding=encoding) as f:
                         content = f.read()
                     return content
                 except:
@@ -269,7 +269,7 @@ class ChattingManager:
         self.current_user_message = user_message
 
         # Add user message to history
-        self.session.add_message(role='user', content=user_message)
+        self.session.add_message(role="user", content=user_message)
 
         # Identify relevant tool from user message
         logger.info("Identifying relevant tools...")
@@ -287,7 +287,7 @@ class ChattingManager:
         response = self.chat_agent()
 
         # Add assistant response to history
-        self.session.add_message(role='assistant', content=response)
+        self.session.add_message(role="assistant", content=response)
 
         # Mark data context as presented after first message
         if not self.data_context_presented and self.file_contents:
@@ -322,7 +322,8 @@ class ChattingManager:
 
         # Format as markdown
         from datetime import datetime
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         markdown_content = f"""# Q&A Exchange - Iteration {iter_num}
 
@@ -348,7 +349,7 @@ class ChattingManager:
 
         # Write to file
         try:
-            with open(filepath, 'w', encoding='utf-8') as f:
+            with open(filepath, "w", encoding="utf-8") as f:
                 f.write(markdown_content)
             logger.debug(f"Saved Q&A to {filepath}")
         except Exception as e:
@@ -419,20 +420,20 @@ class ChattingManager:
 
         # Simple approach: split by tutorial sections and filter
         # This assumes tutorials have some identifiable structure
-        lines = tutorials.split('\n')
+        lines = tutorials.split("\n")
         filtered_lines = []
         current_tutorial_hash = None
 
         for line in lines:
             # Simple hashing of tutorial content to detect duplicates
-            if line.strip().startswith('#') or line.strip().startswith('##'):
+            if line.strip().startswith("#") or line.strip().startswith("##"):
                 # This is a tutorial header
                 current_tutorial_hash = hash(line.strip())
 
             if current_tutorial_hash not in self.presented_tutorials:
                 filtered_lines.append(line)
 
-        return '\n'.join(filtered_lines) if filtered_lines else ""
+        return "\n".join(filtered_lines) if filtered_lines else ""
 
     def _mark_tutorials_presented(self, tutorials: str):
         """
@@ -444,12 +445,11 @@ class ChattingManager:
         if not tutorials:
             return
 
-        lines = tutorials.split('\n')
+        lines = tutorials.split("\n")
         for line in lines:
-            if line.strip().startswith('#') or line.strip().startswith('##'):
+            if line.strip().startswith("#") or line.strip().startswith("##"):
                 tutorial_hash = hash(line.strip())
                 self.presented_tutorials.add(tutorial_hash)
-
 
     def _load_session(self):
         """Load session from file if it exists."""
@@ -459,20 +459,16 @@ class ChattingManager:
 
         if os.path.exists(session_file):
             try:
-                with open(session_file, 'r') as f:
+                with open(session_file, "r") as f:
                     data = json.load(f)
 
                 # Restore messages
                 self.session.messages = [
-                    ChatMessage(
-                        role=msg['role'],
-                        content=msg['content'],
-                        timestamp=msg['timestamp']
-                    )
-                    for msg in data.get('messages', [])
+                    ChatMessage(role=msg["role"], content=msg["content"], timestamp=msg["timestamp"])
+                    for msg in data.get("messages", [])
                 ]
-                self.session.created_at = data.get('created_at', self.session.created_at)
-                self.session.last_updated = data.get('last_updated', self.session.last_updated)
+                self.session.created_at = data.get("created_at", self.session.created_at)
+                self.session.last_updated = data.get("last_updated", self.session.last_updated)
 
                 logger.info(f"Loaded session {self.session.session_id} with {len(self.session.messages)} messages")
             except Exception as e:
@@ -485,7 +481,7 @@ class ChattingManager:
         session_file = os.path.join(self.output_folder, f"{self.session.session_id}.json")
 
         try:
-            with open(session_file, 'w') as f:
+            with open(session_file, "w") as f:
                 json.dump(self.session.to_dict(), f, indent=2)
             logger.debug(f"Saved session to {session_file}")
         except Exception as e:
@@ -537,7 +533,7 @@ class ChattingManager:
         self._save_session()
 
         # Cleanup retriever resources
-        if hasattr(self, 'retriever'):
+        if hasattr(self, "retriever"):
             self.retriever.cleanup()
 
         logger.info("ChattingManager cleanup completed.")
@@ -568,7 +564,7 @@ class ChattingManager:
     @property
     def tutorial_retrieval(self) -> str:
         """Get tutorial retrieval (managed internally)."""
-        return getattr(self, '_tutorial_retrieval', "")
+        return getattr(self, "_tutorial_retrieval", "")
 
     @tutorial_retrieval.setter
     def tutorial_retrieval(self, value: str):
@@ -629,7 +625,7 @@ class ChattingManager:
             return ""
 
         if max_length_per_file is None:
-            max_length_per_file = getattr(self.config, 'max_length_per_file', 5000)
+            max_length_per_file = getattr(self.config, "max_length_per_file", 5000)
 
         sections = []
         for file_path, content in self.file_contents.items():
@@ -639,7 +635,9 @@ class ChattingManager:
             if len(content) > max_length_per_file:
                 truncated = content[:max_length_per_file]
                 sections.append(truncated)
-                sections.append(f"\n[... truncated, showing first {max_length_per_file} characters of {len(content)} total ...]")
+                sections.append(
+                    f"\n[... truncated, showing first {max_length_per_file} characters of {len(content)} total ...]"
+                )
             else:
                 sections.append(content)
 

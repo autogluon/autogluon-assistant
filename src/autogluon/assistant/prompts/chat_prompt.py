@@ -60,7 +60,7 @@ Please provide your response in well-formatted markdown."""
             **kwargs: Additional keyword arguments to customize the prompt building process
         """
         # Get the current user message
-        user_message = getattr(self.manager, 'current_user_message', '')
+        user_message = getattr(self.manager, "current_user_message", "")
 
         # Generate data context prompt only if not yet presented
         data_context_prompt = self._generate_data_context_prompt()
@@ -71,9 +71,9 @@ Please provide your response in well-formatted markdown."""
         # Render the prompt using the variable provider with additional variables
         rendered = self.render(
             additional_vars={
-                'data_context_prompt': data_context_prompt,
-                'tutorial_prompt': tutorial_section,
-                'user_message': user_message,
+                "data_context_prompt": data_context_prompt,
+                "tutorial_prompt": tutorial_section,
+                "user_message": user_message,
             }
         )
 
@@ -87,10 +87,10 @@ Please provide your response in well-formatted markdown."""
             Data context prompt section (empty if already presented)
         """
         # Only include data context if it hasn't been presented yet
-        if hasattr(self.manager, 'data_context_presented') and self.manager.data_context_presented:
+        if hasattr(self.manager, "data_context_presented") and self.manager.data_context_presented:
             return ""
 
-        if not hasattr(self.manager, 'file_contents') or not self.manager.file_contents:
+        if not hasattr(self.manager, "file_contents") or not self.manager.file_contents:
             return ""
 
         sections = []
@@ -108,7 +108,7 @@ Please provide your response in well-formatted markdown."""
         Returns:
             Tutorial section
         """
-        if not hasattr(self.manager, 'tutorial_prompt'):
+        if not hasattr(self.manager, "tutorial_prompt"):
             return ""
 
         tutorial_text = self.manager.tutorial_prompt
@@ -135,15 +135,15 @@ Please provide your response in well-formatted markdown."""
         """
         if isinstance(response, dict):
             # Handle different response formats
-            if 'content' in response:
-                return response['content']
-            elif 'text' in response:
-                return response['text']
-            elif 'message' in response:
-                return response['message']
+            if "content" in response:
+                return response["content"]
+            elif "text" in response:
+                return response["text"]
+            elif "message" in response:
+                return response["message"]
             else:
                 # Try to get the first value
-                for key in ['output', 'response', 'answer']:
+                for key in ["output", "response", "answer"]:
                     if key in response:
                         return response[key]
                 # If nothing matches, convert to string

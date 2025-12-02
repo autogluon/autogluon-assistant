@@ -130,7 +130,7 @@ def run_chat_agent(
                     break
 
                 # Check for exit commands
-                if user_input.lower() in ['exit', 'quit', 'bye', 'q']:
+                if user_input.lower() in ["exit", "quit", "bye", "q"]:
                     logger.brief("Goodbye!")
                     break
 
@@ -157,7 +157,7 @@ def run_chat_agent(
             # Show location of Q&A markdown files
             qa_folder = os.path.join(output_dir, "conversations")
             if os.path.exists(qa_folder):
-                qa_files = [f for f in os.listdir(qa_folder) if f.endswith('.md')]
+                qa_files = [f for f in os.listdir(qa_folder) if f.endswith(".md")]
                 if qa_files:
                     logger.brief(f"Q&A conversations saved to: {qa_folder}")
                     logger.brief(f"  {len(qa_files)} markdown file(s) created")
