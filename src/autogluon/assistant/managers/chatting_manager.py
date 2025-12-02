@@ -265,6 +265,7 @@ class ChattingManager:
         Returns:
             The assistant's response
         """
+
         iter_num = self.time_step + 1
         logger.debug(f"\n{'='*80}")
         logger.debug(f"CHAT ITERATION {iter_num}")
@@ -544,6 +545,7 @@ class ChattingManager:
         output_file = os.path.join(states_dir, save_name)
 
         logger.debug(f"Saving {output_file}...")
+
         with open(output_file, "w") as file:
             if content is not None:
                 if isinstance(content, list):
