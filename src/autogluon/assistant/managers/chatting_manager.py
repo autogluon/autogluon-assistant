@@ -265,26 +265,53 @@ class ChattingManager:
         Returns:
             The assistant's response
         """
+
+        iter_num = self.time_step + 1
+        logger.debug(f"\n{'='*80}")
+        logger.debug(f"CHAT ITERATION {iter_num}")
+        logger.debug(f"{'='*80}")
+
         # Store current user message for the prompt
         self.current_user_message = user_message
+        logger.debug(f"User message: {user_message}")
 
         # Add user message to history
         self.session.add_message(role="user", content=user_message)
+        logger.debug(f"Session message count: {len(self.session.messages)}")
 
         # Identify relevant tool from user message
-        logger.info("Identifying relevant tools...")
+        logger.debug("Identifying relevant tools...")
         self.selected_tool = self._identify_tool_from_message(user_message)
+        logger.debug(f"Selected tool: {self.selected_tool}")
 
         # Retrieve relevant tutorials for the selected tool
         if self.selected_tool:
-            logger.info(f"Retrieving tutorials for {self.selected_tool}...")
+            logger.debug(f"Retrieving tutorials for {self.selected_tool}...")
             self._retrieve_tutorials()
+            logger.debug(f"Tutorial prompt length: {len(self.tutorial_prompt) if self.tutorial_prompt else 0} chars")
         else:
             self.tutorial_prompt = ""
+            logger.debug("No tool selected, no tutorials retrieved")
+
+        # Log the prompt that will be sent
+        logger.debug(f"\n{'='*80}")
+        logger.debug("PROMPT CONSTRUCTION")
+        logger.debug(f"{'='*80}")
+        logger.debug(f"Data context presented: {self.data_context_presented}")
+        logger.debug(f"Presented tutorials count: {len(self.presented_tutorials)}")
+
+        # Save user message to file
+        self.save_and_log_states(user_message, "user_message.txt", per_iteration=True)
 
         # Generate response using chat agent
-        logger.info("Generating response...")
+        logger.debug("\nGenerating response...")
         response = self.chat_agent()
+
+        logger.debug(f"\n{'='*80}")
+        logger.debug("RESPONSE RECEIVED")
+        logger.debug(f"{'='*80}")
+        logger.debug(f"Response length: {len(response)} chars")
+        logger.debug(f"Response preview: {response[:200]}...")
 
         # Add assistant response to history
         self.session.add_message(role="assistant", content=response)
@@ -489,12 +516,12 @@ class ChattingManager:
 
     def save_and_log_states(self, content, save_name, per_iteration=False, add_uuid=False, node=None):
         """
-        Save states to a file and log them (compatibility with existing agent interface).
+        Save states to a file and log them.
 
         Args:
             content: Content to save
             save_name: Name for the saved file
-            per_iteration: Unused (for compatibility)
+            per_iteration: Whether this is for a specific iteration
             add_uuid: Whether to add a UUID to the filename
             node: Unused (for compatibility)
         """
@@ -505,11 +532,20 @@ class ChattingManager:
             uuid_suffix = str(uuid.uuid4()).replace("-", "")[:4]
             save_name = f"{name}_{uuid_suffix}{ext}"
 
-        states_dir = os.path.join(self.output_folder, "states")
+        # Determine the save directory
+        if per_iteration:
+            # Save to iteration-specific folder
+            iter_num = self.time_step
+            iter_folder = os.path.join(self.output_folder, f"iter_{iter_num:03d}")
+            states_dir = os.path.join(iter_folder, "states")
+        else:
+            states_dir = os.path.join(self.output_folder, "states")
+
         os.makedirs(states_dir, exist_ok=True)
         output_file = os.path.join(states_dir, save_name)
 
-        logger.info(f"Saving {output_file}...")
+        logger.debug(f"Saving {output_file}...")
+
         with open(output_file, "w") as file:
             if content is not None:
                 if isinstance(content, list):

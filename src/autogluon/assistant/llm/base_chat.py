@@ -131,6 +131,7 @@ class BaseAssistantChat(BaseModel):
     token_tracker: GlobalTokenTracker = Field(default_factory=GlobalTokenTracker)
     conversation_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     session_name: str = Field(default="default_session")
+    thread_id: str = Field(default_factory=lambda: str(uuid.uuid4()))  # Reuse same thread_id per session
 
     def initialize_conversation(
         self,
@@ -180,8 +181,8 @@ class BaseAssistantChat(BaseModel):
         if not self.app:
             raise RuntimeError("Conversation not initialized. Call initialize_conversation first.")
 
-        thread_id = str(uuid.uuid4())
-        config = {"configurable": {"thread_id": thread_id}}
+        # Reuse the same thread_id for multi-turn conversations
+        config = {"configurable": {"thread_id": self.thread_id}}
         input_messages = [HumanMessage(content=message)]
         response = self.app.invoke({"messages": input_messages}, config)
 
