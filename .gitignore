@@ -3,6 +3,7 @@ maab/datasets/
 runs/
 maab/runs/
 temp/
+src/autogluon/assistant/tools_registry/indices
 
 # MCP specific
 src/autogluon/mcp/server/.flask.pid

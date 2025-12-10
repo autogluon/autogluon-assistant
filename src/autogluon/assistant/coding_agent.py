@@ -21,6 +21,7 @@ def run_agent(
     max_iterations=10,  # Default higher for MCTS search
     continuous_improvement=None,
     enable_meta_prompting=None,
+    remove_current_iteration_folder=None,
     enable_per_iteration_instruction=False,
     initial_user_input=None,
     extract_archives_to=None,
@@ -37,6 +38,7 @@ def run_agent(
         max_iterations: Maximum number of iterations
         continuous_improvement: Whether to continue after finding a valid solution
         enable_meta_prompting: Whether to enable meta-prompting
+        remove_current_iteration_folder: Whether to remove iteration folders after each step to save disk space
         enable_per_iteration_instruction: Whether to ask for user input at each iteration
         initial_user_input: Initial user instruction
         extract_archives_to: Path to extract archives to
@@ -121,6 +123,8 @@ def run_agent(
         config.continuous_improvement = continuous_improvement
     if enable_meta_prompting is not None:
         config.enable_meta_prompting = enable_meta_prompting
+    if remove_current_iteration_folder is not None:
+        config.remove_current_iteration_folder = remove_current_iteration_folder
 
     if manager is None:
         # Create a new NodeManager instance
@@ -160,8 +164,9 @@ def run_agent(
         else:
             pass
 
-        # TODO: make this configurable
-        # manager.remove_current_iteration_folder()
+        # Optionally remove iteration folders to save disk space
+        if config.remove_current_iteration_folder:
+            manager.remove_current_iteration_folder()
 
         # Increment iteration counter
         iteration += 1

@@ -79,7 +79,7 @@ class ChatAgent(BaseAgent):
         logger.debug(f"Multi-turn enabled: {self.chat_llm_config.multi_turn}")
         logger.debug(f"LLM session name: {self.chat_llm.session_name}")
         logger.debug(f"LLM conversation ID: {self.chat_llm.conversation_id}")
-        if hasattr(self.chat_llm, 'history_'):
+        if hasattr(self.chat_llm, "history_"):
             logger.debug(f"LLM history length: {len(self.chat_llm.history_)}")
 
         # Get response from LLM
