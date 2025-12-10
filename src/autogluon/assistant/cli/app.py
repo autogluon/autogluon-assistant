@@ -56,6 +56,11 @@ def main(
         "--continuous_improvement",
         help="If enabled, the system will continue optimizing even after finding a valid solution. Instead of stopping at the first successful run, it will keep searching for better solutions until reaching the maximum number of iterations. This allows the system to potentially find higher quality solutions at the cost of additional computation time.",
     ),
+    remove_current_iteration_folder: bool = typer.Option(
+        False,
+        "--remove-iteration-folders",
+        help="If enabled, remove iteration folders after each step to save disk space. Note: the best node folder will be preserved via symlink.",
+    ),
     enable_per_iteration_instruction: bool = typer.Option(
         False,
         "--enable-per-iteration-instruction",
@@ -121,6 +126,7 @@ def main(
         config_path=str(provider_config_path),
         max_iterations=max_iterations,
         continuous_improvement=continuous_improvement,
+        remove_current_iteration_folder=remove_current_iteration_folder,
         enable_per_iteration_instruction=enable_per_iteration_instruction,
         enable_meta_prompting=enable_meta_prompting,
         initial_user_input=initial_user_input,

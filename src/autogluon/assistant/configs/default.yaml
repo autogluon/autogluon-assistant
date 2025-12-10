@@ -27,6 +27,7 @@ continuous_improvement: False
 optimize_system_resources: False
 cleanup_unused_env: True
 enable_meta_prompting: False
+remove_current_iteration_folder: False  # Whether to remove iteration folders after each step to save disk space
 
 # Default LLM Configuration
 # For each agent (coder, etc.) you can use a different one

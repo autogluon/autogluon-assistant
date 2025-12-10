@@ -720,18 +720,20 @@ class NodeManager:
         """
         Generate Python and Bash code for the current node after the tool to use is specified.
         """
+        logger.debug(f"Starting code generation for Node {self.current_node.id}")
+
         # Mark this tool as used
         self.used_tools.add(self.current_node.tool_used)
+        logger.debug(f"  Tool being used: {self.current_node.tool_used}")
 
-        # Get user input for this step if enabled
-        if (
-            self.enable_per_iteration_instruction
-        ):  # TODO: refine the logic to store user inputs (currently they are not in nodes)
-            self._get_user_input_for_step()
+        # Always get user input for this step (handles both initial and per-iteration instructions)
+        logger.debug(f"  Getting user input for step {self.time_step}")
+        self._get_user_input_for_step()
 
         # Get the tool-specific prompt for the node's selected tool
         from ..tools_registry import registry
 
+        logger.debug(f"  Retrieving tool info from registry")
         tool_info = registry.get_tool(self.current_node.tool_used)
         if not tool_info:
             print(self.current_node.state)
@@ -743,35 +745,54 @@ class NodeManager:
             self.tool_prompt = "\n".join(self.tool_prompt)
 
         # Get tutorials specific to this node
+        logger.debug(f"  Starting tutorial retrieval and reranking (this may take time)...")
         self._update_tutorials()
+        logger.debug(f"  Finished tutorial retrieval and reranking")
 
         # Generate Python code
+        logger.debug(f"  Calling Python coder agent...")
         self.current_node.python_code = self.python_coder()
+        logger.debug(f"  Finished Python code generation")
 
         # Write the Python code to a file
         python_file_path = os.path.join(self.get_iteration_folder(self.current_node), "generated_code.py")
+        logger.debug(f"  Writing Python code to: {python_file_path}")
         with open(python_file_path, "w") as file:
             file.write(self.current_node.python_code)
 
         # Generate Bash script
+        logger.debug(f"  Calling Bash coder agent...")
         self.current_node.bash_script = self.bash_coder()
+        logger.debug(f"  Finished Bash script generation")
 
         # Write the Bash script to a file
         bash_file_path = os.path.join(self.get_iteration_folder(self.current_node), "execution_script.sh")
+        logger.debug(f"  Writing Bash script to: {bash_file_path}")
         with open(bash_file_path, "w") as file:
             file.write(self.current_node.bash_script)
 
+        logger.debug(f"Completed code generation for Node {self.current_node.id}")
+
     def _get_user_input_for_step(self):
-        """Get user input for the current step."""
-        # TODO: refine the logic to store user inputs (currently they are not in nodes)
-        if self.time_step == -1:
+        """Get user input for the current step.
+
+        - For the first code generation (time_step == 0), always use initial_user_input
+        - For subsequent iterations, only prompt for additional input if enable_per_iteration_instruction is True
+        """
+        if self.time_step == 0:
+            # First iteration: always use the initial user input from CLI
             user_input = self.initial_user_input or ""
         else:
-            logger.info(f"Previous iteration info is stored in: {self.get_iteration_folder(self.current_node)}")
-            user_input = self.initial_user_input or ""
-            user_input += "\n" + input(
-                f"Enter your inputs for current node (step {self.time_step}) (press Enter to skip): "
-            )
+            # Subsequent iterations: only prompt if per-iteration instruction is enabled
+            if self.enable_per_iteration_instruction:
+                logger.info(f"Previous iteration info is stored in: {self.get_iteration_folder(self.current_node)}")
+                user_input = self.initial_user_input or ""
+                user_input += "\n" + input(
+                    f"Enter your inputs for current node (step {self.time_step}) (press Enter to skip): "
+                )
+            else:
+                # Reuse the initial user input for all iterations
+                user_input = self.initial_user_input or ""
 
         self.user_inputs.append(user_input)
 
@@ -981,19 +1002,19 @@ class NodeManager:
         return all_nodes
 
     def create_best_run_copy(self):
-        """Create a 'best_run' folder that copies the best node folder."""
-        # Determine which node to copy
+        """Create a 'best_run' folder that symlinks to the best node folder."""
+        # Determine which node to link
         target_node = None
-        copy_reason = ""
+        link_reason = ""
 
         if self._best_node:
             target_node = self._best_node
-            copy_reason = f"best validation score ({self._best_validation_score:.4f})"
+            link_reason = f"best validation score ({self._best_validation_score:.4f})"
         elif self.last_successful_node:
             target_node = self.last_successful_node
-            copy_reason = "last successful execution"
+            link_reason = "last successful execution"
         else:
-            logger.warning("No best node or successful node found. Cannot create best_run copy.")
+            logger.warning("No best node or successful node found. Cannot create best_run link.")
             return
 
         # Create paths
@@ -1011,20 +1032,29 @@ class NodeManager:
             logger.warning(f"Source output folder does not exist: {source_output_folder}")
             return
 
-        # Remove existing best_run folder if it exists
-        if os.path.exists(best_run_folder):
-            import shutil
-
+        # Handle existing best_run folder/link
+        old_best_folder = None
+        if os.path.exists(best_run_folder) or os.path.islink(best_run_folder):
             try:
-                shutil.rmtree(best_run_folder)
-                logger.info("Removed existing best_run folder")
+                if os.path.islink(best_run_folder):
+                    # Save the old target for potential cleanup
+                    logger.debug(f"Reading existing best_run symlink target: {best_run_folder}")
+                    old_link_target = os.readlink(best_run_folder)
+                    old_best_folder = os.path.abspath(os.path.join(os.path.dirname(best_run_folder), old_link_target))
+                    logger.debug(f"Unlinking existing best_run symlink: {best_run_folder} (pointed to {old_best_folder})")
+                    os.unlink(best_run_folder)
+                    logger.info("Removed existing best_run symlink")
+                else:
+                    import shutil
+                    logger.debug(f"Removing existing best_run folder (not a symlink): {best_run_folder}")
+                    shutil.rmtree(best_run_folder)
+                    logger.info("Removed existing best_run folder")
             except Exception as e:
-                logger.error(f"Failed to remove existing best_run folder: {e}")
+                logger.error(f"Failed to remove existing best_run folder/link: {e}")
                 return
 
         try:
-            # Log completion marker BEFORE starting the slow copy operation
-            # This allows WebUI to detect task success immediately
+            # Log completion marker
             logger.brief(
                 f"Task completed successfully! Best node: {target_node.id} with validation score {target_node.validation_score}"
             )
@@ -1041,29 +1071,31 @@ class NodeManager:
 
                 logger.debug(f"Copying item: {item}")
                 if os.path.isfile(source_item):
+                    logger.debug(f"  Copying file: {source_item} -> {dest_item}")
                     shutil.copy2(source_item, dest_item)
                 elif os.path.isdir(source_item):
+                    logger.debug(f"  Copying directory: {source_item} -> {dest_item}")
                     shutil.copytree(source_item, dest_item, dirs_exist_ok=True)
             logger.debug("Finished copying output folder contents")
 
-            # Copy the entire source folder to best_run folder
-            logger.debug(f"Starting copytree from {source_folder} to {best_run_folder}")
+            # Create symbolic link to the source folder instead of copying
+            logger.debug(f"About to create symlink: {best_run_folder} -> {source_folder}")
             logger.info(
-                "Copying best solution to best_run folder (this may take several minutes for large environments)"
+                "Creating best_run symlink to best solution folder (instant operation, saves disk space)"
             )
-            shutil.copytree(source_folder, best_run_folder, dirs_exist_ok=True)
-            logger.debug("Finished copytree to best_run folder")
+            os.symlink(source_folder, best_run_folder, target_is_directory=True)
+            logger.debug(f"Successfully created best_run symlink")
 
-            logger.info(f"Created best_run folder (copied from node {target_node.id} - {copy_reason})")
+            logger.info(f"Created best_run symlink (linked to node {target_node.id} - {link_reason})")
 
-            # Save summary information in the best_run folder
+            # Save summary information in the target node folder
             summary_content = [
                 "Best Run Summary",
                 "================",
-                f"Copied from: node_{target_node.id}",
-                f"Reason: {copy_reason}",
+                f"Linked to: node_{target_node.id}",
+                f"Reason: {link_reason}",
                 f"Tool used: {target_node.tool_used}",
-                f"Copy created at: {os.path.basename(best_run_folder)}",
+                f"Symlink created at: {os.path.basename(best_run_folder)}",
                 "",
                 self.get_validation_score_summary(),
                 "",
@@ -1074,30 +1106,81 @@ class NodeManager:
                 f"Tools not used: {', '.join(set(self.available_tools) - self.used_tools)}",
             ]
 
-            # Save summary in both the main output folder and the best_run folder
+            # Save summary in both the main output folder and the target node folder
             summary_text = "\n".join(summary_content)
 
             self.save_and_log_states(
                 content=summary_text, save_name="best_run_summary.txt", node=target_node, add_uuid=False
             )
 
+            # Clean up old best folder if cleanup is enabled and it's not the same as the new one
+            if old_best_folder and self.config.remove_current_iteration_folder:
+                source_folder_abs = os.path.abspath(source_folder)
+                logger.debug(f"Checking if old best folder should be removed: {old_best_folder}")
+                logger.debug(f"  New best folder: {source_folder_abs}")
+                logger.debug(f"  Are they different? {old_best_folder != source_folder_abs}")
+                logger.debug(f"  Does old folder exist? {os.path.exists(old_best_folder)}")
+                if old_best_folder != source_folder_abs and os.path.exists(old_best_folder):
+                    try:
+                        import shutil
+                        logger.debug(f"About to remove old best folder: {old_best_folder}")
+                        shutil.rmtree(old_best_folder)
+                        logger.info(
+                            f"Removed old best node folder {old_best_folder} (superseded by new best node {target_node.id})"
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to remove old best folder {old_best_folder}: {e}")
+
         except Exception as e:
-            logger.error(f"Failed to copy folder: {e}")
+            logger.error(f"Failed to create symlink: {e}")
 
     def remove_current_iteration_folder(self):
+        """Remove the current iteration folder to save disk space.
+
+        IMPORTANT: This should NOT be called if the current node is linked by best_run symlink,
+        as it would break the symlink. Only call this for intermediate nodes that are not the best.
+        """
         if not self.current_node:
             logger.warning("Current node is None.")
             return
+
         source_folder = self.get_iteration_folder(self.current_node)
+        best_run_folder = os.path.join(self.output_folder, "best_run")
+
+        logger.debug(f"Checking if iteration folder can be removed: {source_folder}")
+        logger.debug(f"  Current node: {self.current_node.id}")
+        logger.debug(f"  Best run folder: {best_run_folder}")
+
+        # Check if best_run symlink exists and points to the current folder
+        if os.path.islink(best_run_folder):
+            logger.debug(f"  best_run is a symlink, checking target...")
+            link_target = os.readlink(best_run_folder)
+            # Resolve to absolute paths for comparison
+            link_target_abs = os.path.abspath(os.path.join(os.path.dirname(best_run_folder), link_target))
+            source_folder_abs = os.path.abspath(source_folder)
+
+            logger.debug(f"  Symlink target (absolute): {link_target_abs}")
+            logger.debug(f"  Current folder (absolute): {source_folder_abs}")
+            logger.debug(f"  Are they the same? {link_target_abs == source_folder_abs}")
+
+            if link_target_abs == source_folder_abs:
+                logger.info(
+                    f"Skipping removal of Node {self.current_node.id} folder - it is linked by best_run symlink."
+                )
+                return
+
         if os.path.exists(source_folder):
             import shutil
 
             try:
+                logger.debug(f"About to remove iteration folder: {source_folder}")
                 shutil.rmtree(source_folder)
                 logger.info(f"Removed iteration folder of Node {self.current_node.id} to save disk space.")
             except Exception as e:
-                logger.error(f"Failed to remove existing current iteration folder folder: {e}")
+                logger.error(f"Failed to remove existing current iteration folder: {e}")
                 return
+        else:
+            logger.debug(f"Iteration folder does not exist, nothing to remove: {source_folder}")
 
     def get_validation_score_summary(self) -> str:
         """
