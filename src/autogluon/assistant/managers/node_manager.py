@@ -733,7 +733,7 @@ class NodeManager:
         # Get the tool-specific prompt for the node's selected tool
         from ..tools_registry import registry
 
-        logger.debug(f"  Retrieving tool info from registry")
+        logger.debug("  Retrieving tool info from registry")
         tool_info = registry.get_tool(self.current_node.tool_used)
         if not tool_info:
             print(self.current_node.state)
@@ -745,14 +745,14 @@ class NodeManager:
             self.tool_prompt = "\n".join(self.tool_prompt)
 
         # Get tutorials specific to this node
-        logger.debug(f"  Starting tutorial retrieval and reranking (this may take time)...")
+        logger.debug("  Starting tutorial retrieval and reranking (this may take time)...")
         self._update_tutorials()
-        logger.debug(f"  Finished tutorial retrieval and reranking")
+        logger.debug("  Finished tutorial retrieval and reranking")
 
         # Generate Python code
-        logger.debug(f"  Calling Python coder agent...")
+        logger.debug("  Calling Python coder agent...")
         self.current_node.python_code = self.python_coder()
-        logger.debug(f"  Finished Python code generation")
+        logger.debug("  Finished Python code generation")
 
         # Write the Python code to a file
         python_file_path = os.path.join(self.get_iteration_folder(self.current_node), "generated_code.py")
@@ -761,9 +761,9 @@ class NodeManager:
             file.write(self.current_node.python_code)
 
         # Generate Bash script
-        logger.debug(f"  Calling Bash coder agent...")
+        logger.debug("  Calling Bash coder agent...")
         self.current_node.bash_script = self.bash_coder()
-        logger.debug(f"  Finished Bash script generation")
+        logger.debug("  Finished Bash script generation")
 
         # Write the Bash script to a file
         bash_file_path = os.path.join(self.get_iteration_folder(self.current_node), "execution_script.sh")
@@ -1041,11 +1041,14 @@ class NodeManager:
                     logger.debug(f"Reading existing best_run symlink target: {best_run_folder}")
                     old_link_target = os.readlink(best_run_folder)
                     old_best_folder = os.path.abspath(os.path.join(os.path.dirname(best_run_folder), old_link_target))
-                    logger.debug(f"Unlinking existing best_run symlink: {best_run_folder} (pointed to {old_best_folder})")
+                    logger.debug(
+                        f"Unlinking existing best_run symlink: {best_run_folder} (pointed to {old_best_folder})"
+                    )
                     os.unlink(best_run_folder)
                     logger.info("Removed existing best_run symlink")
                 else:
                     import shutil
+
                     logger.debug(f"Removing existing best_run folder (not a symlink): {best_run_folder}")
                     shutil.rmtree(best_run_folder)
                     logger.info("Removed existing best_run folder")
@@ -1080,11 +1083,9 @@ class NodeManager:
 
             # Create symbolic link to the source folder instead of copying
             logger.debug(f"About to create symlink: {best_run_folder} -> {source_folder}")
-            logger.info(
-                "Creating best_run symlink to best solution folder (instant operation, saves disk space)"
-            )
+            logger.info("Creating best_run symlink to best solution folder (instant operation, saves disk space)")
             os.symlink(source_folder, best_run_folder, target_is_directory=True)
-            logger.debug(f"Successfully created best_run symlink")
+            logger.debug("Successfully created best_run symlink")
 
             logger.info(f"Created best_run symlink (linked to node {target_node.id} - {link_reason})")
 
@@ -1123,6 +1124,7 @@ class NodeManager:
                 if old_best_folder != source_folder_abs and os.path.exists(old_best_folder):
                     try:
                         import shutil
+
                         logger.debug(f"About to remove old best folder: {old_best_folder}")
                         shutil.rmtree(old_best_folder)
                         logger.info(
@@ -1153,7 +1155,7 @@ class NodeManager:
 
         # Check if best_run symlink exists and points to the current folder
         if os.path.islink(best_run_folder):
-            logger.debug(f"  best_run is a symlink, checking target...")
+            logger.debug("  best_run is a symlink, checking target...")
             link_target = os.readlink(best_run_folder)
             # Resolve to absolute paths for comparison
             link_target_abs = os.path.abspath(os.path.join(os.path.dirname(best_run_folder), link_target))
