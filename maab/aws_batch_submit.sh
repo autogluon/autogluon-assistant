@@ -48,17 +48,16 @@ fi
 
 # Process agents list
 if [ "$AGENTS" = "all" ]; then
-    IFS=$'\n' read -d '' -ra AGENT_LIST < <(get_all_agents)
+    mapfile -t AGENT_LIST < <(get_all_agents)
 else
     IFS=',' read -ra AGENT_LIST <<< "$AGENTS"
 fi
 
 # Process datasets list
 if [ "$DATASETS" = "all" ]; then
-    IFS=$'\n' read -d '' -ra DATASET_LIST < <(get_all_datasets)
+    mapfile -t DATASET_LIST < <(get_all_datasets)
 elif [ "$DATASETS" = "ablation" ]; then
     IFS=',' read -ra DATASET_LIST <<< "$(get_ablation_datasets)"
-    echo "Using ablation dataset set: ${DATASETS}"
 else
     IFS=',' read -ra DATASET_LIST <<< "$DATASETS"
 fi
@@ -99,15 +98,17 @@ for agent in "${AGENT_LIST[@]}"; do
         JOB_NAME="${agent}_${dataset}_${RUN_TIMESTAMP}"
         echo "Submitting job: $JOB_NAME"
 
-        # Submit the job
-        aws batch submit-job \
+        # Submit the job with environment variables
+        job_id=$(aws batch submit-job \
           --region "$REGION" \
           --job-name "$JOB_NAME" \
           --job-queue "$JOB_QUEUE" \
-          --job-definition "$JOB_DEFINITION"
+          --job-definition "$JOB_DEFINITION" \
+          --container-overrides "{\"environment\":[{\"name\":\"AGENT_NAME\",\"value\":\"${agent}\"},{\"name\":\"DATASET_NAME\",\"value\":\"${dataset}\"},{\"name\":\"RUN_TIMESTAMP\",\"value\":\"${RUN_TIMESTAMP}\"}]}" \
+          --query 'jobId' --output text)
 
         if [ $? -eq 0 ]; then
-            echo "Job submitted: $JOB_NAME"
+            echo "Job submitted: $JOB_NAME (Job ID: $job_id)"
             echo "$job_id,$agent,$dataset,SUBMITTED,$(date +%Y-%m-%d-%H:%M:%S)" >> "$JOB_TRACKING_FILE"
         else
             echo "Failed to submit job: $JOB_NAME"
