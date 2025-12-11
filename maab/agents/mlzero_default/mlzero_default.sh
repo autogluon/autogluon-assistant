@@ -57,10 +57,11 @@ fi
 mlzero \
     -i "$TRAINING_PATH" \
     -o "$OUTPUT_DIR" \
-    -n 3 \
+    -n 16 \
     -v 1 \
     --continuous_improvement \
-    --initial-instruction "complete the task in 10 minutes"
+    --initial-instruction "complete the task in 2 hours" \
+    --remove-iteration-folders
 
 # Check if the process was successful
 if [ $? -ne 0 ]; then

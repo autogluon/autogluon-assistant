@@ -29,7 +29,6 @@ log "Run timestamp: $RUN_TIMESTAMP"
 #grep -E "(✅|❌)" /var/log/fsx-debug.log
 
 #mkdir -p /fsx
-sleep 300
 ls /fsx/mlzero-dev
 #mount -t lustre -o relatime,flock fs-061a432604102fdc4.fsx.us-east-1.amazonaws.com@tcp:/rfaatbuv /fsx/mlzero-dev
 #if [ $? -ne 0 ]; then
@@ -57,7 +56,9 @@ fi
 
 cd /fsx/mlzero-dev/autogluon-assistant
 log "Installing MLZero from $(pwd)"
-pip install -e . || log "WARNING: Error during MLZero installation"
+pip install uv
+uv pip install opencv-python-headless
+uv pip install -e . || log "WARNING: Error during MLZero installation"
 conda deactivate
 
 # Setup MAAB environment
@@ -70,7 +71,9 @@ fi
 
 cd /fsx/mlzero-dev/autogluon-assistant/maab
 log "Installing MAAB from $(pwd)"
-pip install -r requirements.txt || log "WARNING: Error installing MAAB requirements"
+pip install uv
+uv pip install opencv-python-headless
+uv pip install -r requirements.txt || log "WARNING: Error installing MAAB requirements"
 
 # Execute the agent-dataset evaluation using the AWS Batch specific script
 log "Starting evaluation"
@@ -83,23 +86,5 @@ bash "/fsx/mlzero-dev/autogluon-assistant/maab/eval_aws_batch.sh" \
     -d "$DATASET_NAME" \
     -t "$RUN_TIMESTAMP" \
     2>&1 | tee -a "${OUTPUT_DIR}/${AGENT_NAME}_${DATASET_NAME}_output/container_log.txt"
-
-status_code=${PIPESTATUS[0]}
-
-if [ $status_code -ne 0 ]; then
-    log "ERROR: Evaluation script failed with status $status_code"
-    exit $status_code
-fi
-
-log "Job completed successfully"
-
-# Copy results to centralized location (if needed)
-cp "${OUTPUT_DIR}/${AGENT_NAME}_${DATASET_NAME}_output/results.csv" "${RUN_DIR}/${AGENT_NAME}_${DATASET_NAME}_results.csv" || log "WARNING: Failed to copy results to central location"
-
-# Keep container running for debugging if needed
-if [ "$DEBUG_MODE" = "true" ]; then
-    log "Debug mode enabled. Container will continue running."
-    tail -f /dev/null
-fi
 
 log "Container execution complete"
