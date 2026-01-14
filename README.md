@@ -78,6 +78,8 @@ mlzero -i <input_data_folder>
 
 ## 🐳 Docker
 
+**Security Note**: MLZero executes LLM-generated code during operation. While this generally works fine for common machine learning tasks, running inside a Docker container is recommended for security reasons, as it provides an extra layer of isolation from your host system.
+
 Build the Docker image from the **project root**.
 
 ```bash
@@ -96,7 +98,9 @@ The image contains two conda environments: `mlzero` for running MLZero, and `maa
 Run the container:
 
 ```bash
-docker run -it --gpus all --shm-size=512g mlzero:latest
+docker run -it --gpus all --shm-size=32g mlzero:latest
+# test MLZero in the docker
+mlzero -i /opt/autogluon-assistant/maab/example_dataset/abalone/training
 ```
 
 ---
