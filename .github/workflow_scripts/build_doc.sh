@@ -45,7 +45,7 @@ fi
 
 setup_build_contrib_env
 
-install_assistant
+# install_assistant  # Avoid "No space left" while building doc in Github CICD
 cd docs && sphinx-build -b html . _build/html
 
 COMMAND_EXIT_CODE=$?
