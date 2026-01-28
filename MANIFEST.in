@@ -1,0 +1,60 @@
+# Root-level metadata and documentation
+include README.md
+include LICENSE
+include CODE_OF_CONDUCT.md
+include CONTRIBUTING.md
+include pyproject.toml
+
+# All Python source files
+recursive-include src *.py
+
+# Configuration files
+recursive-include src/autogluon/assistant/configs *.yaml *.yml
+recursive-include src/autogluon/assistant/llm *.yaml *.yml
+
+# Prompt templates
+recursive-include src/autogluon/assistant/prompts/templates *.txt
+
+# WebUI assets
+include src/autogluon/assistant/webui/style.css
+recursive-include src/autogluon/assistant/webui/static *.png *.jpg *.jpeg *.gif *.svg *.ico
+
+# Tools registry - includes tutorials (.md), tool configs (.json), requirements, and FAISS indices
+# This matches pyproject.toml package-data: "tools_registry/**/*"
+recursive-include src/autogluon/assistant/tools_registry *.md
+recursive-include src/autogluon/assistant/tools_registry *.json
+recursive-include src/autogluon/assistant/tools_registry *.txt
+recursive-include src/autogluon/assistant/tools_registry *.index
+
+# Documentation for Claude Code
+include src/autogluon/assistant/CLAUDE.md
+
+# MCP server files
+recursive-include src/autogluon/mcp *.py *.yaml *.yml
+
+# Exclude compiled Python files and caches
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.pyd
+global-exclude __pycache__
+global-exclude *.so
+global-exclude *.dylib
+
+# Exclude version control and development files
+global-exclude .git*
+global-exclude .DS_Store
+global-exclude .vscode
+global-exclude .idea
+global-exclude .claude
+
+# Exclude build artifacts
+global-exclude *.egg-info
+global-exclude .eggs
+global-exclude build
+global-exclude dist
+
+# Exclude test and temporary files
+global-exclude *_test.py
+global-exclude test_*.py
+global-exclude *.tmp
+global-exclude .pytest_cache
