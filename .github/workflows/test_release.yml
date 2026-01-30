@@ -17,8 +17,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.CICD_PAT }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
