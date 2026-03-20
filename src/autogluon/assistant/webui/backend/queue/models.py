@@ -25,8 +25,7 @@ class TaskDatabase:
         conn = sqlite3.connect(self.db_path)
         try:
             # Create table
-            conn.execute(
-                """
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS tasks (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     task_id TEXT UNIQUE NOT NULL,
@@ -37,8 +36,7 @@ class TaskDatabase:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     started_at TIMESTAMP
                 )
-            """
-            )
+            """)
 
             # Create indexes separately
             conn.execute("CREATE INDEX IF NOT EXISTS idx_status ON tasks(status)")
@@ -99,15 +97,13 @@ class TaskDatabase:
                 return None
 
             # Get the oldest queued task
-            cursor = conn.execute(
-                """
+            cursor = conn.execute("""
                 SELECT id, task_id, command_json, credentials_json
                 FROM tasks
                 WHERE status = 'queued'
                 ORDER BY id ASC
                 LIMIT 1
-            """
-            )
+            """)
 
             row = cursor.fetchone()
             if not row:
@@ -190,14 +186,12 @@ class TaskDatabase:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         try:
-            cursor = conn.execute(
-                """
+            cursor = conn.execute("""
                 SELECT 
                     SUM(CASE WHEN status = 'queued' THEN 1 ELSE 0 END) as queued,
                     SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END) as running
                 FROM tasks
-            """
-            )
+            """)
             row = cursor.fetchone()
 
             return {

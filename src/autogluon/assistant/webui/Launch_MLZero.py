@@ -475,9 +475,7 @@ class SessionState:
         """Initialize session state"""
         defaults = {
             "user_session_id": uuid.uuid4().hex,
-            "messages": [
-                Message.text(
-                    """
+            "messages": [Message.text("""
 1. Make sure your credentials are set in the :orange-badge[LLM Configuration] panel on the left.\n\n
 
 2. Drag your dataset into the :green-badge[chatbox] below.\n\n
@@ -485,9 +483,7 @@ class SessionState:
 3. (Optional) Adjust :blue-badge[⚙️ Settings] in the sidebar and type your instruction in the :green-badge[chatbox].\n\n
 
 4. Press ENTER in the :green-badge[chatbox] to start.
-"""
-                )
-            ],
+""")],
             "data_src": None,
             "task_running": False,
             "run_id": None,
@@ -1134,9 +1130,7 @@ class UI:
             if task_count > 0:
                 st.markdown(f"### 📋 Task History ({task_count} tasks)")
                 if st.button("🗑️ Clear All History"):
-                    st.session_state.messages = [
-                        Message.text(
-                            """
+                    st.session_state.messages = [Message.text("""
 1. Make sure your credentials are set in the :orange-badge[LLM Configuration] panel on the left.\n\n
 
 2. Drag your dataset into the :green-badge[chatbox] below.\n\n
@@ -1144,9 +1138,7 @@ class UI:
 3. (Optional) Adjust :blue-badge[⚙️ Settings] in the sidebar and type your instruction in the :green-badge[chatbox].\n\n
 
 4. Press ENTER in the :green-badge[chatbox] to start.
-"""
-                        )
-                    ]
+""")]
                     st.rerun()
 
             # Debug log location at bottom of sidebar
