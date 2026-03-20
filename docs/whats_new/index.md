@@ -8,13 +8,25 @@ Stay up to date with the latest features, improvements, and bug fixes in AutoGlu
 :maxdepth: 1
 :reversed:
 
+v1.1.0
 v1.0.0
 v0.1.0
 ```
 
 ## Latest Updates
 
-### Version 1.0.0 (Latest)
+### Version 1.1.0 (Latest)
+
+- **MCTS-Based Solution Search**: Node-based manager with Monte Carlo Tree Search for intelligent solution exploration
+- **Meta Prompting**: Dynamic prompt generation and refinement for improved code generation
+- **Chat Mode**: Interactive conversational Q&A for iterative task refinement
+- **Continuous Improvement**: Iterative solution refinement across multiple iterations
+- **Agent Customization**: Variable registration and data visualization agents
+- **SageMaker Support**: Amazon SageMaker as an LLM provider
+- **Isolated Environments**: Separate environments for each ML library
+- **Python 3.10-3.12**: Updated Python version requirements
+
+### Version 1.0.0
 
 - **Major Release**: First stable release of AutoGluon-Assistant
 - **Enhanced Chat Interface**: Improved conversational AI capabilities
