@@ -1,8 +1,7 @@
 name: Continuous Integration
 on:
   push:
-  pull_request_target:
-    types: [labeled, synchronize, opened]
+  pull_request:
 
 permissions:
   id-token: write
@@ -15,33 +14,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  permission_check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check for Actor Permission
-        id: check
-        continue-on-error: true
-        uses: prince-chrismc/check-actor-permissions-action@v3
-        with:
-          github_token: ${{ github.token }}
-          permission: write
-      - name: Debug Information
-        if: ${{ github.event_name == 'pull_request_target' }}
-        run: |
-          echo "Event Name: ${{ github.event_name }}"
-          echo "Labels: ${{ toJson(github.event.pull_request.labels) }}"
-          echo "Permitted: ${{ steps.check.outputs.permitted }}"
-          echo "Safe to Test Label Present: ${{ contains(github.event.pull_request.labels.*.name, 'safe to test') }}"
-      - name: Check PR Safe to Run
-        if: ${{ github.event_name == 'pull_request_target' && !contains(github.event.pull_request.labels.*.name, 'safe to test') && steps.check.outputs.permitted == 'false' }}
-        run: exit 1
-      - name: Remove Safe to Test Label  # One commit is safe doesn't mean the next commit is safe.
-        if: ${{ github.event_name == 'pull_request_target' }}
-        uses: actions-ecosystem/action-remove-labels@v1.3.0
-        with:
-          labels: 'safe to test'
   integration_test:
-    needs: permission_check
+    # Fork PRs run untrusted code; skip them so AWS credentials are never exposed.
+    if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -54,17 +29,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        if: ${{ github.event_name != 'pull_request_target' }}
-        uses: actions/checkout@v4
-
-      - name: Checkout repository(Pull Request Target)
-        if: ${{ github.event_name == 'pull_request_target' }}
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167  # v3
         with:
           activate-environment: assistant_py3
           environment-file: .github/workflows_env/unittest_env.yml
@@ -94,7 +62,7 @@ jobs:
           rm libomp.rb
 
       - name: Check if changes beside docs
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590  # v3
         id: changes
         with:
           filters: |
@@ -108,29 +76,22 @@ jobs:
           submodule-to-test: integration
 
   build_doc:
-    if: ${{ github.event_name != 'schedule' }}
-    needs: [integration_test] 
+    if: ${{ github.event_name != 'schedule' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    needs: [integration_test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        if: ${{ github.event_name != 'pull_request_target' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
         with:
-          fetch-depth: 0
-      - name: Checkout repository(Pull Request Target)
-        if: ${{ github.event_name == 'pull_request_target' }}
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
       - name: Setup Env Vars
         uses: ./.github/actions/setup-env-vars
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: '3.10'
-      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-pandoc@d3c5be51b12e724e68f33216ca3c148b66d5f0b6  # v2
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a  # v4
         with:
           role-to-assume: ${{ secrets.AWS_CI_ROLE_ARN }}
           role-duration-seconds: 3600
@@ -141,15 +102,15 @@ jobs:
           chmod +x ./.github/workflow_scripts/build_doc.sh
           ./.github/workflow_scripts/build_doc.sh '${{ github.ref }}' '${{ github.repository }}' '${{ env.SHORT_SHA }}'
       - name: Build Doc(For pull request)
-        if: ${{ github.event_name == 'pull_request_target' }}
+        if: ${{ github.event_name == 'pull_request' }}
         env:
           branch: ${{ github.event.pull_request.head.ref }}
         run: |
           chmod +x ./.github/workflow_scripts/build_doc.sh
           ./.github/workflow_scripts/build_doc.sh "$branch" '${{ github.event.pull_request.head.repo.full_name }}' '${{ env.SHORT_SHA }}' PR-'${{ github.event.number }}'
       - name: Comment on PR
-        if: ${{ github.event_name == 'pull_request_target' }}
-        uses: peter-evans/create-or-update-comment@v4
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043  # v4
         with:
           issue-number: ${{ github.event.number }}
           body: |

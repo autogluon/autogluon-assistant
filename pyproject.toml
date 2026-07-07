@@ -41,6 +41,7 @@ dependencies = [
   "streamlit>=1.37",
   "streamlit-aggrid>=1.0.2",
   "streamlit-extras>=0.4",
+  "st-theme>=1.2.3",
   "psutil>=5.9.8",
   "peft>=0.15.2",
   "opencv-python",

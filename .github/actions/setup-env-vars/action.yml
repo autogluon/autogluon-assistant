@@ -19,7 +19,7 @@ runs:
         echo "SHORT_SHA=$short_sha" >> $GITHUB_ENV
         echo "PR_NUMBER=$pr_number" >> $GITHUB_ENV
     - name: Get Commit SHA(For pull request)
-      if: ${{ github.event_name == 'pull_request_target' }}
+      if: ${{ github.event_name == 'pull_request' }}
       shell: bash
       env:
         SHA: ${{ github.event.pull_request.head.sha }}
