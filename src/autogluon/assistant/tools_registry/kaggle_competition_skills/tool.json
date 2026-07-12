@@ -1,0 +1,18 @@
+{
+    "name": "kaggle_competition_skills",
+    "version": "0.8.4",
+    "description": "Kaggle competition skills extracted from 20+ real competitions (6 Gold medals). Contains validated strategies for tabular, time series, CV, NLP, RL, ONNX, and simulation competitions. Includes dead-end avoidance (30+ confirmed failure patterns) and cross-domain transfer rules. Use when participating in ML competitions or benchmark tasks.",
+    "requirements": [],
+    "prompt_template": [
+        "Always run AutoGluon as the FIRST baseline before manual feature engineering (autogluon-first).",
+        "Use ONE variable per experiment — never bundle multiple changes (controlled-variable principle).",
+        "Always compare OOF score against LB score. Small data (N<1000) can have 0.03-0.09 OOF/LB gap. If OOF improves but LB doesn't, you are overfitting the CV.",
+        "When model correlation > 0.93, ensembling yields < 0.001 improvement. Only add low-correlation models to break through stacking ceilings.",
+        "For time series: use TimeSeriesPredictor (not TabularPredictor). Chronos-2 supports known_covariates natively. If HF_ENDPOINT causes download errors, pre-download models and pass local paths.",
+        "Check submission format BEFORE submitting (id column names, probability vs hard labels, negative values). 12 wasted submissions from format errors across competitions.",
+        "3 consecutive improvements < 0.0001 → pivot direction (local_optimum_trap).",
+        "For simulation competitions (TrueSkill): re-submitting resets convergence. Latest-N rule means only most recent submissions count.",
+        "For code competitions: fork public baselines (80% of work). Add artifact datasets as kernel inputs.",
+        "After each experiment: extract skill or record dead-end. Knowledge crystallization is mandatory."
+    ]
+}
