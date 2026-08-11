@@ -60,9 +60,7 @@ class AssistantChatMiniMaxAnthropic(ChatAnthropic, BaseAssistantChat):
 
 def _resolve_region(region: str) -> Dict[str, str]:
     if region not in MINIMAX_REGIONAL_ENDPOINTS:
-        raise ValueError(
-            f"Invalid MiniMax region: {region}. Must be one of {list(MINIMAX_REGIONAL_ENDPOINTS)}"
-        )
+        raise ValueError(f"Invalid MiniMax region: {region}. Must be one of {list(MINIMAX_REGIONAL_ENDPOINTS)}")
     return MINIMAX_REGIONAL_ENDPOINTS[region]
 
 
