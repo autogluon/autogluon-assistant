@@ -138,3 +138,6 @@ If you use Autogluon Assistant (MLZero) in your research, please cite our paper:
       url={https://arxiv.org/abs/2505.13941}, 
 }
 ```
+
+## Research code
+This repository contains research code intended for academic research and experimentation. It is not production-ready and should be reviewed, tested, and secured before use in production.
