@@ -8,6 +8,7 @@ from .anthropic_chat import AssistantChatAnthropic, create_anthropic_chat, get_a
 from .azure_openai_chat import AssistantAzureChatOpenAI, create_azure_openai_chat, get_azure_models
 from .base_chat import GlobalTokenTracker
 from .bedrock_chat import AssistantChatBedrock, create_bedrock_chat, get_bedrock_models
+from .minimax_chat import AssistantChatMiniMax, AssistantChatMiniMaxAnthropic, create_minimax_chat, get_minimax_models
 from .openai_chat import AssistantChatOpenAI, create_openai_chat, get_openai_models
 from .sagemaker_chat import SagemakerEndpointChat, create_sagemaker_chat, get_sagemaker_endpoints
 
@@ -34,12 +35,14 @@ class ChatLLMFactory:
             return get_anthropic_models()
         elif provider == "sagemaker":
             return get_sagemaker_endpoints()
+        elif provider == "minimax":
+            return get_minimax_models()
         else:
             raise ValueError(f"Unsupported provider: {provider}")
 
     @classmethod
     def get_valid_providers(cls):
-        return ["azure", "openai", "bedrock", "anthropic", "sagemaker"]
+        return ["azure", "openai", "bedrock", "anthropic", "sagemaker", "minimax"]
 
     @classmethod
     def get_chat_model(cls, config: DictConfig, session_name: str) -> Union[
@@ -48,6 +51,8 @@ class ChatLLMFactory:
         AssistantChatBedrock,
         AssistantChatAnthropic,
         SagemakerEndpointChat,
+        AssistantChatMiniMax,
+        AssistantChatMiniMaxAnthropic,
     ]:
         """Get a configured chat model instance using LangGraph patterns."""
         provider = config.provider
@@ -75,5 +80,7 @@ class ChatLLMFactory:
             return create_bedrock_chat(config, session_name)
         elif provider == "sagemaker":
             return create_sagemaker_chat(config, session_name)
+        elif provider == "minimax":
+            return create_minimax_chat(config, session_name)
         else:
             raise ValueError(f"Unsupported provider: {provider}")
