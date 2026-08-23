@@ -26,6 +26,7 @@ AutoGluon Assistant (aka MLZero) is a multi-agent system that automates end-to-e
 
 | Date | Update |
 |------|--------|
+| [2026-08-23] | 🎉 [LLMZero](https://arxiv.org/abs/2606.18388): Based on this multi-agent framework, we developed LLMZero, a system where LLM agents search by reasoning over the training trajectories to discover adaptive, multi-stage training strategies for RL post-training. Accepted by EMNLP 2026 as Findings, code will be released soon! |
 | [2025-12-01] | 💬 **Chat Mode**: New conversational Q&A mode (`mlzero chat`) for getting ML guidance without code execution. |
 | [2025-11-25] | 🔄 **Performance Enhancement Release** (Node-Based Manager + MCTS, inspired by [ML-Master](https://github.com/sjtu-sai-agents/ML-Master) and [AIDE](https://github.com/codestoryai/aide)): Core algorithm merged and available to try now! Docker container coming soon. |
 | [2025-10-23] | ✨ **Accepted to NeurIPS 2025** as a poster presentation |
