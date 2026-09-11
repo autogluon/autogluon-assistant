@@ -1,12 +1,12 @@
 # Condensed: ```python
 
-Summary: This tutorial explains AutoGluon MultiModal's problem types for code implementation, covering classification (binary and multiclass), regression, object detection, semantic segmentation, similarity matching, NER, and feature extraction. It helps with implementing models that handle various data modalities (text, image, numerical, categorical) and specifies which problem types support training vs. zero-shot prediction. The tutorial details evaluation metrics for each problem type and provides implementation context for working with multimodal data. It's valuable for coding tasks involving multimodal machine learning, particularly when working with mixed data types and needing automated model training across different problem domains.
+Summary: This tutorial demonstrates how to query and inspect AutoGluon MultiModal's problem type registry using `PROBLEM_TYPES_REG` to discover supported ML tasks. It provides implementation patterns for accessing problem type properties (supported modalities, evaluation metrics, zero-shot capabilities) through constants like `BINARY`, `MULTICLASS`, `REGRESSION`, `OBJECT_DETECTION`, `SEMANTIC_SEGMENTATION`, `TEXT_SIMILARITY`, `IMAGE_SIMILARITY`, `IMAGE_TEXT_SIMILARITY`, `NER`, `FEATURE_EXTRACTION`, and `FEW_SHOT_CLASSIFICATION`. The tutorial helps with tasks like programmatically determining available problem types, checking supported input modalities for each task, identifying default evaluation metrics, and verifying zero-shot/training support. Key features include a reusable helper function for formatted problem type inspection and systematic exploration of AutoGluon's multimodal capabilities across vision, text, and cross-modal tasks.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-# AutoGluon MultiModal Problem Types
+# AutoGluon MultiModal Problem Types - Condensed Guide
 
-## Installation and Setup
+## Installation & Setup
 
 ```python
 !pip install autogluon.multimodal
@@ -14,72 +14,103 @@ import warnings
 warnings.filterwarnings('ignore')
 ```
 
-## Problem Types Overview
+## Helper Function for Problem Type Info
 
-### Classification
+```python
+from autogluon.multimodal.constants import *
+from autogluon.multimodal.problem_types import PROBLEM_TYPES_REG
 
-AutoGluon supports two types of classification:
+def print_problem_type_info(name: str, props):
+    """Helper function to print problem type information"""
+    print(f"\n=== {name} ===")
+    print("\nSupported Input Modalities:")
+    for modality in sorted(list(props.supported_modality_type)):
+        print(f"- {modality}")
+    if hasattr(props, 'supported_evaluation_metrics') and props.supported_evaluation_metrics:
+        print("\nEvaluation Metrics:")
+        for metric in sorted(list(props.supported_evaluation_metrics)):
+            print(f"- {metric}{' (default)' if metric == props.fallback_evaluation_metric else ''}")
+    if hasattr(props, 'support_zero_shot'):
+        print("\nSpecial Capabilities:")
+        print(f"- Zero-shot: {'Supported' if props.support_zero_shot else 'Not supported'}")
+        print(f"- Training: {'Supported' if props.support_fit else 'Not supported'}")
+```
 
-**Binary Classification (2 classes)**
-- Supported modalities: image, numerical, text, categorical, tabular
-- Evaluation metrics: accuracy, balanced_accuracy, f1, mcc, roc_auc (default)
-- Supports training and zero-shot prediction
+## Supported Problem Types
 
-**Multiclass Classification (3+ classes)**
-- Supported modalities: image, numerical, text, categorical, tabular
-- Evaluation metrics: accuracy (default), balanced_accuracy, f1, log_loss
-- Supports training and zero-shot prediction
+### Classification (Binary & Multiclass)
+
+```python
+binary_props = PROBLEM_TYPES_REG.get(BINARY)
+multiclass_props = PROBLEM_TYPES_REG.get(MULTICLASS)
+print_problem_type_info("Binary Classification", binary_props)
+print_problem_type_info("Multiclass Classification", multiclass_props)
+```
 
 ### Regression
 
-- Supported modalities: image, numerical, text, categorical, tabular
-- Evaluation metrics: mse, rmse (default), r2, mae, mape
-- Supports training and zero-shot prediction
+```python
+regression_props = PROBLEM_TYPES_REG.get(REGRESSION)
+print_problem_type_info("Regression", regression_props)
+```
 
 ### Object Detection
 
-- Supported modalities: image
-- Evaluation metrics: map (default)
-- Supports training but not zero-shot prediction
+```python
+object_detection_props = PROBLEM_TYPES_REG.get(OBJECT_DETECTION)
+print_problem_type_info("Object Detection", object_detection_props)
+```
 
 ### Semantic Segmentation
 
-- Supported modalities: image
-- Evaluation metrics: overall_accuracy, mean_accuracy, mean_iou (default), weighted_iou
-- Supports training but not zero-shot prediction
+```python
+segmentation_props = PROBLEM_TYPES_REG.get(SEMANTIC_SEGMENTATION)
+print_problem_type_info("Semantic Segmentation", segmentation_props)
+```
 
-### Similarity Matching Problems
+### Similarity Matching
 
-**Text Similarity**
-- Input requirements: text
-- Supports zero-shot prediction
+Supports text-to-text, image-to-image, and image-to-text similarity. See [Matching Tutorials](../semantic_matching/index.md).
 
-**Image Similarity**
-- Input requirements: image
-- Supports zero-shot prediction
+```python
+similarity_types = [
+    (TEXT_SIMILARITY, "Text Similarity"),
+    (IMAGE_SIMILARITY, "Image Similarity"),
+    (IMAGE_TEXT_SIMILARITY, "Image-Text Similarity")
+]
 
-**Image-Text Similarity**
-- Input requirements: image, text
-- Supports zero-shot prediction
+print("\n=== Similarity Matching ===")
+for type_key, type_name in similarity_types:
+    props = PROBLEM_TYPES_REG.get(type_key)
+    print(f"\n{type_name}:")
+    print("Input Requirements:")
+    for modality in props.supported_modality_type:
+        print(f"- {modality}")
+    print(f"Zero-shot: {'Supported' if props.support_zero_shot else 'Not supported'}")
+```
 
 ### Named Entity Recognition (NER)
 
-- Supported modalities: text
-- Evaluation metrics: overall_f1 (default)
-- Supports training but not zero-shot prediction
+```python
+ner_props = PROBLEM_TYPES_REG.get(NER)
+print_problem_type_info("Named Entity Recognition", ner_props)
+```
 
 ### Feature Extraction
 
-- Supported modalities: image, numerical, text, categorical, tabular
-- Supports training and zero-shot prediction
+```python
+feature_extraction_props = PROBLEM_TYPES_REG.get(FEATURE_EXTRACTION)
+print_problem_type_info("Feature Extraction", feature_extraction_props)
+```
 
 ### Few-shot Classification
 
-- Supported modalities: image, text
-- Evaluation metrics: accuracy (default)
-- Supports training and zero-shot prediction
+```python
+few_shot_props = PROBLEM_TYPES_REG.get(FEW_SHOT_CLASSIFICATION)
+print_problem_type_info("Few-shot Classification", few_shot_props)
+```
 
 ## Additional Resources
-- For more examples: [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm)
-- For customization: [Customize AutoMM](../advanced_topics/customization.ipynb)
-- For similarity matching: [Matching Tutorials](../semantic_matching/index.md)
+
+- **More Examples**: [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm)
+- **Customization**: [Customize AutoMM](../advanced_topics/customization.ipynb)

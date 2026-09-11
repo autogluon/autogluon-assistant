@@ -1,4 +1,4 @@
-Summary: This tutorial demonstrates AutoGluon's time series forecasting capabilities, teaching LLMs how to implement probabilistic time series forecasting with minimal code. It covers TimeSeriesDataFrame for data preparation in long format (requiring item_id, timestamp, and target columns), TimeSeriesPredictor for model training with various quality presets, and generating probabilistic forecasts with quantiles. Key functionalities include handling multiple time series simultaneously, automatic model selection (including statistical, tree-based, and deep learning approaches), customizable forecast horizons, and model evaluation using metrics like MASE. This knowledge helps with implementing production-ready time series forecasting systems.
+Summary: This tutorial covers AutoGluon's time series forecasting implementation using `TimeSeriesDataFrame` and `TimeSeriesPredictor` classes. It teaches how to format panel time series data in long format (item_id, timestamp, target columns), train automated forecasting models with configurable parameters (prediction_length, presets, time_limit, eval_metric), and generate probabilistic forecasts with mean and quantile predictions. Key techniques include data preparation from pandas DataFrames, model training with quality presets (medium/high/best_quality) that automatically fit multiple models (SeasonalNaive, ETS, Theta, LightGBM-based, Chronos-2, Toto-2, ensembles), forecast visualization, and model evaluation via leaderboards. Useful for building multi-step ahead forecasting pipelines, comparing model performance on validation/test sets, and understanding that this handles independent panel forecasting (not multivariate). Critical parameters covered: prediction_length for forecast horizon, presets for model selection, and time_limit for training duration constraints.
 
 ```python
 # We use uv for faster installation
@@ -89,12 +89,12 @@ predictor.fit(
 Here we used the `"medium_quality"` presets and limited the training time to 10 minutes (600 seconds).
 The presets define which models AutoGluon will try to fit.
 For `medium_quality` presets, these are
-simple baselines (`Naive`, `SeasonalNaive`),
+simple baselines (`SeasonalNaive`),
 statistical models (`ETS`, `Theta`),
 tree-based models based on LightGBM (`RecursiveTabular`, `DirectTabular`),
-a deep learning model `TemporalFusionTransformer`,
+the pretrained Chronos-2 (small) and Toto-2 (4m) models,
 and a weighted ensemble combining these.
-Other available presets for `TimeSeriesPredictor` are `"fast_training"`, `"high_quality"` and `"best_quality"`.
+Other available presets for `TimeSeriesPredictor` are `"high_quality"` and `"best_quality"`.
 Higher quality presets will usually produce more accurate forecasts but take longer to train.
 
 Inside `fit()`, AutoGluon will train as many models as possible within the given time limit.

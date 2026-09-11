@@ -1,4 +1,4 @@
-Summary: This tutorial demonstrates how to prevent AutoGluon from dropping specific features during preprocessing. It covers three key techniques: (1) creating custom models with the `drop_unique=False` parameter to preserve single-value features, (2) implementing a `CustomFeatureGeneratorWithUserOverride` that uses `IdentityFeatureGenerator` to bypass preprocessing for tagged features, and (3) tagging features with special types like 'user_override' to control their processing. These methods are valuable for maintaining important features in machine learning pipelines, ensuring model interpretability, and handling domain-specific features that shouldn't undergo standard transformations.
+Summary: This tutorial teaches how to prevent AutoGluon from automatically dropping features during preprocessing, particularly those with single unique values. It covers two approaches: (1) overriding `_get_default_auxiliary_params()` in custom models to set `drop_unique=False` for model-specific preservation, and (2) creating custom feature generators using `BulkFeatureGenerator` with bifurcated preprocessing logic that applies different handling to features tagged with special types via `FeatureMetadata.add_special_types()`. Key implementations include using `IdentityFeatureGenerator` for no-op preprocessing, `AutoMLPipelineFeatureGenerator` with `banned_feature_special_types`, and integrating custom feature generators with `TabularPredictor`. This helps with tasks requiring mandatory columns for custom model logic, fine-tuning pre-trained models with specific feature requirements, and controlling feature engineering pipelines in AutoGluon workflows.
 
 ```python
 !pip install autogluon.tabular[all]
@@ -35,9 +35,9 @@ add the following `_get_default_auxiliary_params` method to your custom model cl
 from autogluon.core.models import AbstractModel
 
 class DummyModel(AbstractModel):
-    def _fit(self, X, **kwargs):
+    def _fit(self, X, y, **kwargs):
         print(f'Before {self.__class__.__name__} Preprocessing ({len(X.columns)} features):\n\t{list(X.columns)}')
-        X = self.preprocess(X)
+        X = self.preprocess(X, y=y)
         print(f'After  {self.__class__.__name__} Preprocessing ({len(X.columns)} features):\n\t{list(X.columns)}')
         print(X.head(5))
 

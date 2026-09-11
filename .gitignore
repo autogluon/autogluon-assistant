@@ -222,4 +222,6 @@ output/
 credentials.txt
 aws_credentials.txt
 
-.claude
+.claude/*
+!.claude/skills/
+jp_runs/

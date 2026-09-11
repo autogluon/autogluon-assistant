@@ -1,4 +1,4 @@
-Summary: This tutorial demonstrates AutoGluon TimeSeriesPredictor for time series forecasting with covariates and static features. It covers: (1) implementing time series forecasting with static features, known covariates, and holiday indicators; (2) handling irregular data, missing values, and proper data formatting; and (3) configuring models with different presets and hyperparameter tuning. Key functionalities include creating TimeSeriesDataFrame objects, adding custom covariates, generating future prediction frames, evaluating forecast accuracy, and selecting from local models (ETS, ARIMA), global models (DeepAR, PatchTST), and ensemble approaches for optimal forecasting performance.
+Summary: This tutorial covers AutoGluon's TimeSeriesPredictor for time series forecasting, including: (1) adding static features and covariates (known/past) to TimeSeriesDataFrame with proper item_id mapping; (2) implementing holiday features using the holidays package with custom helper functions; (3) handling irregular time indices and missing values via convert_frequency() and fill_missing_values(); (4) train-test splitting, evaluation with multiple backtest windows using cutoff parameters, and internal validation with num_val_windows; (5) configuring local models (ETS, ARIMA), global models (DeepAR, Chronos, RecursiveTabular), and ensembles; (6) using presets (medium/high/best_quality), manual hyperparameter configuration, model exclusion, and HPO with search spaces. Key for implementing production forecasting pipelines with proper validation, covariate handling, and model selection.
 
 ```python
 # We use uv for faster installation
@@ -11,14 +11,12 @@ Summary: This tutorial demonstrates AutoGluon TimeSeriesPredictor for time serie
 ```python
 import warnings
 warnings.filterwarnings(action="ignore")
-
 ```
 
 
 ```python
 import pandas as pd
 from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
-
 ```
 
 We download a subset of 100 time series from the M4 Daily dataset.
@@ -27,7 +25,6 @@ We download a subset of 100 time series from the M4 Daily dataset.
 ```python
 df = pd.read_csv("https://autogluon.s3.amazonaws.com/datasets/timeseries/m4_daily_subset/train.csv")
 df.head()
-
 ```
 
 We also load the corresponding static features.
@@ -38,7 +35,6 @@ In the M4 Daily dataset, there is a single categorical static feature that denot
 ```python
 static_features_df = pd.read_csv("https://autogluon.s3.amazonaws.com/datasets/timeseries/m4_daily_subset/metadata.csv")
 static_features_df.head()
-
 ```
 
 AutoGluon expects static features as a pandas.DataFrame object. The `item_id` column indicates which item (=individual time series) in `df` each row of `static_features` corresponds to.
@@ -54,7 +50,6 @@ train_data = TimeSeriesDataFrame.from_data_frame(
     static_features_df=static_features_df,
 )
 train_data.head()
-
 ```
 
 We can validate that `train_data` now also includes the static features using the `.static_features` attribute
@@ -62,7 +57,6 @@ We can validate that `train_data` now also includes the static features using th
 
 ```python
 train_data.static_features.head()
-
 ```
 
 Alternatively, we can attach static features to an existing `TimeSeriesDataFrame` by assigning the `.static_features` attribute
@@ -70,7 +64,6 @@ Alternatively, we can attach static features to an existing `TimeSeriesDataFrame
 
 ```python
 train_data.static_features = static_features_df
-
 ```
 
 
@@ -83,7 +76,6 @@ timestamps = train_data.index.get_level_values("timestamp")
 train_data["weekend"] = timestamps.weekday.isin(WEEKEND_INDICES).astype(float)
 
 train_data.head()
-
 ```
 
 When creating the TimeSeriesPredictor, we specify that the column `"target"` is our prediction target, and the
@@ -119,7 +111,6 @@ known_covariates = predictor.make_future_data_frame(train_data)
 known_covariates["weekend"] = known_covariates["timestamp"].dt.weekday.isin(WEEKEND_INDICES).astype(float)
 
 known_covariates.head()
-
 ```
 
 Note that `known_covariates` must satisfy the following conditions:
@@ -142,7 +133,7 @@ The list of models that support static features and covariates is available in [
 ### Holidays
 Another popular example of `known_covariates` are holiday features. In this section we describe how to add holiday features to a time series dataset and use them in AutoGluon.
 
-First, we need to define a dictionary with dates in `datetime.date` format as keys and holiday names as values. 
+First, we need to define a dictionary with dates in `datetime.date` format as keys and holiday names as values.
 We can easily generate such a dictionary using the [`holidays`](https://pypi.org/project/holidays/) Python package.
 
 
@@ -259,7 +250,7 @@ then at least some time series in `train_data` must have length `>= max(predicti
 Note that all time series in the dataset can have different lengths.
 
 
-### Handling irregular data and missing values 
+### Handling irregular data and missing values
 In some applications, like finance, data often comes with irregular measurements (e.g., no stock price is available for weekends or holidays) or missing values.
 
 Here is an example of a dataset with an irregular time index:
@@ -276,7 +267,6 @@ df_irregular = TimeSeriesDataFrame(
     )
 )
 df_irregular
-
 ```
 
 In such case, you can specify the desired frequency when creating the predictor using the `freq` argument.
@@ -295,7 +285,6 @@ Alternatively, we can manually fill the gaps in the time index using the method 
 ```python
 df_regular = df_irregular.convert_frequency(freq="D")
 df_regular
-
 ```
 
 We can verify that the index is now regular and has a daily frequency
@@ -303,7 +292,6 @@ We can verify that the index is now regular and has a daily frequency
 
 ```python
 print(f"Data has frequency '{df_regular.freq}'")
-
 ```
 
 Now the data contains missing values represented by `NaN`. Most time series models in AutoGluon can natively deal with missing values, so we can just pass data to the `TimeSeriesPredictor`.
@@ -333,13 +321,12 @@ This can be easily done using the `train_test_split` method of a `TimeSeriesData
 
 ```python
 prediction_length = 48
-data = TimeSeriesDataFrame.from_path("https://autogluon.s3.amazonaws.com/datasets/timeseries/m4_hourly_subset/train.csv")
-train_data, test_data = data.train_test_split(prediction_length)
-
+full_data = TimeSeriesDataFrame.from_path("https://autogluon.s3.amazonaws.com/datasets/timeseries/electricity_small/test.csv")
+train_data, test_data = full_data.train_test_split(prediction_length)
 ```
 
 We obtained two `TimeSeriesDataFrame`s from our original data:
-- `test_data` contains exactly the same data as the original `data` (i.e., it contains both historical data and the forecast horizon)
+- `test_data` contains exactly the same data as the original `full_data` (i.e., it contains both historical data and the forecast horizon)
 - In `train_data`, the last `prediction_length` time steps are removed from the end of each time series (i.e., it contains only historical data)
 
 
@@ -347,10 +334,11 @@ We obtained two `TimeSeriesDataFrame`s from our original data:
 import matplotlib.pyplot as plt
 import numpy as np
 
-item_id = "H1"
+item_id = test_data.item_ids[0]
+max_history_length = 300
 fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=[10, 4], sharex=True)
-train_ts = train_data.loc[item_id]
-test_ts = test_data.loc[item_id]
+train_ts = train_data.loc[item_id].iloc[-max_history_length:]
+test_ts = test_data.loc[item_id].iloc[-(max_history_length + prediction_length):]
 ax1.set_title("Train data (past time series values)")
 ax1.plot(train_ts)
 ax2.set_title("Test data (past + future time series values)")
@@ -359,17 +347,19 @@ for ax in (ax1, ax2):
     ax.fill_between(np.array([train_ts.index[-1], test_ts.index[-1]]), test_ts.min(), test_ts.max(), color="C1", alpha=0.3, label="Forecast horizon")
 plt.legend()
 plt.show()
-
 ```
 
-We can now use `train_data` to train the predictor, and `test_data` to obtain an estimate of its performance on unseen data.
+We can now use `train_data` to train the predictor, and `test_data` to obtain an estimate of its performance on unseen data with the [`evaluate()`](https://auto.gluon.ai/stable/api/autogluon.timeseries.TimeSeriesPredictor.evaluate.html) method.
+
+
 ```python
-predictor = TimeSeriesPredictor(prediction_length=prediction_length, eval_metric="MASE").fit(train_data)
+predictor = TimeSeriesPredictor(prediction_length=prediction_length, eval_metric="MASE")
+predictor.fit(train_data, hyperparameters={"SeasonalNaive": {}, "RecursiveTabular": {}, "Chronos": {}}, verbosity=0)
 predictor.evaluate(test_data)
 ```
 
 AutoGluon evaluates the performance of forecasting models by measuring how well their forecasts align with the actually observed time series.
-For each time series in `test_data`, the predictor does the following:
+When we call [`evaluate()`](https://auto.gluon.ai/stable/api/autogluon.timeseries.TimeSeriesPredictor.evaluate.html), the predictor does the following for each time series in `test_data`:
 
 1. Hold out the last `prediction_length` values of the time series.
 2. Generate a forecast for the held out part of the time series, i.e., the forecast horizon.
@@ -380,9 +370,84 @@ Finally, the scores are averaged over all time series in the dataset.
 The crucial detail here is that `evaluate` always computes the score on the last `prediction_length` time steps of each time series.
 The beginning of each time series (except the last `prediction_length` time steps) is only used to initialize the models before forecasting.
 
+Note that `evaluate()` returns the score for the best model (based on internal validation performance), which is used by default during [`predict()`](https://auto.gluon.ai/stable/api/autogluon.timeseries.TimeSeriesPredictor.predict.html).
+To see scores for all models, use the [`leaderboard()`](https://auto.gluon.ai/stable/api/autogluon.timeseries.TimeSeriesPredictor.leaderboard.html) method.
+
+
+```python
+predictor.leaderboard(test_data)
+```
+
 For more details about the evaluation metrics, see [Forecasting Evaluation Metrics](forecasting-metrics.md).
 
-### How does AutoGluon perform validation?
+### Backtesting using multiple cutoffs
+
+We can more accurately estimate the performance using **backtest** (i.e., evaluate performance on multiple forecast horizons generated from the same time series).
+First, reserve enough test data for multiple windows:
+
+
+```python
+num_test_windows = 3
+train_data, test_data = full_data.train_test_split(num_test_windows * prediction_length)
+
+# Fit the predictor
+predictor = TimeSeriesPredictor(prediction_length=prediction_length, eval_metric="MASE")
+predictor.fit(train_data, hyperparameters={"SeasonalNaive": {}, "RecursiveTabular": {}, "Chronos": {}}, verbosity=0)
+```
+
+Now evaluate on each window using the `cutoff` argument to the [`evaluate()`](https://auto.gluon.ai/stable/api/autogluon.timeseries.TimeSeriesPredictor.evaluate.html) method.
+The `evaluate` method will measure the forecast accuracy using the `prediction_length` time steps after the `cutoff` index as a hold-out set (marked in orange). By default (if no `cutoff` is provided), the cutoff value will be set to `-1 * prediction_length`.
+
+
+```python
+for cutoff in range(-num_test_windows * prediction_length, 0, prediction_length):
+    score = predictor.evaluate(test_data, cutoff=cutoff)
+    print(f"Cutoff {cutoff}: score = {score}")
+```
+
+
+```python
+leaderboards = []
+for cutoff in range(-num_test_windows * prediction_length, 0, prediction_length):
+    lb = predictor.leaderboard(test_data, cutoff=cutoff)
+    lb["cutoff"] = cutoff
+    leaderboards.append(lb)
+
+scores_per_window = pd.concat(leaderboards).pivot(index="model", columns="cutoff", values="score_test")
+scores_per_window
+```
+
+### Visualizing backtest predictions
+
+To inspect the predictions and the corresponding targets from each backtest window, use the [`backtest_predictions()`](https://auto.gluon.ai/stable/api/autogluon.timeseries.TimeSeriesPredictor.backtest_predictions.html)
+and [`backtest_targets()`](https://auto.gluon.ai/stable/api/autogluon.timeseries.TimeSeriesPredictor.backtest_targets.html) methods:
+
+
+```python
+predictions_per_window = predictor.backtest_predictions(test_data, num_val_windows=num_test_windows)
+targets_per_window = predictor.backtest_targets(test_data, num_val_windows=num_test_windows)
+```
+
+Each element in the list corresponds to predictions for one backtest window. Visualize all predictions together using the [`plot()`](https://auto.gluon.ai/stable/api/autogluon.timeseries.TimeSeriesPredictor.plot.html) method:
+
+
+```python
+item_ids = test_data.item_ids[:4]
+all_predictions = pd.concat(predictions_per_window)
+predictor.plot(test_data, all_predictions, max_history_length=300, item_ids=item_ids)
+
+# Optional: Plot the cutoff dates with dashed lines
+for cutoff in range(-num_test_windows * prediction_length, 0, prediction_length):
+    for i, ax in enumerate(plt.gcf().axes):
+        cutoff_timestamp = test_data.loc[item_ids[i]].index[cutoff]
+        ax.axvline(cutoff_timestamp, color='gray', linestyle='--', alpha=0.7)
+plt.show()
+```
+
+The plot shows the observed time series along with predictions from all backtest windows.
+The dashed gray lines mark the cutoff points for each backtest window.
+
+### Internal validation
 When we fit the predictor with `predictor.fit(train_data=train_data)`, under the hood AutoGluon further splits the original dataset `train_data` into train and validation parts.
 
 Performance of different models on the validation set is evaluated using the `evaluate` method, just like described above.
@@ -402,6 +467,20 @@ Alternatively, a user can provide their own validation set to the `fit` method. 
 ```python
 predictor.fit(train_data=train_data, tuning_data=my_validation_dataset)
 ```
+
+After training is complete, we can check the validation score of each model in the `score_val` column of the [`leaderboard()`](https://auto.gluon.ai/stable/api/autogluon.timeseries.TimeSeriesPredictor.leaderboard.html) (called without passing new data):
+
+```python
+predictor.leaderboard()
+```
+
+Similarly, we can load the validation predictions with the corresponding targets by calling [`backtest_predictions()`](https://auto.gluon.ai/stable/api/autogluon.timeseries.TimeSeriesPredictor.backtest_predictions.html) and [`backtest_targets()`](https://auto.gluon.ai/stable/api/autogluon.timeseries.TimeSeriesPredictor.backtest_targets.html) without passing new data:
+```python
+val_predictions = predictor.backtest_predictions()
+val_targets = predictor.backtest_targets()
+```
+
+This is useful for debugging and understanding model behavior on the validation set.
 
 ## Which forecasting models are available in AutoGluon?
 Forecasting models in AutoGluon can be divided into three broad categories: local, global, and ensemble models.
@@ -453,14 +532,13 @@ predictor.fit(train_data, presets="medium_quality")
 Higher quality presets usually result in better forecasts but take longer to train.
 The following presets are available:
 
-| Preset         | Description                                          | Use Cases                                                                                                                                               | Fit Time (Ideal) | 
-| :------------- | :----------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------ | :--------------- | 
-| `fast_training`  | Fit simple statistical and baseline models + fast tree-based models   | Fast to train but may not be very accurate   |  0.5x |
-| `medium_quality` | Same models as in `fast_training` + deep learning model `TemporalFusionTransformer` + Chronos-Bolt (small)           | Good forecasts with reasonable training time         | 1x             |
+| Preset         | Description                                          | Use Cases                                                                                                                                               | Fit Time (Ideal) |
+| :------------- | :----------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------ | :--------------- |
+| `medium_quality` | Fit simple statistical and baseline models + fast tree-based models + pretrained models Chronos-2 (small) and Toto-2 (4m)           | Good forecasts with reasonable training time         | 1x             |
 | `high_quality`   | More powerful deep learning, machine learning, statistical and pretrained forecasting models   | Much more accurate than ``medium_quality``, but takes longer to train | 3x |
 | `best_quality`   | Same models as in `high_quality`, more cross-validation windows | Typically more accurate than `high_quality`, especially for datasets with few (<50) time series | 6x             |
 
-You can find more information about the [presets](https://github.com/autogluon/autogluon/blob/stable/timeseries/src/autogluon/timeseries/configs/presets_configs.py) and the [models includes in each preset](https://github.com/autogluon/autogluon/blob/stable/timeseries/src/autogluon/timeseries/models/presets.py#L109) in the AutoGluon source code.
+You can find more information about the [presets](https://github.com/autogluon/autogluon/blob/stable/timeseries/src/autogluon/timeseries/configs/predictor_presets.py) and the [models included in each preset](https://github.com/autogluon/autogluon/blob/stable/timeseries/src/autogluon/timeseries/configs/hyperparameter_presets.py) in the AutoGluon source code.
 
 Another way to control the training time is using the `time_limit` argument.
 

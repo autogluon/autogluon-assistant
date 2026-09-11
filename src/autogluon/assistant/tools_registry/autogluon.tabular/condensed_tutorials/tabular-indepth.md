@@ -1,306 +1,515 @@
 # Condensed: ```python
 
-Summary: This tutorial demonstrates AutoGluon TabularPredictor for machine learning tasks, covering hyperparameter tuning with search spaces for neural networks and gradient boosting models, model ensembling through stacking/bagging, and decision threshold calibration for binary classification. It explains inference optimization techniques including model persistence, inference speed constraints, ensemble reduction, and model distillation. The tutorial provides practical code examples for accelerating predictions (up to 160x speedup), managing memory usage, and evaluating model performance. Key functionalities include feature importance analysis, loading/saving predictors, making batch and single-instance predictions, and optimizing deployment with techniques like refit_full, persist, and infer_limit parameters.
+Summary: This tutorial covers advanced AutoGluon Tabular techniques for production ML systems, including model ensembling (bagging with `num_bag_folds`, stacking with `num_stack_levels`), binary classification decision threshold calibration for metric optimization, comprehensive model evaluation via leaderboards with custom metrics, and feature importance analysis. It provides detailed inference acceleration strategies prioritized as: `refit_full()` for collapsing bagged ensembles (8x speedup), `persist()` for keeping models in memory (10x speedup in online inference), and `infer_limit` constraints during training (50x+ speedup). Additional optimization techniques include Pareto-optimal weighted ensembles, model distillation, preprocessing caching, and memory/disk management strategies. The tutorial helps with tasks like deploying fast prediction systems, optimizing model accuracy-latency tradeoffs, reducing resource usage, cross-machine model deployment, and implementing interpretable ML solutions with proper metric calibration.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-# AutoGluon TabularPredictor Tutorial: Hyperparameter Tuning and Model Ensembling
+# AutoGluon Tabular: Advanced Techniques
 
-## Setup and Data Loading
+## Installation & Setup
 
 ```python
 !pip install autogluon.tabular[all]
 
 from autogluon.tabular import TabularDataset, TabularPredictor
-import numpy as np
 
-# Load and sample data
 train_data = TabularDataset('https://autogluon.s3.amazonaws.com/datasets/Inc/train.csv')
-train_data = train_data.sample(n=1000, random_state=0)  # subsample for faster demo
-
-label = 'occupation'
+train_data = train_data.sample(n=1000, random_state=0)  # Subsample for faster demo
 test_data = TabularDataset('https://autogluon.s3.amazonaws.com/datasets/Inc/test.csv')
-test_data_nolabel = test_data.drop(columns=[label])
 
-metric = 'accuracy'  # evaluation metric
-```
-
-## Hyperparameter Tuning
-
-> **Note: AutoGluon typically achieves best performance without hyperparameter tuning by simply using `presets="best_quality"`**
-
-```python
-from autogluon.common import space
-
-# Define hyperparameter search spaces
-nn_options = {
-    'num_epochs': 10,
-    'learning_rate': space.Real(1e-4, 1e-2, default=5e-4, log=True),
-    'activation': space.Categorical('relu', 'softrelu', 'tanh'),
-    'dropout_prob': space.Real(0.0, 0.5, default=0.1),
-}
-
-gbm_options = {
-    'num_boost_round': 100,
-    'num_leaves': space.Int(lower=26, upper=66, default=36),
-}
-
-hyperparameters = {
-    'GBM': gbm_options,
-    'NN_TORCH': nn_options,  # Comment out if errors on Mac OSX
-}
-
-# HPO configuration
-hyperparameter_tune_kwargs = {
-    'num_trials': 5,
-    'scheduler': 'local',
-    'searcher': 'auto',
-}
-
-# Train with hyperparameter tuning
-predictor = TabularPredictor(label=label, eval_metric=metric).fit(
-    train_data,
-    time_limit=2*60,  # 2 minutes
-    hyperparameters=hyperparameters,
-    hyperparameter_tune_kwargs=hyperparameter_tune_kwargs,
-)
-
-# Predict and evaluate
-y_pred = predictor.predict(test_data_nolabel)
-perf = predictor.evaluate(test_data, auxiliary_metrics=False)
-
-# View training summary
-results = predictor.fit_summary()
-```
-
-## Model Ensembling with Stacking/Bagging
-
-```python
-# Switch to binary classification task
 label = 'class'
-test_data_nolabel = test_data.drop(columns=[label])
-y_test = test_data[label]
-save_path = 'agModels-predictClass'
-
-# Train with bagging and stacking
-predictor = TabularPredictor(label=label, eval_metric=metric).fit(
-    train_data,
-    num_bag_folds=5,     # k-fold bagging
-    num_bag_sets=1,      # number of bagging iterations
-    num_stack_levels=1,  # number of stacking levels
-    # Reduced hyperparameters for quick demo only
-    hyperparameters={'NN_TORCH': {'num_epochs': 2}, 'GBM': {'num_boost_round': 20}},
-)
+metric = "balanced_accuracy"
 ```
 
-**Important Notes:**
-- Don't provide `tuning_data` when using stacking/bagging - AutoGluon will intelligently split the data
-- Increasing `num_bag_sets` may improve accuracy but significantly increases training time and resource usage
-- Use `auto_stack` parameter (part of `best_quality` preset) to let AutoGluon automatically select optimal stacking/bagging values
+## Model Ensembling: Stacking & Bagging
 
-# Decision Threshold Calibration in TabularPredictor
+**Key Technique**: [Bagging and stack-ensembling](https://arxiv.org/abs/2003.06505) boost predictive performance but increase training time and resource usage.
 
-## Initial Setup and Training
+### Implementation
 
 ```python
-predictor = TabularPredictor(label=label, eval_metric='balanced_accuracy', path=save_path).fit(
-    train_data, auto_stack=True,
+predictor = TabularPredictor(label=label, eval_metric=metric, path='agModels-predictClass').fit(
+    train_data,
     calibrate_decision_threshold=False,  # Disabled for demonstration
-    hyperparameters={'FASTAI': {'num_epochs': 10}, 'GBM': {'num_boost_round': 200}}  # For quick demo only
+    num_bag_folds=8,        # k-fold bagging
+    num_bag_sets=1,         # Repeat bagging to reduce variance (increases resources)
+    num_stack_levels=1,     # Stack ensemble layers
+    time_limit=180
 )
-predictor.leaderboard(test_data)
+# Alternative: auto_stack=True or presets="best_quality"
 ```
 
-> **Note**: Stacking/bagging often produces better accuracy than hyperparameter-tuning alone. Consider using `presets='best_quality'` which sets `auto_stack=True`.
+**⚠️ Best Practices**:
+- **Don't provide `tuning_data`** when stacking/bagging—provide all data as `train_data`
+- Use `auto_stack=True` for automatic optimization instead of manual tuning
+- Increasing `num_bag_sets` improves accuracy but substantially increases training time, latency, and memory/disk usage
 
 ## Decision Threshold Calibration
 
-For binary classification, adjusting the prediction threshold can significantly improve metrics like `f1` and `balanced_accuracy`.
+**Critical Concept**: For binary classification, adjusting the decision threshold from default 0.5 can significantly improve metrics like `"f1"` and `"balanced_accuracy"`.
 
-### Basic Calibration Example
+### Basic Calibration
 
 ```python
-# Evaluate before calibration
-print(f'Prior to calibration (predictor.decision_threshold={predictor.decision_threshold}):')
+# Before calibration (default threshold = 0.5)
 scores = predictor.evaluate(test_data)
 
-# Calibrate and set new threshold
+# Calibrate and apply
 calibrated_decision_threshold = predictor.calibrate_decision_threshold()
 predictor.set_decision_threshold(calibrated_decision_threshold)
 
-# Evaluate after calibration
-print(f'After calibration (predictor.decision_threshold={predictor.decision_threshold}):')
 scores_calibrated = predictor.evaluate(test_data)
 ```
 
-### Calibration Trade-offs
-
-Calibrating for one metric (like "balanced_accuracy") may improve that metric but harm others (like "accuracy"). This represents a performance trade-off between different metrics.
-
-### Calibrating for Specific Metrics
+### Metric-Specific Calibration
 
 ```python
-predictor.set_decision_threshold(0.5)  # Reset threshold
+predictor.set_decision_threshold(0.5)  # Reset to default
+
 for metric_name in ['f1', 'balanced_accuracy', 'mcc']:
-    # Get baseline score
-    metric_score = predictor.evaluate(test_data, silent=True)[metric_name]
-    
-    # Calibrate for specific metric
-    calibrated_decision_threshold = predictor.calibrate_decision_threshold(metric=metric_name, verbose=False)
-    
-    # Evaluate with calibrated threshold
+    calibrated_threshold = predictor.calibrate_decision_threshold(
+        metric=metric_name, verbose=False
+    )
     metric_score_calibrated = predictor.evaluate(
-        test_data, decision_threshold=calibrated_decision_threshold, silent=True
+        test_data, decision_threshold=calibrated_threshold, silent=True
     )[metric_name]
-    
-    print(f'decision_threshold={calibrated_decision_threshold:.3f}\t| metric="{metric_name}"'
-          f'\n\ttest_score uncalibrated: {metric_score:.4f}'
-          f'\n\ttest_score   calibrated: {metric_score_calibrated:.4f}'
-          f'\n\ttest_score        delta: {metric_score_calibrated-metric_score:.4f}')
 ```
 
-### Best Practices
+**⚠️ Important Tradeoff**: Calibrating for one metric often improves that metric but may harm others (e.g., optimizing "balanced_accuracy" may reduce "accuracy").
 
-- Use `calibrate_decision_threshold=True` during fitting to automatically calibrate
-- The default `calibrate_decision_threshold="auto"` applies calibration when beneficial
-- Custom thresholds can be used during prediction:
-  ```python
-  y_pred = predictor.predict(test_data)  # Uses predictor.decision_threshold
-  y_pred_08 = predictor.predict(test_data, decision_threshold=0.8)  # Uses custom threshold
-  y_pred_proba = predictor.predict_proba(test_data)
-  y_pred = predictor.predict_from_proba(y_pred_proba)  # Same as .predict()
-  ```
-
-# Prediction Options (Inference)
-
-## Loading a Trained Predictor
+### Auto-Calibration During Fit
 
 ```python
-predictor = TabularPredictor.load(save_path)  # Load previously trained predictor
+# Automatic calibration during training
+predictor.fit(..., calibrate_decision_threshold=True)
+
+# Default behavior (recommended)
+predictor.fit(..., calibrate_decision_threshold="auto")  # Applied when beneficial
 ```
 
-You can train models on one machine and deploy on another by copying the `save_path` folder.
+### Prediction with Custom Thresholds
+
+```python
+# Use predictor's stored threshold
+y_pred = predictor.predict(test_data)
+
+# Override with specific threshold
+y_pred_08 = predictor.predict(test_data, decision_threshold=0.8)
+
+# From probability predictions
+y_pred_proba = predictor.predict_proba(test_data)
+y_pred = predictor.predict_from_proba(y_pred_proba)  # Uses stored threshold
+y_pred_08 = predictor.predict_from_proba(y_pred_proba, decision_threshold=0.8)
+```
+
+**✅ Recommendation**: Keep default `calibrate_decision_threshold="auto"` for most use cases.
+
+# Prediction & Interpretability
+
+## Loading Trained Models
+
+```python
+# Load previously trained predictor from disk
+predictor = TabularPredictor.load(save_path)  # save_path from fit() call
+
+# Get required feature columns
+predictor.features()
+```
+
+**✅ Deployment**: Copy `save_path` folder to new machine and load with new path for cross-machine deployment.
 
 ## Making Predictions
 
-Check required feature columns:
-```python
-predictor.features()  # Returns list of feature columns needed for prediction
-```
+### Single Example Prediction
 
-Predict on a single example:
 ```python
-datapoint = test_data_nolabel.iloc[[0]]  # Use [[0]] not [0] to get DataFrame not Series
-print(datapoint)
+# Must use DataFrame (not Series)
+datapoint = X_test.iloc[[0]]  # Note: .iloc[0] returns Series, won't work
+
+# Predict class
 predictor.predict(datapoint)
-```
 
-Get predicted probabilities:
-```python
+# Predict probabilities
 predictor.predict_proba(datapoint)  # Returns DataFrame with class probabilities
 ```
 
-## Model Selection and Evaluation
+### Model Selection
 
-View the best model:
 ```python
-predictor.model_best  # Shows which model AutoGluon considers most accurate
-```
+# Default: uses most accurate model (usually ensemble)
+predictor.model_best
 
-Evaluate all trained models:
-```python
-predictor.leaderboard(test_data)  # Basic leaderboard
-predictor.leaderboard(extra_info=True)  # Detailed model information
-predictor.leaderboard(test_data, extra_metrics=['accuracy', 'balanced_accuracy', 'log_loss'])
-```
-
-**Important note**: Metrics like `log_loss` are shown in `higher_is_better` form, so values will be negative. Also, `log_loss` can be `-inf` when models weren't optimized for it.
-
-Use a specific model for prediction:
-```python
-model_to_use = predictor.model_names()[0]  # Select first model
+# Use specific model (e.g., for lower latency)
+model_to_use = predictor.model_names()[0]
 model_pred = predictor.predict(datapoint, model=model_to_use)
 ```
 
-Access model information:
+**Note**: An AutoGluon 'model' can be a single model, bagged ensemble, weighted ensemble, or stacker model.
+
+## Model Evaluation & Leaderboard
+
+### Basic Leaderboard
+
 ```python
-specific_model = predictor._trainer.load_model(model_to_use)
-model_info = specific_model.get_info()
+# Evaluate all models on test data
+predictor.leaderboard(test_data)
+# Shows: score_test, score_val, pred_time_test, pred_time_val, fit_time
+
+# Use validation data only (no new data needed)
+predictor.leaderboard()
+```
+
+### Extended Leaderboard
+
+```python
+# Show additional model properties
+predictor.leaderboard(extra_info=True)
+# Shows: num_features, ancestors, memory_size_w_ancestors, etc.
+
+# Add custom metrics
+predictor.leaderboard(test_data, extra_metrics=['accuracy', 'balanced_accuracy', 'log_loss'])
+```
+
+**⚠️ Important**: Metrics like `log_loss` and `root_mean_squared_error` are **sign-flipped** (negative values) because AutoGluon displays all metrics in `higher_is_better` form.
+
+## Model Information Access
+
+```python
+# Predictor-level information
 predictor_information = predictor.info()
+
+# Model-specific information
+model_info = predictor.model_info(model_to_use)
+
+# Direct model access
+model_info_alternative = predictor._trainer.load_model(model_to_use).get_info()
 ```
 
-## Evaluating Predictions
+## Evaluation Methods
 
 ```python
-# Evaluate predictions against ground truth
-y_pred_proba = predictor.predict_proba(test_data_nolabel)
-perf = predictor.evaluate_predictions(y_true=y_test, y_pred=y_pred_proba)
+# Evaluate predictions with ground truth
+y_pred_proba = predictor.predict_proba(X_test)
+predictor.evaluate_predictions(y_true=y_test, y_pred=y_pred_proba)
 
-# Shorthand if label column is in test_data
-perf = predictor.evaluate(test_data)
+# Shorthand (if label column in DataFrame)
+predictor.evaluate(test_data)
 ```
 
-## Interpretability (Feature Importance)
+## Feature Importance
 
 ```python
+# Global feature importance via permutation-shuffling
 predictor.feature_importance(test_data)
 ```
 
-Feature importance is computed via permutation-shuffling, quantifying performance drop when a column's values are randomly shuffled. Features with non-positive importance scores may be candidates for removal.
+**Key Insights**:
+- **Quantifies**: Drop in performance when feature values are randomly shuffled
+- **Top features**: Contribute most to accuracy
+- **Non-positive scores**: Features that don't contribute or may harm performance (consider removing)
+- **Scope**: Global behavior across all predictions
 
-For local explanations of specific predictions, Shapley values can be used (see example notebooks).
+### Local Explanations
 
-# Accelerating Inference in AutoGluon
+For individual prediction explanations, use [Shapley values](https://github.com/slundberg/shap/). See [example notebooks](https://github.com/autogluon/autogluon/tree/master/examples/tabular/interpret).
 
-## Inference Optimization Options
+**📚 Recommended Reading**: [The Mythos of Model Interpretability](https://dl.acm.org/doi/pdf/10.1145/3236386.3241340) by Zachary Lipton on interpretability claims.
+
+# Accelerating Inference
+
+## Optimization Priority Table
 
 | Optimization | Speedup | Cost | Notes |
-|:-------------|:--------|:-----|:------|
-| refit_full | 8x-160x | -Quality, +FitTime | Only with bagging enabled |
-| persist | Up to 10x | ++MemoryUsage | Best for online inference |
-| infer_limit | Up to 50x | -Quality | Use with refit_full if bagging enabled |
-| distill | ~Equal to refit_full + infer_limit | --Quality, ++FitTime | Not compatible with other methods |
-| feature pruning | Up to 1.5x | -Quality?, ++FitTime | Depends on feature importance |
-| faster hardware | Up to 3x | +Hardware | EC2 c6i.2xlarge ~1.6x faster than m5.2xlarge |
+|:------------|:--------|:-----|:------|
+| **refit_full** | 8x (with bagging) | -Quality | Only effective with bagging enabled |
+| **persist** | Up to 10x (online-inference) | +Memory | Most effective for online-inference, not batch |
+| **infer_limit** | Up to 50x+ | -Quality | Best combined with refit_full |
+| **feature pruning** | ~1.5x max | -Quality? | Use `predictor.feature_importance(test_data)` to identify removable features |
+| **faster hardware** | ~3x max | +Hardware | e.g., EC2 c6i.2xlarge is ~1.6x faster than m5.2xlarge |
+| **manual hyperparameters** | ~2x max | Manual effort | Reduce trees in LightGBM/XGBoost/CatBoost (not recommended) |
+| **manual preprocessing** | ~1.2x max | Manual effort | Online-inference only (not recommended) |
 
-## Optimization Priority
-
-**With bagging enabled:**
+**✅ Recommended Order**: 
 1. refit_full
-2. persist
+2. persist  
 3. infer_limit
 
-**Without bagging:**
-1. persist
-2. infer_limit
+## persist: Keep Models in Memory
 
-## Keeping Models in Memory
+**Default behavior**: Models load one at a time on-demand (slower but robust).
+
+### Implementation
 
 ```python
-# Load all models into memory for faster repeated predictions
-predictor.persist()
+import time
+import numpy as np
 
-# Make predictions on individual datapoints
+# Benchmark without persist
 num_test = 20
-preds = np.array(['']*num_test, dtype='object')
+time_start = time.time()
 for i in range(num_test):
-    datapoint = test_data_nolabel.iloc[[i]]
+    datapoint = X_test.iloc[[i]]
     pred_numpy = predictor.predict(datapoint, as_pandas=False)
-    preds[i] = pred_numpy[0]
+time_without_persist = (time.time() - time_start) / num_test
 
-# Free memory when done
-predictor.unpersist()
+# Benchmark with persist
+predictor.persist()  # Load all required models into memory
+
+time_start = time.time()
+for i in range(num_test):
+    datapoint = X_test.iloc[[i]]
+    pred_numpy = predictor.predict(datapoint, as_pandas=False)
+time_with_persist = (time.time() - time_start) / num_test
+
+predictor.unpersist()  # Free memory, future predictions load from disk
 ```
 
-## Setting Inference Speed Constraints During Training
+### Persist Options
 
 ```python
-# Set inference speed constraint: 0.05 ms per row (20,000 rows/second)
-infer_limit = 0.00005
+predictor.persist()              # Persist models needed for best predictor
+predictor.persist(models='all')  # Persist ALL trained models
+predictor.persist('best')        # Persist only minimum required for prediction (optimized)
+```
 
-# Batch inference mode (easier to satisfy constraint)
-infer_limit_batch_size = 10000
+**⚠️ Note**: Speedup requires sufficient memory. Most effective for online-inference (repeated single predictions).
 
-# For online inference, use infer_limit_batch_size = 1
+## infer_limit: Inference Speed Constraint
 
-...(truncated)
+Specify latency constraints **before fitting** to train models that satisfy speed requirements.
+
+### Key Parameters
+
+- **`infer_limit`**: Time (seconds) to predict 1 row
+  - Example: `0.05` = 50ms/row = 20 rows/second throughput
+- **`infer_limit_batch_size`**: Rows passed at once during prediction
+  - `1` = online-inference (harder to satisfy)
+  - `10000` = batch-inference (easier to satisfy)
+
+### Implementation
+
+```python
+infer_limit = 0.00005  # 0.05ms per row (20,000 rows/second)
+infer_limit_batch_size = 10000  # Batch inference
+
+predictor_infer_limit = TabularPredictor(label=label, eval_metric=metric).fit(
+    train_data=train_data,
+    time_limit=30,
+    infer_limit=infer_limit,
+    infer_limit_batch_size=infer_limit_batch_size,
+)
+
+# IMPORTANT: Call refit_full if bagging was enabled
+# predictor_infer_limit.refit_full()
+
+# IMPORTANT: Persist models to match fit-time inference speed calculations
+predictor_infer_limit.persist()
+# Or optimized: predictor_infer_limit.persist('best')
+```
+
+**⚠️ Critical Notes**:
+- `infer_limit` assumes `refit_full()` will be called after `fit()`
+- Models must be persisted to align with fit-time speed calculations
+- `infer_limit < 0.02` with `infer_limit_batch_size=1` is difficult to satisfy
+
+### Validate Constraint Satisfaction
+
+```python
+test_data_batch = test_data.sample(infer_limit_batch_size, replace=True, ignore_index=True)
+
+time_start = time.time()
+predictor_infer_limit.predict(test_data_batch)
+time_end = time.time()
+
+infer_time_per_row = (time_end - time_start) / len(test_data_batch)
+rows_per_second = 1 / infer_time_per_row
+infer_time_per_row_ratio = infer_time_per_row / infer_limit
+is_constraint_satisfied = infer_time_per_row_ratio <= 1
+
+print(f'Throughput: {round(rows_per_second, 1)} rows/sec (Target: {1/infer_limit})')
+print(f'Uses {round(infer_time_per_row_ratio * 100, 1)}% of infer_limit')
+print(f'Constraint satisfied: {is_constraint_satisfied}')
+```
+
+# Advanced Inference Optimization
+
+## Smaller Ensembles via Weighted Ensembles
+
+Create alternative ensembles with different accuracy-speed tradeoffs **without retraining**:
+
+```python
+# Generate Pareto-optimal ensembles
+additional_ensembles = predictor.fit_weighted_ensemble(expand_pareto_frontier=True)
+
+# View most accurate model for each inference latency
+predictor.leaderboard(only_pareto_frontier=True)
+
+# Use specific ensemble for prediction
+model_for_prediction = additional_ensembles[0]
+predictions = predictor.predict(test_data, model=model_for_prediction)
+
+# Cleanup
+predictor.delete_models(models_to_delete=additional_ensembles)
+```
+
+**Key Concept**: Pareto frontier shows optimal accuracy-latency tradeoffs.
+
+## refit_full: Collapse Bagged Ensembles
+
+Collapse ~10 bagged model copies into a single model trained on full dataset:
+
+```python
+refit_model_map = predictor.refit_full()  # Refit all models
+# Or: predictor.refit_full(model='specific_model')  # Refit specific model
+
+predictor.leaderboard(test_data)
+```
+
+**Benefits**:
+- Greatly reduces memory/latency (8x speedup with bagging)
+- Works with non-bagged models (may improve accuracy)
+
+**⚠️ Note**: Refit-full models have no `score_val` (trained on all data, no validation split).
+
+## Model Distillation
+
+Train a single "student" model to mimic ensemble "teacher" predictions:
+
+```python
+student_models = predictor.distill(time_limit=120)
+predictor.leaderboard(test_data)
+```
+
+**⚠️ Warning**: May cause significant accuracy drop. Prioritize `refit_full`, `infer_limit`, and `persist` first.
+
+## Lightweight Training Options
+
+### Faster Presets
+
+```python
+presets = ['good_quality', 'optimize_for_deployment']
+predictor_light = TabularPredictor(label=label, eval_metric=metric).fit(
+    train_data, presets=presets, time_limit=30
+)
+```
+
+### Exclude Slow Models
+
+```python
+excluded_model_types = ['KNN', 'NN_TORCH']  # Exclude K-Nearest Neighbors, Neural Networks
+predictor_light = TabularPredictor(label=label, eval_metric=metric).fit(
+    train_data, excluded_model_types=excluded_model_types, time_limit=30
+)
+```
+
+## Advanced: Cache Preprocessed Data
+
+For **repeated predictions on same data**:
+
+```python
+# Preprocess once
+test_data_preprocessed = predictor.transform_features(test_data)
+
+# Skip preprocessing in predict
+predictions = predictor.predict(test_data_preprocessed, transform_features=False)
+```
+
+**⚠️ Use Case**: Only beneficial when repeatedly predicting on identical data. Consider caching predictions instead.
+
+## Advanced: Disable Preprocessing
+
+```python
+predictor.fit(..., feature_generator=None, feature_metadata=YOUR_CUSTOM_FEATURE_METADATA)
+```
+
+**⚠️ Warning**: Removes ALL data sanitization guardrails. Only for advanced users familiar with AutoGluon.
+
+**Use Case**: Multiple tasks reusing exact same features—preprocess once, send to multiple predictors.
+
+## Memory Optimization
+
+### Reduce Training Memory
+
+```python
+# Strategy 1: Exclude memory-intensive models
+excluded_model_types = ['KNN', 'XT', 'RF']
+
+# Strategy 2: Use different presets
+presets = ['medium_quality', 'optimize_for_deployment']
+
+# Strategy 3: Reduce text N-gram features
+from sklearn.feature_extraction.text import CountVectorizer
+from autogluon.features.generators import AutoMLPipelineFeatureGenerator
+
+MAX_NGRAM = 1000  # Try values < 10000
+feature_generator = AutoMLPipelineFeatureGenerator(
+    vectorizer=CountVectorizer(min_df=30, ngram_range=(1, 3), 
+                               max_features=MAX_NGRAM, dtype=np.uint8)
+)
+predictor = TabularPredictor(...).fit(..., feature_generator=feature_generator)
+
+# Strategy 4: Ignore text features entirely
+presets = ['medium_quality', 'ignore_text']
+```
+
+### Reduce Inference Memory
+
+```python
+# Break large test data into chunks (see FAQ)
+
+# Unpersist models if speed not critical
+predictor.unpersist()
+
+# With bagging: use refit_full model
+predictor.refit_full()
+# Persist only the refit model for prediction
+```
+
+**✅ Tip**: These strategies also reduce training time.
+
+# Disk Space Optimization
+
+## Strategies to Reduce Disk Usage
+
+### Clean Up Old Models
+
+```python
+# Delete previous predictor folders manually
+# Default paths: "AutogluonModels/ag-[TIMESTAMP]"
+# Custom paths: predictor.path
+```
+
+**⚠️ Critical**: Delete old `predictor.path` folders from previous `fit()` runs to prevent disk space exhaustion.
+
+### Post-Training Cleanup
+
+```python
+# Delete auxiliary files from fit()
+predictor.save_space()
+
+# Keep only best model for inference (deletes files needed for fit_summary, etc.)
+predictor.delete_models(models_to_keep='best')
+```
+
+### Automatic Optimization During Training
+
+```python
+# Automatically apply save_space() and delete_models() after training
+presets = ['medium_quality', 'optimize_for_deployment']
+predictor = TabularPredictor(label=label).fit(train_data, presets=presets)
+```
+
+**✅ Tip**: Memory reduction strategies also reduce disk usage (may impact accuracy).
+
+---
+
+## References
+
+**AutoGluon-Tabular Paper**:  
+Erickson et al. [AutoGluon-Tabular: Robust and Accurate AutoML for Structured Data](https://arxiv.org/abs/2003.06505). *Arxiv*, 2020.
+
+---
+
+## Next Steps
+
+For deployment optimization, see: [Predicting Columns in a Table - Deployment Optimization](advanced/tabular-deployment.ipynb)

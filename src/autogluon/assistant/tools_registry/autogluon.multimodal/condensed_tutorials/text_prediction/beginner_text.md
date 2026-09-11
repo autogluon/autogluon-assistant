@@ -1,142 +1,108 @@
 # Condensed: ```python
 
-Summary: This tutorial demonstrates using AutoGluon MultiModal for sentiment analysis and sentence similarity tasks. It covers implementation techniques for training models with MultiModalPredictor, evaluating performance with multiple metrics, making predictions on text data, extracting embeddings for visualization, and saving/loading models. The tutorial helps with text classification, regression for semantic similarity, and embedding extraction tasks. Key features include automatic problem type detection, fine-tuning of deep learning models, integration with transformer models, customizable evaluation metrics, and visualization of embeddings using TSNE. The code provides a complete workflow from data loading to model deployment for NLP tasks.
+Summary: This tutorial covers AutoGluon's MultiModalPredictor for automated NLP tasks including text classification and regression. It demonstrates loading data from Parquet/CSV/S3, training models with `fit()` using configurable parameters (label, eval_metric, time_limit), making predictions with `predict()` and `predict_proba()`, evaluating with custom metrics, and extracting neural network embeddings. Key implementations include binary sentiment classification, sentence similarity regression with multi-column inputs, model persistence via save/load (with pickle security warnings), and automatic task detection. The tutorial helps with building text classifiers, regression models for semantic similarity, embedding extraction for downstream tasks, and handling tabular text data with multiple columns, leveraging HuggingFace Transformers, timm, and CLIP backends for deep learning-based NLP solutions.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-# Sentiment Analysis and Sentence Similarity with AutoGluon MultiModal
+# AutoGluon MultiModal Tutorial (Condensed)
 
-## Setup
-
+## Installation & Setup
 ```python
 !pip install autogluon.multimodal
-
-import numpy as np
-import warnings
-import matplotlib.pyplot as plt
-warnings.filterwarnings('ignore')
-np.random.seed(123)
 ```
 
-## Sentiment Analysis Task
+## Sentiment Analysis (Binary Classification)
 
-### Loading Data
-
+### Data Loading
 ```python
 from autogluon.core.utils.loaders import load_pd
 train_data = load_pd.load('https://autogluon-text.s3-accelerate.amazonaws.com/glue/sst/train.parquet')
 test_data = load_pd.load('https://autogluon-text.s3-accelerate.amazonaws.com/glue/sst/dev.parquet')
-subsample_size = 1000  # subsample data for faster demo
+subsample_size = 1000  # increase for better performance
 train_data = train_data.sample(n=subsample_size, random_state=0)
 ```
 
-### Training
+**Data Format**: Pandas DataFrame with label column. Supports Parquet, CSV, and local/S3 files.
 
+### Training
 ```python
 from autogluon.multimodal import MultiModalPredictor
-import uuid
-model_path = f"./tmp/{uuid.uuid4().hex}-automm_sst"
 predictor = MultiModalPredictor(label='label', eval_metric='acc', path=model_path)
-predictor.fit(train_data, time_limit=180)  # For better performance, increase time_limit or set to None
+predictor.fit(train_data, time_limit=180)
 ```
 
-### Evaluation
+**Key Parameters**:
+- `label`: Column containing target values
+- `eval_metric`: Optimization metric (e.g., 'acc', 'f1')
+- `time_limit`: Training duration in seconds (use longer times or `None` for production)
 
+### Evaluation & Prediction
 ```python
-# Basic evaluation
-test_score = predictor.evaluate(test_data)
-print(test_score)
-
-# Multiple metrics
+# Evaluation with multiple metrics
 test_score = predictor.evaluate(test_data, metrics=['acc', 'f1'])
-print(test_score)
-```
 
-### Prediction
-
-```python
-# Predict individual sentences
-sentence1 = "it's a charming and often affecting journey."
-sentence2 = "It's slow, very, very, very slow."
+# Predictions
 predictions = predictor.predict({'sentence': [sentence1, sentence2]})
 
-# Get class probabilities
+# Class probabilities
 probs = predictor.predict_proba({'sentence': [sentence1, sentence2]})
-
-# Predict on dataset
-test_predictions = predictor.predict(test_data)
 ```
 
-### Save and Load
+### Save & Load
+
+⚠️ **Security Warning**: `MultiModalPredictor.load()` uses `pickle`, which is insecure. Only load data from trusted sources.
 
 ```python
-# Load saved predictor
+# Auto-saved after fit(), reload with:
 loaded_predictor = MultiModalPredictor.load(model_path)
 
-# Save to new location
-new_model_path = f"./tmp/{uuid.uuid4().hex}-automm_sst"
+# Manual save
 loaded_predictor.save(new_model_path)
 ```
 
-> **Warning**: `MultiModalPredictor.load()` uses `pickle` module, which can execute arbitrary code during unpickling. Only load data you trust.
-
 ### Extract Embeddings
-
 ```python
 embeddings = predictor.extract_embedding(test_data)
-print(embeddings.shape)
-
-# Visualize embeddings with TSNE
-from sklearn.manifold import TSNE
-X_embedded = TSNE(n_components=2, random_state=123).fit_transform(embeddings)
-for val, color in [(0, 'red'), (1, 'blue')]:
-    idx = (test_data['label'].to_numpy() == val).nonzero()
-    plt.scatter(X_embedded[idx, 0], X_embedded[idx, 1], c=color, label=f'label={val}')
-plt.legend(loc='best')
+# Returns embedding vectors from intermediate neural network representations
 ```
 
-## Sentence Similarity Task
+## Sentence Similarity (Regression)
 
-### Loading Data
-
+### Data & Training
 ```python
 sts_train_data = load_pd.load('https://autogluon-text.s3-accelerate.amazonaws.com/glue/sts/train.parquet')[['sentence1', 'sentence2', 'score']]
-sts_test_data = load_pd.load('https://autogluon-text.s3-accelerate.amazonaws.com/glue/sts/dev.parquet')[['sentence1', 'sentence2', 'score']]
-print('Min score=', min(sts_train_data['score']), ', Max score=', max(sts_train_data['score']))
-```
 
-### Training and Evaluation
-
-```python
-sts_model_path = f"./tmp/{uuid.uuid4().hex}-automm_sts"
 predictor_sts = MultiModalPredictor(label='score', path=sts_model_path)
 predictor_sts.fit(sts_train_data, time_limit=60)
-
-test_score = predictor_sts.evaluate(sts_test_data, metrics=['rmse', 'pearsonr', 'spearmanr'])
-print('RMSE = {:.2f}'.format(test_score['rmse']))
-print('PEARSONR = {:.4f}'.format(test_score['pearsonr']))
-print('SPEARMANR = {:.4f}'.format(test_score['spearmanr']))
 ```
 
-### Prediction
+**Note**: AutoGluon automatically detects regression vs classification based on label column.
 
+### Evaluation with Custom Metrics
 ```python
-sentences = ['The child is riding a horse.',
-             'The young boy is riding a horse.',
-             'The young man is riding a horse.',
-             'The young man is riding a bicycle.']
-
-score1 = predictor_sts.predict({'sentence1': [sentences[0]],
-                                'sentence2': [sentences[1]]}, as_pandas=False)
-score2 = predictor_sts.predict({'sentence1': [sentences[0]],
-                                'sentence2': [sentences[2]]}, as_pandas=False)
-score3 = predictor_sts.predict({'sentence1': [sentences[0]],
-                                'sentence2': [sentences[3]]}, as_pandas=False)
+test_score = predictor_sts.evaluate(sts_test_data, metrics=['rmse', 'pearsonr', 'spearmanr'])
 ```
 
-## Key Notes
+### Multi-Column Prediction
+```python
+score = predictor_sts.predict({'sentence1': [sentences[0]],
+                               'sentence2': [sentences[1]]}, as_pandas=False)
+```
 
-- `MultiModalPredictor` automatically determines the type of prediction problem and appropriate loss function
-- Unlike `TabularPredictor`, `MultiModalPredictor` focuses on selecting and fine-tuning deep learning models
-- Internally integrates with timm, huggingface/transformers, and openai/clip as the model zoo
-- For customization, refer to the "Customize AutoMM" documentation
+## Key Concepts
+
+- **Automatic Task Detection**: Determines classification/regression from data
+- **Multi-Column Support**: Handles multiple text columns in data tables
+- **Model Backend**: Integrates timm, HuggingFace Transformers, OpenAI CLIP
+- **Focus**: Deep learning model selection and finetuning (unlike TabularPredictor's ensemble approach)
+
+## Best Practices
+
+1. **Time Limits**: Use 1+ hour for production; short limits are for demos only
+2. **Data Format**: Any tabular format with proper label column works
+3. **Metrics**: Specify multiple metrics during evaluation for comprehensive assessment
+4. **Security**: Never load models from untrusted sources
+
+## Additional Resources
+- [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm)
+- [Customization Guide](../advanced_topics/customization.ipynb)

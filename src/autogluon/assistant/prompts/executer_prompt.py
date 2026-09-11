@@ -60,8 +60,9 @@ The error summary should be brief but informative enough for another agent to un
 Even if the code executed without throwing errors, it might still have issues with logic or not meet all requirements.
 
 For validation scores:
-- If there is a validation score present in the execution results, extract it (e.g. the last validation score reported in the training process).
-- Convert the score to ensure higher values indicate better performance (multiply "lower is better" metrics like RMSE, MAE, or loss by -1)
+- If the Task Description declares an evaluation/validation metric, extract the value of THAT metric on the validation split and ignore any other metric that may be printed, so scores stay comparable across candidate solutions.
+- Prefer an explicit `VALIDATION_SCORE: <number>` line if the code prints one; otherwise use the declared metric's validation value, or the last validation score reported if no metric is declared.
+- Convert the score so that higher values indicate better performance (negate metrics for which lower is better).
 - Return the converted score that follows the "higher is better" convention"""
 
     def _build(

@@ -814,6 +814,13 @@ class NodeManager:
             execution_data=self.data_prompt,
         )
 
+        # If a fixed external scorer is configured, IT — not the LLM's stdout scrape — produces the
+        # MCTS reward, so scores are deterministic and comparable across nodes. A successful run whose
+        # predictions are missing/unscorable stays SUCCESS but unvalidated (score None): it can still be
+        # evolved but cannot be crowned best. Only overrides on SUCCESS; failures keep score None.
+        if self.use_external_scorer and planner_decision == "SUCCESS":
+            validation_score = self._run_external_scorer()
+
         # Store execution results
         self.current_node.stdout = stdout
         self.current_node.stderr = stderr
@@ -1277,9 +1284,15 @@ class NodeManager:
     # Properties to maintain compatibility with Manager API
     @property
     def user_input(self) -> str:
-        """Get the user input for the current step."""
+        """Get the user input for the current step.
+
+        Before any MCTS step has populated ``user_inputs`` (i.e. during the
+        one-time perception/planning pipeline in ``initialize()``), fall back to
+        the initial instruction so that agents like TaskDescriptor/ToolSelector
+        actually see the user's stated goal instead of an empty string.
+        """
         if self.time_step < 0 or self.time_step >= len(self.user_inputs):
-            return ""
+            return self.initial_user_input or ""
         return self.user_inputs[self.time_step]
 
     @property
@@ -1400,6 +1413,102 @@ class NodeManager:
     @property
     def common_env_file(self) -> str:
         return registry.registry_path / "_common" / "requirements.txt"
+
+    @property
+    def provided_conda_env(self):
+        """Path/name of a pre-built conda env to reuse across nodes (or None)."""
+        return self.config.get("provided_conda_env", None)
+
+    # --- Fixed external per-node scorer (optional) ---------------------------------
+    @property
+    def eval_script(self):
+        return self.config.get("eval_script", None)
+
+    @property
+    def eval_ground_truth(self):
+        return self.config.get("eval_ground_truth", None)
+
+    @property
+    def eval_validation_features(self):
+        return self.config.get("eval_validation_features", None)
+
+    @property
+    def eval_metric(self):
+        return self.config.get("eval_metric", None)
+
+    @property
+    def use_external_scorer(self) -> bool:
+        """A fixed scorer is active only when all three paths are provided."""
+        return bool(self.eval_script and self.eval_ground_truth and self.eval_validation_features)
+
+    @property
+    def eval_python(self) -> str:
+        """Python used to run the scorer: explicit config, else the provided conda env, else this one."""
+        import sys
+
+        cfg = self.config.get("eval_python", None)
+        if cfg:
+            return cfg
+        if self.provided_conda_env:
+            return os.path.join(self.provided_conda_env, "bin", "python")
+        return sys.executable
+
+    @property
+    def eval_predictions_path(self) -> str:
+        """Where each node's code must write predictions for the validation-features file."""
+        name = self.config.get("eval_predictions_name", "validation_predictions.csv")
+        return os.path.join(self.per_iteration_output_folder, name)
+
+    def _run_external_scorer(self) -> Optional[float]:
+        """Run the fixed scorer on this node's validation predictions; return the score or None.
+
+        Contract: <eval_python> <eval_script> --ground-truth GT --predictions PRED
+        [--metric M] [--target COL]  ->  stdout line 'MLZERO_SCORE: <float>' (higher-is-better).
+        A missing predictions file or any scorer failure yields None (node stays SUCCESS but
+        unvalidated: it cannot be crowned best, but can still be evolved).
+        """
+        import re
+        import subprocess
+
+        pred = self.eval_predictions_path
+        if not os.path.exists(pred):
+            logger.brief(f"External scorer: no predictions at {pred}; node is SUCCESS but unvalidated (no score).")
+            return None
+        cmd = [
+            self.eval_python,
+            str(self.eval_script),
+            "--ground-truth",
+            str(self.eval_ground_truth),
+            "--predictions",
+            pred,
+        ]
+        if self.eval_metric:
+            cmd += ["--metric", str(self.eval_metric)]
+        try:
+            timeout = int(self.config.get("per_scorer_timeout", 600))
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"External scorer failed to run ({e}); node unvalidated.")
+            return None
+        self.save_and_log_states(
+            (proc.stdout or "") + "\n---stderr---\n" + (proc.stderr or ""),
+            "external_scorer_output",
+            node=self.current_node,
+            add_uuid=False,
+        )
+        if proc.returncode != 0:
+            logger.warning(f"External scorer exited {proc.returncode}; node unvalidated. stderr: {proc.stderr[:300]}")
+            return None
+        m = re.search(r"MLZERO_SCORE:\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)", proc.stdout or "")
+        if not m:
+            logger.warning("External scorer produced no 'MLZERO_SCORE:' line; node unvalidated.")
+            return None
+        try:
+            score = float(m.group(1))
+            logger.brief(f"External scorer: MLZERO_SCORE={score}")
+            return score
+        except ValueError:
+            return None
 
     @property
     def selected_tool(self) -> str:

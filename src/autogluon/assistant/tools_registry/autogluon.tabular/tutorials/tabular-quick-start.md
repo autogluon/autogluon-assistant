@@ -1,10 +1,7 @@
-Summary: "Summary: "Tabular: "Tabular: "Tabular Hypersc 'Hypersc 'Hypertuning 1.Hat 'Hypertuning 'Hypertuning 'Hyperturf: "Hypertuning 'Hyperparred 'Hyperparcel: "Hypertuner: "Hyperturf: "Hypertuner: "Hypertuner: "Hyperturf: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hypertuner: "Hyperparameter Tuning"
-
-Summary: This tutorial demonstrates AutoGluon for automated machine learning with tabular data. It covers: (1) implementing quick ML pipelines with TabularPredictor for automatic feature engineering and model selection; (2) solving classification/regression tasks without manual hyperparameter tuning; and (3) key functionalities including data loading, model training with time constraints, prediction, and performance evaluation through leaderboards. AutoGluon automatically handles the entire ML workflow, recognizing task types and selecting appropriate models, making it ideal for rapid prototyping and building high-performance tabular data models with minimal code.
+Summary: This tutorial covers AutoGluon's automated machine learning implementation for tabular data, demonstrating minimal-code workflows for classification/regression tasks. It teaches: (1) loading data with TabularDataset (pandas-compatible), (2) training with TabularPredictor using automatic task detection, feature engineering, and model ensembling, (3) configuring time_limit parameter for training control, and (4) generating predictions and evaluating models with evaluate() and leaderboard() methods. Useful for implementing quick ML pipelines without manual feature engineering or hyperparameter tuning, multi-class classification tasks, model comparison workflows, and automated model ensembling. Key functionality includes one-line model training, automatic data type detection, built-in evaluation metrics, and individual model performance comparison.
 
 ```python
-!python -m pip install --upgrade pip
-!python -m pip install autogluon
+!pip install autogluon
 ```
 
 
@@ -14,7 +11,7 @@ from autogluon.tabular import TabularDataset, TabularPredictor
 
 ## Example Data
 
-For this tutorial we will use a dataset from the cover story of [Nature issue 7887](https://www.nature.com/nature/volumes/600/issues/7887): [AI-guided intuition for math theorems](https://www.nature.com/articles/s41586-021-04086-x.pdf). The goal is to predict a knot's signature based on its properties. We sampled 10K training and 5K test examples from the [original data](https://github.com/deepmind/mathematics_conjectures/blob/main/knot_theory.ipynb). The sampled dataset make this tutorial run quickly, but AutoGluon can handle the full dataset if desired.
+For this tutorial we will use a dataset from the cover story of [Nature issue 7887](https://www.nature.com/nature/volumes/600/issues/7887): [AI-guided intuition for math theorems](https://www.nature.com/articles/s41586-021-04086-x.pdf). The goal is to predict a knot's signature based on its properties. We sampled 10K training and 5K test examples from the [original data](https://github.com/deepmind/mathematics_conjectures/blob/main/knot_theory.ipynb). The sampled dataset makes this tutorial run quickly, but AutoGluon can handle the full dataset if desired.
 
 We load this dataset directly from a URL. AutoGluon's `TabularDataset` is a subclass of pandas [DataFrame](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html), so any `DataFrame` methods can be used on `TabularDataset` as well.
 
@@ -65,7 +62,7 @@ We can evaluate the predictor on the test dataset using the `evaluate()` functio
 
 
 ```python
-predictor.evaluate(test_data, silent=True)
+predictor.evaluate(test_data)
 ```
 
 AutoGluon's `TabularPredictor` also provides the `leaderboard()` function, which allows us to evaluate the performance of each individual trained model on the test data.
@@ -77,4 +74,4 @@ predictor.leaderboard(test_data)
 
 ## Conclusion
 
-In this quickstart tutorial we saw AutoGluon's basic fit and predict functionality using `TabularDataset` and `TabularPredictor`. AutoGluon simplifies the model training process by not requiring feature engineering or model hyperparameter tuning. Check out the in-depth tutorials to learn more about AutoGluon's other features like customizing the training and prediction steps or extending AutoGluon with custom feature generators, models, or metrics.
+In this quickstart tutorial we saw AutoGluon's basic fit and predict functionality using `TabularDataset` and `TabularPredictor`. AutoGluon simplifies the model training process by not requiring feature engineering or model hyperparameter tuning. Next, we recommend checking out the [Essentials Tutorial](tabular-essentials.ipynb) to learn about `presets` to use for production and competition usage. You can also check out the [in-depth tutorials](index.html) to learn more about AutoGluon's other features like customizing the training and prediction steps or extending AutoGluon with custom feature generators, models, or metrics.

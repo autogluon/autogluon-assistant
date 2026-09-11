@@ -1,68 +1,81 @@
 # Condensed: ```python
 
-Summary: This tutorial demonstrates object detection using AutoGluon MultiModal, focusing on fine-tuning YOLOX models on custom datasets in COCO format. It covers installation of required packages, dataset preparation, model configuration with two-stage learning rates, training with early stopping, evaluation using mAP metrics, and result visualization. Key functionalities include configuring GPU usage, batch size optimization, using quality presets for simplified workflows, and performance tuning options. The tutorial helps with implementing custom object detection systems, visualizing detection results, and optimizing model performance through hyperparameter adjustments.
+Summary: This tutorial covers AutoGluon MultiModalPredictor implementation for object detection tasks using COCO format datasets. It demonstrates installing dependencies (MMCV, MMDet, MMEngine), loading COCO-formatted annotations, configuring YOLOX models with customizable checkpoints, and fine-tuning with two-stage learning rates (100x on detection head for faster convergence). Key techniques include hyperparameter tuning (batch size, learning rate, validation intervals, early stopping), model evaluation using mAP metrics, generating predictions, and visualizing detection results with confidence thresholds. The tutorial supports both manual hyperparameter configuration and preset-based workflows ("medium_quality", "high_quality", "best_quality") for rapid prototyping. Useful for implementing end-to-end object detection pipelines, fine-tuning pretrained models on custom datasets, and optimizing training performance on small datasets.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-# Object Detection with AutoGluon MultiModal
+# Object Detection Tutorial - Condensed
 
 ## Installation
 
 ```python
-# Install required packages
 !pip install autogluon.multimodal
+
+# Update package tools and install build dependencies
 !pip install -U pip setuptools wheel
 !sudo apt-get install -y ninja-build gcc g++
 
-# Install MMCV and related libraries
+# Install MMCV
 !python3 -m mim install "mmcv==2.1.0"
-# Alternative for Colab: pip install "mmcv==2.1.0" -f https://download.openmmlab.com/mmcv/dist/cu121/torch2.1.0/index.html
+
+# For Google Colab: Alternative MMCV installation if above fails
+# pip install "mmcv==2.1.0" -f https://download.openmmlab.com/mmcv/dist/cu121/torch2.1.0/index.html
+
+# Install MMDet and MMEngine (>=0.10.6 for PyTorch 2.5 compatibility)
 !python3 -m pip install "mmdet==3.2.0"
 !python3 -m pip install "mmengine>=0.10.6"
 ```
 
-## Setup and Data Preparation
+## Dataset Setup (COCO Format)
 
 ```python
 from autogluon.multimodal import MultiModalPredictor
 import os
 from autogluon.core.utils.loaders import load_zip
 
-# Download and extract dataset
+# Download and prepare dataset
 zip_file = "https://automl-mm-bench.s3.amazonaws.com/object_detection/dataset/pothole.zip"
 download_dir = "./pothole"
 load_zip.unzip(zip_file, unzip_dir=download_dir)
 
-# Set paths for COCO format annotation files
 data_dir = os.path.join(download_dir, "pothole")
 train_path = os.path.join(data_dir, "Annotations", "usersplit_train_cocoformat.json")
 val_path = os.path.join(data_dir, "Annotations", "usersplit_val_cocoformat.json")
 test_path = os.path.join(data_dir, "Annotations", "usersplit_test_cocoformat.json")
 ```
 
-## Model Configuration and Training
+**Note**: Input is the JSON annotation file for each dataset split in COCO format.
+
+## Model Configuration
 
 ```python
-# Select model and GPU configuration
-checkpoint_name = "yolox_s"  # YOLOX-small model
+checkpoint_name = "yolox_s"  # YOLOX-small for fast training/inference
 num_gpus = 1
 
-# Initialize predictor
+# Create predictor with problem_type="object_detection"
 predictor = MultiModalPredictor(
     hyperparameters={
         "model.mmdet_image.checkpoint_name": checkpoint_name,
         "env.num_gpus": num_gpus,
     },
     problem_type="object_detection",
-    sample_data_path=train_path,  # Used to infer dataset categories
+    sample_data_path=train_path,  # Required to infer dataset categories
 )
+```
 
-# Train the model
+**Key Points**:
+- Use larger models via `checkpoint_name` for better performance (slower speed)
+- Adjust `lr` and `per_gpu_batch_size` for different models
+- Alternative: Use presets (`"medium_quality"`, `"high_quality"`, `"best_quality"`)
+
+## Training
+
+```python
 predictor.fit(
     train_path,
     tuning_data=val_path,
     hyperparameters={
-        "optim.lr": 1e-4,  # Two-stage learning rate (detection head has 100x lr)
+        "optim.lr": 1e-4,  # Two-stage LR: head has 100x learning rate
         "env.per_gpu_batch_size": 16,  # Adjust based on GPU memory
         "optim.max_epochs": 30,
         "optim.val_check_interval": 1.0,  # Validate once per epoch
@@ -72,13 +85,15 @@ predictor.fit(
 )
 ```
 
-## Evaluation and Prediction
+**Important**: Two-stage learning rate (100x on head) enables faster convergence and better performance, especially on small datasets.
+
+## Evaluation & Prediction
 
 ```python
-# Evaluate model on test set
-predictor.evaluate(test_path)  # Returns mAP (COCO standard) and mAP50 (VOC standard)
+# Evaluate on test set
+predictor.evaluate(test_path)  # Returns mAP (COCO) and mAP50 (VOC)
 
-# Get predictions
+# Generate predictions
 pred = predictor.predict(test_path)
 ```
 
@@ -91,35 +106,34 @@ from autogluon.multimodal.utils import visualize_detection
 from PIL import Image
 from IPython.display import display
 
-# Visualize detection results
-conf_threshold = 0.25  # Filter out low-confidence predictions
+conf_threshold = 0.25  # Filter low-confidence boxes
 visualization_result_dir = "./"
+
 visualized = visualize_detection(
     pred=pred[12:13],
     detection_classes=predictor.classes,
     conf_threshold=conf_threshold,
     visualization_result_dir=visualization_result_dir,
 )
+
 img = Image.fromarray(visualized[0][:, :, ::-1], 'RGB')
 display(img)
 ```
 
-## Using Presets (Recommended)
+## Recommended: Using Presets
 
 ```python
-# Alternative simplified approach using presets
 predictor = MultiModalPredictor(
     problem_type="object_detection",
     sample_data_path=train_path,
-    presets="medium_quality",  # Options: "medium_quality", "high_quality", "best_quality"
+    presets="medium_quality",  # Saves customization time
 )
 predictor.fit(train_path, tuning_data=val_path)
 predictor.evaluate(test_path)
 ```
 
-## Key Notes
+## Performance Notes
 
-- Two-stage learning rate with higher rates for head layers improves convergence speed and performance
-- Adjust batch size based on available GPU memory
-- For higher performance, consider using larger models or the "high_quality"/"best_quality" presets
-- See "AutoMM Detection - High Performance Finetune on COCO Format Dataset" tutorial for advanced configurations
+- Fast finetune achieves good mAP in hundreds of seconds
+- For higher performance: VFNet with 5-hour training reached `mAP=0.450, mAP50=0.718`
+- See [High Performance Finetune guide](../finetune/detection_high_performance_finetune_coco.ipynb) for advanced optimization

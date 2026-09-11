@@ -21,6 +21,20 @@ max_num_tutorials: 5
 max_user_input_length: 2048
 max_tutorial_length: 32768
 configure_env: false
+# If set (e.g. by a Claude Code skill), reuse this pre-built conda env for every
+# MCTS node instead of creating a fresh one per node. null = current behavior.
+provided_conda_env: null
+# Fixed external per-node scorer (optional; set by a skill). When eval_script +
+# eval_ground_truth + eval_validation_features are all set, each node's code must write
+# predictions for the validation-features file, and that deterministic score becomes the
+# MCTS reward (replacing the LLM-scraped one). Unset = current behavior.
+eval_script: null
+eval_ground_truth: null
+eval_validation_features: null
+eval_metric: null
+eval_predictions_name: validation_predictions.csv
+eval_python: null
+per_scorer_timeout: 600
 condense_tutorials: True
 use_tutorial_summary: True
 continuous_improvement: False
@@ -53,7 +67,12 @@ bash_coder:
 
 executer:
   <<: *default_llm  # Merge llm_config
-  
+  # P3 (opt-in): use a tool-using Claude Agent SDK verifier that opens the node's
+  # output files (predictions/metrics) instead of only scraping stdout. Requires
+  # claude-agent-sdk; falls back to the default log evaluation if unavailable.
+  use_agentic_verifier: False
+  agentic_max_turns: 8
+
 meta_prompting:
   <<: *default_llm  # Merge llm_config
   multi_turn: False

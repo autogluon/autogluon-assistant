@@ -1,20 +1,4 @@
-Summary: AutoGluon Tabular predictor deployment tutorial provides a guide to AutoGluon TabularPredictor deployment
-
-AI: Summary: AutoGluon TabularPredictor deployment guide
-
-Summary: AutoGluon TabularPredictor deployment guide
-
-AI: Summary: AutoGluon TabularPredictor deployment guide
-
-Summary: AutoGluon TabularPredictor deployment
-
-Summary: AutoGluon TabularPredictor deployment guide
-
-AI: Summary: AutoGluon TabularPredictor deployment guide
-
-Summary: AutoGluon TabularPredictor deployment guide
-
-AI: Summary: AutoGluon TabularPredictor deployment guide provides practical techniques for optimizing and deploying tabular machine learning models. It covers: (1) implementation knowledge of model cloning, deployment optimization, and compilation for speed; (2) coding tasks including creating lightweight model versions for production and preserving model state; and (3) key features like `clone_for_deployment()` for size reduction, `persist()` for memory optimization, and `compile()` for performance enhancement. The tutorial demonstrates how to reduce disk usage while maintaining prediction capabilities and includes best practices for production deployment.
+Summary: This tutorial covers AutoGluon TabularPredictor deployment workflows including training models, making predictions, and model persistence strategies. Key techniques include: (1) basic predictor training and inference with `TabularPredictor.fit()` and `.predict()`, (2) full predictor cloning via `.clone()` for experimentation snapshots, (3) deployment-optimized cloning with `.clone_for_deployment()` that reduces disk usage by keeping only inference artifacts, (4) memory optimization using `.persist()` to avoid model reloading, and (5) experimental ONNX compilation via `.compile()` for faster sklearn model inference. Helps with tasks like saving/loading trained models, creating production-ready predictor artifacts with minimal footprint, evaluating model performance with `.leaderboard()`, and optimizing inference speed through compilation and memory persistence.
 
 ```python
 !pip install autogluon.tabular[all]

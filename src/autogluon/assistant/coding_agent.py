@@ -18,13 +18,18 @@ def run_agent(
     input_data_folder,
     output_folder=None,
     config_path=None,
-    max_iterations=10,  # Default higher for MCTS search
+    max_iterations=5,  # Keep in sync with the CLI default (cli/app.py)
     continuous_improvement=None,
     enable_meta_prompting=None,
     remove_current_iteration_folder=None,
     enable_per_iteration_instruction=False,
     initial_user_input=None,
     extract_archives_to=None,
+    provided_conda_env=None,
+    eval_script=None,
+    eval_ground_truth=None,
+    eval_validation_features=None,
+    eval_metric=None,
     manager=None,
     verbosity=1,
 ):
@@ -125,6 +130,16 @@ def run_agent(
         config.enable_meta_prompting = enable_meta_prompting
     if remove_current_iteration_folder is not None:
         config.remove_current_iteration_folder = remove_current_iteration_folder
+    if provided_conda_env is not None:
+        config.provided_conda_env = provided_conda_env
+    if eval_script is not None:
+        config.eval_script = eval_script
+    if eval_ground_truth is not None:
+        config.eval_ground_truth = eval_ground_truth
+    if eval_validation_features is not None:
+        config.eval_validation_features = eval_validation_features
+    if eval_metric is not None:
+        config.eval_metric = eval_metric
 
     if manager is None:
         # Create a new NodeManager instance

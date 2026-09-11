@@ -1,20 +1,4 @@
-Summary: "Summary: "Summarize_: "
-
-Summary: "Summarized: "
-
-Summary: "
-
-Summarize: "
-
-Summary: This tutorial provides a tutorial on how to use the AutoGluaMM.multimodal.cli.
-
-Summary: This tutorial demonstrates how to prepare detection datasets for object detection datasets for AutoGludem.
-
-Summary: "
-
-Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "Summary: "
-
-Summary: This tutorial demonstrates how to prepare object detection datasets using AutoGluon's MultiModal CLI. It covers downloading and preparing the pothole dataset in COCO format, which is the recommended format for AutoGluon's MultiModalPredictor. The tutorial explains command-line options for dataset preparation, including specifying output paths, and notes how the data is automatically split into train/validation/test sets. It warns that the original Kaggle dataset is in VOC format and provides links to additional resources for converting data to COCO format and customizing AutoMM. This knowledge helps with preparing datasets for object detection tasks in AutoGluon.
+Summary: This tutorial covers AutoGluon's CLI-based dataset preparation for object detection tasks, specifically demonstrating how to download and configure the pothole dataset using the `autogluon.multimodal.cli.prepare_detection_dataset` command with various parameters (dataset name, output path). It provides implementation knowledge for working with COCO-formatted detection datasets, including automatic train/validation/test splitting (3:1:1 ratio) and annotation file structure. The tutorial helps with tasks like setting up object detection datasets, converting VOC format to COCO format, and configuring AutoMM for detection projects. Key features include CLI command syntax variations, dataset format specifications, and best practices emphasizing COCO format over VOC for AutoGluon MultiModalPredictor workflows.
 
 ```
 python3 -m autogluon.multimodal.cli.prepare_detection_dataset --dataset_name pothole
