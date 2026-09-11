@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""`mlzero-agent` — a headless, end-to-end Claude-Agent orchestrator (P3).
+"""`mlzero-agent` — a headless Claude-Agent orchestrator for the `mlzero` skill.
 
 Launches an autonomous Claude Agent (via the Claude Agent SDK, on the ambient
-CLAUDE_CODE_USE_BEDROCK — no API key) that runs the whole `mlzero-solve` flow: perceive the data,
-prepare a leakage-safe split, write the spec, provision the env, invoke `mlzero` (with the fixed
-per-node scorer), evaluate the winner on the untouched hold-out, and write a clean report. This is
-exactly what a human running the mlzero-* skills does by hand — packaged so it can be benchmarked.
+CLAUDE_CODE_USE_BEDROCK — no API key) whose entire job is to invoke this repository's `mlzero`
+project skill and follow it, from a data folder plus a one-line goal through to a report. The
+skill is the workflow; this script only supplies the inputs, the working directory and the
+constraints that come from running with no human present, then reports where the agent's report
+landed. Packaged as a console script so the same flow a person drives by hand can be run headless
+and benchmarked.
 
 Usage:
     mlzero-agent -i <data_folder> -t "<natural-language goal>" [-o <output_dir>] [--model M] [--max-turns N]
@@ -19,56 +21,58 @@ from pathlib import Path
 # repo root = five parents up from .../src/autogluon/assistant/agents/agentic/orchestrator.py
 REPO_ROOT = Path(__file__).resolve().parents[5]
 
-SYSTEM_PROMPT = """You are the MLZero end-to-end orchestrator, running FULLY AUTONOMOUS and HEADLESS
-(there is no human to answer questions — never pause to ask; make sensible defaults from the data and
-proceed). Your job: turn a data folder + a one-line goal into a VERIFIABLE ML solution and a clean report,
-by following the repo's `mlzero-solve` skill flow. The skills live under `.claude/skills/mlzero-*` (each has
-a SKILL.md and helper .py scripts); read them as needed and run their scripts with Bash.
+SYSTEM_PROMPT = """You are running FULLY AUTONOMOUS and HEADLESS: there is no human to answer questions, so
+never pause to ask one. Where a choice is genuinely open, decide it from what the data and this repository
+actually show you, write down the decision and the reason you chose it, and proceed.
 
-Flow (do them in order; use ABSOLUTE paths; put everything under the given workspace):
-1. profile      — `.claude/skills/mlzero-profile/profile.py --data <input> --out <ws>/profile.json`
-2. spec         — decide problem_type / target / metric / split from the profile (no human); ALSO pick ONE
-                  size/compute budget that sets both the training preset and the mlzero iteration count N.
-                  Write `<ws>/spec.json`.
-3. prepare      — `.claude/skills/mlzero-prepare/split.py` → train/select/holdout under `<ws>/data/`; then
-                  `.claude/skills/mlzero-prepare/make_eval_inputs.py --select-csv <ws>/data/select/<f>.csv
-                  --target <target> --out-dir <ws>/eval` → validation_features.csv + validation_ground_truth.csv.
-4. description  — write `<ws>/data/train/description.md` per `mlzero-spec` (open-format spec + output contract
-                  + size-aware preset guidance; NO hard training time_limit).
-5. env          — REUSE the already-pinned conda env you are running in (its prefix is the output of
-                  `python -c "import sys;print(sys.prefix)"`, typically /opt/conda/envs/mlzero); write it to
-                  `<ws>/env/env_path.txt`. Do NOT build a new env.
-6. run          — invoke mlzero on the TRAIN data only, handing it the reused env AND the fixed scorer so every
-                  node's reward is the same deterministic metric. mlzero can run for many MINUTES–HOURS, which
-                  exceeds the Bash tool's timeout, so launch it in the BACKGROUND and poll:
-                  `nohup mlzero -i <ws>/data/train -o <ws>/mlzero_run --provider bedrock --conda-env <env>
-                   -n <N> --continuous_improvement -t "<spec top lines>"
-                   --eval-script .claude/skills/mlzero-eval/score_one.py
-                   --eval-ground-truth <ws>/eval/validation_ground_truth.csv
-                   --eval-validation-features <ws>/eval/validation_features.csv --eval-metric <metric>
-                   > <ws>/mlzero_cli.log 2>&1 &`
-                  then poll in a loop: `sleep 240; tail -3 <ws>/mlzero_run/logs.txt` until it logs
-                  "MCTS search completed" (or the process is gone). Keep N SMALL and the preset LIGHT for large
-                  data so it finishes. Finally run `.claude/skills/mlzero-run/normalize_result.py` →
-                  `<ws>/mlzero_result.json`.
-7. eval         — `.claude/skills/mlzero-eval/evaluate.py --workspace <ws>` → pick the winner on `select`,
-                  score it ONCE on `holdout` → `<ws>/eval/holdout_metrics.json`.
-8. report       — `.claude/skills/mlzero-report/make_report.py --workspace <ws>` → `<ws>/solution/report.md`
-                  (+ run_summary.json + reproduce.sh + copied model/code).
+This repository ships a project skill named `mlzero`, whose directory is `.claude/skills/mlzero/` under your
+working directory. That skill is the authority on how this work is done, and it is the workflow: invoke it
+before you plan anything, read its entry document in full, and follow it — including the further material it
+tells you to open, at the point where it tells you to open it. Do not substitute a procedure of your own for
+it, and do not skip the parts that ask you to prove something because they look like overhead; those parts
+are why the result is worth reporting at all. If the Skill tool is not available to you in this session, read
+the skill from that directory and follow it exactly the same way.
 
-Rules: never let mlzero see `<ws>/data/holdout/`. Never fabricate results. If mlzero produces no successful
-node, say so honestly in the report. When done, print the absolute path to `<ws>/solution/report.md` on the
-LAST line, prefixed exactly with `REPORT: `.
+Constraints this session adds on top of the skill:
+- Put everything you produce under the workspace directory named in the task, and use absolute paths
+  throughout.
+- Work you launch may run far longer than a single tool call is permitted to last. Start anything
+  long-running detached with its output redirected to a file under the workspace, then poll that file — and
+  whether the process still exists — until it reports that it finished. Letting a tool call time out kills
+  the work you were waiting on.
+- Every claim you make has to be traceable to output that something actually printed. Keep what you verified
+  that way separate from what you only requested or intended: a request nobody checked is not a finding. If
+  the work cannot deliver what was asked for, say so plainly and say why — an honest negative result is a
+  correct outcome, and a number you did not measure never is.
+
+Finish by writing your report to a file under the workspace and printing that file's absolute path on the
+LAST line, prefixed exactly with `REPORT: `. That line is how the caller of this session finds your work.
 """
 
 
 def _task_prompt(input_dir: str, goal: str, workspace: str) -> str:
     return (
         f"Input data folder: {input_dir}\n"
-        f"Goal: {goal or '(infer a sensible predictive task from the data)'}\n"
+        f"Goal: {goal or '(none given — derive the objective from what the data itself shows)'}\n"
         f"Workspace (create it; put all outputs here): {workspace}\n\n"
-        "Run the full mlzero-solve flow now, autonomously, and finish by printing the REPORT: <path> line."
+        "Invoke the `mlzero` skill now, carry it through end to end autonomously, and finish by printing "
+        "the REPORT: <path> line."
     )
+
+
+def _reported_report_path(final: str):
+    """Return the report path the agent printed, but only if that path really is a file.
+
+    The skill fixes no report filename, so there is nothing here to guess at: either the agent handed
+    back a path that resolves, or this run produced no report and must not be described as if it had.
+    """
+    for line in reversed((final or "").splitlines()):
+        stripped = line.strip()
+        if stripped.startswith("REPORT:"):
+            path = os.path.abspath(stripped[len("REPORT:") :].strip())
+            if os.path.isfile(path):
+                return path
+    return None
 
 
 def main():
@@ -106,12 +110,11 @@ def main():
     )
     print("\n===== agent final =====")
     print(final or "(no final message)")
-    # Locate the report regardless of what the agent printed.
-    report = os.path.join(workspace, "solution", "report.md")
-    if os.path.isfile(report):
+    report = _reported_report_path(final)
+    if report:
         print(f"\nREPORT: {report}")
     else:
-        print(f"\n(no report.md found under {workspace}/solution)")
+        print(f"\n(no reported report file exists; inspect the workspace directly: {workspace})")
 
 
 if __name__ == "__main__":

@@ -161,8 +161,10 @@ def run_orchestrator_sync(
     """Run a full autonomous agent session (the end-to-end orchestrator).
 
     Unlike the read-only verifier, this agent can Bash/Read/Write/Edit inside ``cwd`` (permission
-    ``acceptEdits`` — never ``bypassPermissions``) and sees the repo's project skills via
-    ``setting_sources=["project"]``. Returns the agent's final text. Auth reuses the ambient
+    ``acceptEdits`` — never ``bypassPermissions``). ``setting_sources=["project"]`` loads the repo's
+    project skills, and ``Skill`` is listed in ``tools`` so they are actually invocable — listing
+    ``tools`` at all drops every built-in not named, so omitting ``Skill`` would leave the skills
+    loaded but unreachable. Returns the agent's final text. Auth reuses the ambient
     ``CLAUDE_CODE_USE_BEDROCK`` (no API key). ``on_message`` (optional) is called with each streamed
     message for live logging.
     """
@@ -171,7 +173,9 @@ def run_orchestrator_sync(
         import claude_agent_sdk as sdk
 
         opts = dict(
-            tools=["Bash", "Read", "Write", "Edit", "Glob", "Grep"],
+            # "Skill" must stay listed: naming any tools REMOVES the unnamed built-ins, and without
+            # it the project skills loaded by setting_sources below cannot be invoked.
+            tools=["Bash", "Read", "Write", "Edit", "Glob", "Grep", "Skill"],
             permission_mode="acceptEdits",
             max_turns=max_turns,
             cwd=os.path.abspath(cwd),
