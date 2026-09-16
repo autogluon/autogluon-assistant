@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import List
 
 from .base_prompt import BasePrompt
@@ -70,7 +71,10 @@ Description Files: [list ONLY the absolute path, one per line]
                 continue
             elif in_files_section and line_stripped:
                 filename = line_stripped.strip("- []").strip()
-                if filename:
+                # Keep only entries that are actual files on disk. This drops any
+                # "no files" sentinel the LLM may emit (e.g. "None found") generally,
+                # without hardcoding specific phrasings.
+                if filename and os.path.isfile(filename):
                     description_files.append(filename)
 
         self.manager.save_and_log_states(

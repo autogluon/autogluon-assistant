@@ -1,139 +1,176 @@
 # Condensed: ```python
 
-Summary: This tutorial introduces Chronos and Chronos-Bolt models in AutoGluon for time series forecasting. It covers implementation of zero-shot forecasting that scales linearly with time series volume, model selection across different sizes (tiny to large), and practical code examples for prediction. Key functionalities include fine-tuning options with customizable learning rates and steps, incorporating covariates through regressors (particularly CatBoost), and hardware recommendations. The tutorial demonstrates how to load data, split into train/test sets, create predictors with various configurations, generate predictions, and evaluate model performance through leaderboards—particularly useful for implementing efficient time series forecasting with minimal training requirements.
+Summary: This tutorial covers implementing AutoGluon's Chronos-2 foundation models for time series forecasting tasks. It provides code for zero-shot forecasting (univariate/multivariate), covariate integration (past-only and known-future features), fine-tuning with LoRA adapters, backtesting, and model evaluation. Key techniques include using TimeSeriesPredictor with presets ("chronos2", "chronos2_ensemble"), configuring hyperparameters for fine-tuning (learning rate, steps, batch size, mode), handling covariates through `known_covariates_names` parameter, generating probabilistic forecasts with custom quantiles, and computing feature importance. Helps with building forecasting pipelines, comparing zero-shot vs fine-tuned models, visualizing predictions, and optimizing model performance through cross-learning mode and ensemble configurations.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-# Getting Started with Chronos in AutoGluon
+# Chronos-2 Implementation Guide
 
 ## Installation
 
 ```python
 !pip install uv
 !uv pip install -q autogluon.timeseries --system
-!uv pip uninstall -q torchaudio torchvision torchtext --system # fix incompatible package versions on Colab
+!uv pip uninstall -q torchaudio torchvision torchtext --system
 ```
 
-## Overview
+## Key Concepts
 
-Chronos is a pretrained model for zero-shot forecasting that differs from other AG-TS models:
-- Does not truly `fit` time series data
-- Computation happens during inference (like ETS or ARIMA)
-- Scales linearly with the number of time series
+**Zero-shot inference**: Chronos models don't `fit` data by default. All computation happens during `predict()`, similar to ETS/ARIMA.
 
-AutoGluon supports:
-- Original Chronos models (e.g., `chronos-t5-large`)
-- New Chronos-Bolt⚡ models (up to 250x faster, more accurate)
+### Model Comparison
 
-## Model Selection
+| Capability | Chronos | Chronos-Bolt | Chronos-2 |
+|------------|---------|--------------|-----------|
+| Univariate Forecasting | ✅ | ✅ | ✅ |
+| Cross-learning across items | ❌ | ❌ | ✅ |
+| Multivariate Forecasting | ❌ | ❌ | ✅ |
+| Past-only covariates | ❌ | ❌ | ✅ |
+| Known future covariates | 🧩 | 🧩 | ✅ |
+| Fine-tuning support | ✅ | ✅ | ✅ |
+| Max Context Length | 512 | 2048 | 8192 |
+| Max Prediction Length | 64 | 64 | 1024 |
 
-**Recommended presets:**
-- Chronos-Bolt: `"bolt_tiny"`, `"bolt_mini"`, `"bolt_small"`, `"bolt_base"` (CPU/GPU compatible)
-- Original Chronos: `"chronos_tiny"`, `"chronos_mini"`, `"chronos_small"`, `"chronos_base"`, `"chronos_large"` (sizes `small` and above require GPU)
+**Presets**: Use `"chronos2_small"` or `"chronos2"` (recommended), or `"bolt_tiny"`, `"bolt_mini"`, `"bolt_small"`, `"bolt_base"`.
 
-## Zero-shot Forecasting Example
+## Zero-shot Forecasting
+
+### Basic Usage
 
 ```python
 from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
 
-# Load dataset
-data = TimeSeriesDataFrame.from_path(
-    "https://autogluon.s3.amazonaws.com/datasets/timeseries/australian_electricity_subset/test.csv"
-)
+# Load data
+data = TimeSeriesDataFrame.from_path("path/to/data.csv")
 
 # Split data
 prediction_length = 48
 train_data, test_data = data.train_test_split(prediction_length)
 
-# Create predictor with Chronos-Bolt
+# Create predictor (no actual fitting occurs)
 predictor = TimeSeriesPredictor(prediction_length=prediction_length).fit(
-    train_data, presets="bolt_small",
+    train_data,
+    presets="chronos2",
 )
 
-# Generate and visualize predictions
+# Generate predictions
 predictions = predictor.predict(train_data)
-predictor.plot(
-    data=data,
-    predictions=predictions,
-    item_ids=data.item_ids[:2],
-    max_history_length=200,
-);
 ```
+
+**Custom quantiles**:
+```python
+TimeSeriesPredictor(..., quantile_levels=[0.05, 0.1, 0.5, 0.9, 0.95])
+```
+
+### Backtesting & Visualization
+
+```python
+# Multiple windows
+predictions_per_window = predictor.backtest_predictions(
+    test_data, 
+    num_val_windows=num_test_windows
+)
+
+# Plot
+predictor.plot(test_data, predictions, max_history_length=300, item_ids=item_ids)
+```
+
+## Forecasting with Covariates
+
+Chronos-2 supports **past-only** and **known-future** covariates (real/categorical).
+
+```python
+predictor = TimeSeriesPredictor(
+    prediction_length=24,
+    target="load",
+    known_covariates_names=["airtemperature", "dewtemperature", "sealvlpressure"],
+    eval_metric="MASE",
+).fit(
+    train_data,
+    hyperparameters={"Chronos": {}, "Chronos2": {}},
+    enable_ensemble=False,
+)
+
+# Evaluate
+predictor.leaderboard(test_data)
+
+# Feature importance
+predictor.feature_importance(test_data, model="Chronos2", relative_scores=True)
+```
+
+**Note**: Other columns automatically used as past-only covariates.
 
 ## Fine-tuning
 
-Compare zero-shot and fine-tuned models:
+### Basic Fine-tuning
+
+⚠️ **Multi-GPU Warning**: Set `CUDA_VISIBLE_DEVICES` to use only one GPU.
+
+```python
+predictor = TimeSeriesPredictor(
+    prediction_length=prediction_length,
+    target="load",
+    known_covariates_names=["airtemperature", "dewtemperature", "sealvlpressure"],
+    eval_metric="MASE",
+).fit(
+    train_data=train_data,
+    hyperparameters={
+        "Chronos2": [
+            {"ag_args": {"name_suffix": "ZeroShot"}},  # Zero-shot
+            {"fine_tune": True, "ag_args": {"name_suffix": "FineTuned"}},  # Fine-tuned
+        ]
+    },
+    time_limit=300,
+    enable_ensemble=False,
+)
+```
+
+**Default**: Uses LoRA (low-rank adapter) for reduced memory/disk usage.
+
+### Advanced Fine-tuning Parameters
+
+```python
+hyperparameters={
+    "Chronos2": {
+        "fine_tune": True,
+        "fine_tune_mode": "full",  # or "lora" (default)
+        "fine_tune_lr": 1e-4,
+        "fine_tune_steps": 2000,
+        "fine_tune_batch_size": 32
+    }
+}
+```
+
+### Ensemble Preset
 
 ```python
 predictor = TimeSeriesPredictor(prediction_length=prediction_length).fit(
-    train_data=train_data,
-    hyperparameters={
-        "Chronos": [
-            {"model_path": "bolt_small", "ag_args": {"name_suffix": "ZeroShot"}},
-            {"model_path": "bolt_small", "fine_tune": True, "ag_args": {"name_suffix": "FineTuned"}},
-        ]
-    },
-    time_limit=60,  # time limit in seconds
-    enable_ensemble=False,
-)
-
-# Evaluate models
-predictor.leaderboard(test_data)
-```
-
-**Advanced fine-tuning options:**
-```python
-predictor.fit(
-    ...,
-    hyperparameters={"Chronos": {"fine_tune": True, "fine_tune_lr": 1e-4, "fine_tune_steps": 2000}},
-)
-```
-
-## Incorporating Covariates
-
-Chronos is univariate but can be combined with covariate regressors to incorporate exogenous information:
-
-```python
-# Load dataset with covariates
-data = TimeSeriesDataFrame.from_path(
-    "https://autogluon.s3.amazonaws.com/datasets/timeseries/grocery_sales/test.csv",
-)
-
-prediction_length = 8
-train_data, test_data = data.train_test_split(prediction_length=prediction_length)
-
-# Create predictor with covariates
-predictor = TimeSeriesPredictor(
-    prediction_length=prediction_length,
-    target="unit_sales",
-    known_covariates_names=["scaled_price", "promotion_email", "promotion_homepage"],
-).fit(
     train_data,
-    hyperparameters={
-        "Chronos": [
-            # Zero-shot model WITHOUT covariates
-            {
-                "model_path": "bolt_small",
-                "ag_args": {"name_suffix": "ZeroShot"},
-            },
-            # Chronos-Bolt with CatBoost covariate regressor
-            {
-                "model_path": "bolt_small",
-                "covariate_regressor": "CAT",
-                "target_scaler": "standard",
-                "ag_args": {"name_suffix": "WithRegressor"},
-            },
-        ],
-    },
-    enable_ensemble=False,
-    time_limit=60,
+    presets="chronos2_ensemble",  # Zero-shot + fine-tuned ensemble
 )
-
-# Evaluate models
-predictor.leaderboard(test_data)
 ```
 
-## Hardware Recommendations
+## Best Practices
 
-- For larger models: AWS `g5.2xlarge` or `p3.2xlarge` with NVIDIA A10G/V100 GPUs (16GB+ GPU memory, 32GB+ RAM)
-- Chronos-Bolt models can run on CPU but with longer runtime
+**Fine-tuning recommendations**:
+- Use when you have >100 time series with median history > `3 * prediction_length`
+- Limited data can cause overfitting
+- Experiment with hyperparameters if accuracy degrades
+- Consider `chronos2_ensemble` preset for robustness
+
+**Hardware**: GPU recommended (tested on AWS `g5.2xlarge` with A10G, 24GB GPU memory). CPU/consumer GPUs work for smaller models.
+
+**Cross-learning mode**: Enabled by default, makes predictions sensitive to `batch_size`. Disable with:
+```python
+hyperparameters={"Chronos2": {"cross_learning": False}}
+```
+
+## Key Configuration Parameters
+
+- `prediction_length`: Forecast horizon
+- `target`: Column to forecast
+- `known_covariates_names`: Future-known features
+- `eval_metric`: Evaluation metric (e.g., "MASE")
+- `quantile_levels`: Custom quantile levels
+- `time_limit`: Training time limit (seconds)
+- `enable_ensemble`: Enable/disable ensembling

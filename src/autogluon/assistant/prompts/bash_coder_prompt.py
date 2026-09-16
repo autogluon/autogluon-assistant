@@ -96,6 +96,27 @@ Notes:
         selected_tool = self.manager.selected_tool
         common_env_file = self.manager.common_env_file
         selected_tool_env_file = self.manager.selected_tool_env_file
+        provided_conda_env = self.manager.provided_conda_env
+
+        if provided_conda_env:
+            # Reuse a pre-built conda env (built/handed in by a Claude Code skill)
+            # instead of creating a fresh one per MCTS node.
+            env_prompt = f"""
+Use the pre-existing conda environment at "{provided_conda_env}" (do NOT create a new environment):
+ - Initialize conda for this shell (e.g. `source "$(conda info --base)/etc/profile.d/conda.sh"`)
+ - Activate it: `conda activate "{provided_conda_env}"`
+ - Ensure uv is available (`pip install uv` only if `uv` is missing)
+ - Install/verify required packages from {common_env_file} and {selected_tool_env_file} using uv pip install -r {selected_tool_env_file} --prerelease=allow -r {common_env_file}"""
+            if not configure_env:
+                env_prompt += (
+                    f"\n - Only install the exact packages specified in the requirements files with their dependencies."
+                    f"\n - Do NOT upgrade or reinstall {selected_tool} if it's already at the correct version specified in the requirements."
+                )
+            else:
+                env_prompt += (
+                    "\n - Install any additional packages that are needed for the python script to run successfully"
+                )
+            return env_prompt
 
         env_prompt = f"""
 Create and configure a conda environment in "{ENV_FOLDER_NAME}" folder under {iteration_folder}:

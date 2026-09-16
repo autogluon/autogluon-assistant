@@ -196,11 +196,28 @@ class ExecuterAgent(BaseAgent):
             execution_data=execution_data,
         )
 
-        # Query the LLM
-        response = self.executer_llm.assistant_chat(prompt)
+        # Optionally use an agentic (tool-using) verifier that OPENS the node's output files
+        # to verify predictions/metrics, instead of only reading truncated stdout. Falls back
+        # to the default single-shot LLM log evaluation if disabled/unavailable.
+        response = None
+        if bool(getattr(self.executer_llm_config, "use_agentic_verifier", False)):
+            response = self._agentic_verify(prompt)
+        if response is None:
+            # Query the LLM (default path)
+            response = self.executer_llm.assistant_chat(prompt)
 
         # Parse the LLM response to extract decision, error summary, and validation score
         decision, error_summary, validation_score = self.executer_prompt.parse(response)
+
+        # Ground the verdict in the real process exit code: a non-zero exit means
+        # the execution crashed, so it can never be a SUCCESS regardless of what
+        # the LLM inferred from the (possibly truncated) logs.
+        if not success and decision == "SUCCESS":
+            logger.brief("Overriding LLM SUCCESS -> FIX: process exited with a non-zero status code.")
+            decision = "FIX"
+            validation_score = None
+            if not error_summary:
+                error_summary = "Process exited with a non-zero status code (execution failed)."
 
         # Log the decision, error summary, and validation score
         logger.brief(f"Planner decision: {decision}")
@@ -212,3 +229,43 @@ class ExecuterAgent(BaseAgent):
         self.manager.log_agent_end("ExecuterAgent: execution finished; planner decision logged.")
 
         return decision, error_summary, validation_score, prompt, stderr, stdout
+
+    def _agentic_verify(self, base_prompt):
+        """Run a read-only, tool-using verifier over the node output dir (P3 M1).
+
+        Returns the model's final text in the DECISION/ERROR_SUMMARY/VALIDATION_SCORE format for
+        parse(), or None to fall back to the default LLM log evaluation.
+        """
+        try:
+            from .agentic.sdk_runtime import run_verifier_sync, sdk_available
+
+            if not sdk_available():
+                logger.warning("Agentic verifier requested but claude-agent-sdk is unavailable; using log eval.")
+                return None
+            node_dir = self.manager.iteration_folder
+            prompt = base_prompt + (
+                "\n\n### Inspecting the produced artifacts (read-only)\n"
+                f"You have READ-ONLY tools scoped to this solution's working directory ({node_dir}): "
+                "mcp__mlzero_verify__list_dir, mcp__mlzero_verify__describe_csv, mcp__mlzero_verify__read_file. "
+                "Use them to inspect whatever files the run actually produced (do not assume specific names) so your "
+                "judgment rests on the real artifacts, not just stdout.\n"
+                "Decision guidance:\n"
+                "- Choose FIX only for genuine blockers: the code errored or crashed, produced no usable output at "
+                "all, or the output plainly does not address the task.\n"
+                "- Do NOT fail a run merely because a result looks suspicious (e.g. predictions appear constant, or a "
+                "score seems surprisingly good). If the code completed and produced usable output, lean SUCCESS and "
+                "record any concern as a WARNING in ERROR_SUMMARY — an independent held-out evaluation downstream "
+                "makes the final quality call.\n"
+                "Then respond ONLY in the DECISION / ERROR_SUMMARY / VALIDATION_SCORE format specified above."
+            )
+            model = getattr(self.executer_llm_config, "agentic_model", None)
+            max_turns = int(getattr(self.executer_llm_config, "agentic_max_turns", 8))
+            text = run_verifier_sync(prompt, allowed_root=node_dir, model=model, max_turns=max_turns, timeout=600)
+            if text:
+                self.manager.save_and_log_states(
+                    content=text, save_name="agentic_verifier_response.txt", per_iteration=True, add_uuid=True
+                )
+            return text
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"Agentic verifier failed ({e}); falling back to LLM log evaluation.")
+            return None

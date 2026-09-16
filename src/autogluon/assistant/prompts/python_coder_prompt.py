@@ -127,6 +127,20 @@ These errors were encountered across different implementation approaches and may
 
     def _generate_validation_prompt(self) -> str:
         """Generate the validation section of the prompt."""
+        # When a fixed external scorer is active, the node is judged by predicting on a provided
+        # validation-features file and writing those predictions to a known path; a separate program
+        # scores them. This makes every node's reward comparable, so the instruction is explicit.
+        if getattr(self.manager, "use_external_scorer", False):
+            feats = self.manager.eval_validation_features
+            out = self.manager.eval_predictions_path
+            return f"""6. Validation predictions (REQUIRED — your solution is scored by an external program):
+   - Train ONLY on the training data. Do NOT train on, or peek at, the validation-features file.
+   - Load the validation-features file at "{feats}" (the target column has already been removed).
+   - Predict exactly one value per row, IN THE SAME ROW ORDER; do not drop or reorder rows.
+   - Write the predictions to "{out}" as a single-column CSV named "prediction" (no index).
+   - A separate fixed scorer will compare these predictions to hidden ground truth. Do not compute or
+     print your own score. If you cannot produce this file the run is treated as unvalidated.
+"""
         if self.manager.config.continuous_improvement:
             return """6. Validation (only when there is labeled training data):
    - If there is training and but no validation data is given, hold out a validation dataset (10 percent of the data) at the start, train only on the remaining data.

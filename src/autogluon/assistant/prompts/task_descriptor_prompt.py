@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Optional
 
 from .base_prompt import BasePrompt
@@ -49,6 +50,10 @@ Be very clear about the problem type (e.g. audio classification/image regression
 
         file_contents = []
         for filename in self.manager.description_files:
+            # Defensively skip anything that is not an actual file on disk
+            # (e.g. a stray "None found" sentinel from the retriever).
+            if not filename or not os.path.isfile(filename):
+                continue
             try:
                 with open(filename, "r") as f:
                     content = f.read()
@@ -72,11 +77,10 @@ Be very clear about the problem type (e.g. audio classification/image regression
             **kwargs: Additional keyword arguments to customize the prompt building process
         """
 
-        # Get user input using the manager's standard properties
-        try:
-            user_input = self.manager.user_input
-        except Exception:
-            user_input = self.manager.initial_user_input
+        # Get the user's stated goal. During initialize() no MCTS step has run
+        # yet, so manager.user_input transparently falls back to the initial
+        # instruction (see NodeManager.user_input); previously this was dropped.
+        user_input = self.manager.user_input
 
         description_file_contents = self.get_description_files_contents()
 

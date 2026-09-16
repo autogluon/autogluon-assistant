@@ -1,4 +1,39 @@
-Summary: This tutorial demonstrates implementing foundation models for tabular data using AutoGluon. It covers three key models: Mitra (for small datasets with zero-shot and fine-tuning capabilities), TabICL (leveraging in-context learning for limited data), and TabPFNv2 (utilizing prior knowledge for small datasets). The code shows how to prepare data, train individual models for classification and regression tasks, and create ensembles combining multiple foundation models. Developers can learn to implement these specialized tabular models with different configurations, evaluate their performance, and handle both classification and regression problems with small to medium-sized datasets.
+Summary: This tutorial covers implementing tabular foundation models in AutoGluon for classification and regression tasks. It provides installation commands for three models (Mitra, TabICL, TabPFNv2) with specific model keys and hyperparameter configurations. Key implementations include: zero-shot and fine-tuning workflows with Mitra (`fine_tune`, `fine_tune_steps` parameters), TabICL for large datasets (up to 500K rows), TabPFNv2 for small datasets (<10K rows), and ensemble methods combining multiple foundation models. The tutorial demonstrates `TabularPredictor` usage with `hyperparameters` dict, `problem_type` specification for regression, model evaluation via `leaderboard()`, and probability predictions with `predict_proba()`. Critical constraints include dataset size limits per model and licensing requirements (commercial vs. open-source options).
+
+## Tabular foundation models at a glance
+
+The table below lists the tabular foundation models AutoGluon can fit, in release order. The row,
+feature and class limits are the fit constraints AutoGluon applies (`ag.max_rows`, `ag.max_features`,
+`ag.max_classes`): above them the model is skipped rather than fitted, so a portfolio degrades to its
+other models instead of failing. A dash means AutoGluon sets no limit.
+
+| Model | Key | Released | Max rows | Max features | Max classes | Tasks | License |
+|---|---|---|---:|---:|---:|---|---|
+| TabPFN-1 | *not in AutoGluon* | 2022-07 | 1,000 | 100 | 10 | classification | Apache-2.0 |
+| TabDPT | `TABDPT` | 2024-10 | 100,000 | 2,500 | 160 | all | Apache-2.0 |
+| TabPFNv2 | `REALTABPFN-V2` | 2025-01 | 10,000 | 500 | 10 | all | Prior Labs License (commercial use permitted) |
+| TabICL | `TABICL` (v1 checkpoint) | 2025-02 | 500,000 | 2,000 | — | all | BSD-3-Clause |
+| Mitra | `MITRA` | 2025-07 | 10,000 | 500 | 10 | all | Apache-2.0 |
+| RealTabPFN-2.5 | `REALTABPFN-V2.5` | 2025-11 | 100,000 | 2,000 | 10 | all | Commercial license required |
+| TabICLv2 | `TABICL` (default) | 2026-02 | 500,000 | 2,000 | — | all | BSD-3-Clause |
+| TabPFN-2.6 | `TABPFN-2.6` | 2026-03 | 100,000 | — | 10 | all | Commercial license required |
+| TabPFN-3 | `TABPFN-3` | 2026-05 | 500,000 | — | 160 | all | Commercial license required |
+| TabDPT-Turbo | `TABDPT-TURBO` | 2026-06 | 100,000 | — | 160 | all | Apache-2.0 |
+| Nori | `NORI` | 2026-06 | 50,000 | — | — | regression only | Apache-2.0 |
+
+Notes:
+- **Licensing is the first thing to check.** The TabPFN models from 2.5 onwards are free for research
+  and internal experimentation, but any commercial use (production, client work, or benchmarking that
+  informs a business decision) requires a license or API agreement from Prior Labs
+  ([license FAQ](https://docs.priorlabs.ai/models#tabpfn-model-license)). TabPFNv2, TabICL, TabDPT, Mitra and Nori are all free for commercial use.
+- **Nori-30M** is a larger Nori checkpoint (2026-07), selected with `{'model': 'nori-30m'}`.
+- **TabICL** defaults to the v2 checkpoints; v1 is reachable through the `checkpoint_version`
+  hyperparameter.
+- Limits are per fit, measured on the training split, and several models are far slower near their
+  upper bound than well below it.
+- Two AutoGluon presets bundle these models into a portfolio rather than fitting one at a time:
+  `extreme_quality` (models free for commercial use only) and `noncommercial` (adds TabPFN-3).
+
 
 ## Installation
 
@@ -73,9 +108,12 @@ housing_test_data = TabularDataset(housing_test)
 
 ## 1. Mitra: AutoGluon's Tabular Foundation Model
 
-[Mitra](https://huggingface.co/autogluon/mitra-classifier) is a new state-of-the-art tabular foundation model developed by the AutoGluon team, natively supported in AutoGluon with just three lines of code via `predictor.fit())`. Built on the in-context learning paradigm and pretrained exclusively on synthetic data, Mitra introduces a principled pretraining approach by carefully selecting and mixing diverse synthetic priors to promote robust generalization across a wide range of real-world tabular datasets.
+[Mitra](https://huggingface.co/autogluon/mitra-classifier) is a tabular foundation model developed by the AutoGluon team, natively supported in AutoGluon with just three lines of code via `predictor.fit())`. Built on the in-context learning paradigm and pretrained exclusively on synthetic data, Mitra introduces a principled pretraining approach by carefully selecting and mixing diverse synthetic priors to promote robust generalization across a wide range of real-world tabular datasets.
 
-📊 **Mitra achieves state-of-the-art performance** on major benchmarks including TabRepo, TabZilla, AMLB, and TabArena, especially excelling on small tabular datasets with fewer than 5,000 samples and 100 features, for both classification and regression tasks.
+**Paper (NeurIPS 2025)**: ["Mitra: Mixed Synthetic Priors for Enhancing Tabular Foundation Models"](https://neurips.cc/virtual/2025/poster/115625)  
+**Authors**: Xiyuan Zhang, Danielle Maddix Robinson, Junming Yin, Nick Erickson, Abdul Fatir Ansari, Boran Han, Shuai Zhang, Leman Akoglu, Christos Faloutsos, Michael Mahoney, Tony Hu, Huzefa Rangwala, George Karypis, Yuyang (Bernie) Wang
+
+📊 **Mitra is strongest on small tabular datasets** with fewer than 5,000 samples and 100 features, for both classification and regression tasks. At the time of its release it was state-of-the-art on TabRepo, TabZilla, AMLB and TabArena, beating TabPFNv2, TabICL, CatBoost and RealMLP; newer foundation models have since overtaken it.
 
 🧠 **Mitra supports both zero-shot and fine-tuning modes** and runs seamlessly on both GPU and CPU. Its weights are fully open-sourced under the Apache-2.0 license, making it a privacy-conscious and production-ready solution for enterprises concerned about data sharing and hosting.
 
@@ -172,9 +210,10 @@ mitra_reg_predictor.leaderboard(housing_test_data)
 
 ## 2. TabICL: In-Context Learning for Tabular Data
 
-**TabICL** ("**Tab**ular **I**n-**C**ontext **L**earning") is a foundational model designed specifically for in-context learning on large tabular datasets.
+**TabICL** ("**Tab**ular **I**n-**C**ontext **L**earning") is a foundational model designed specifically for in-context learning on large tabular datasets. AutoGluon fits **TabICLv2** by default, which is faster and more accurate than TabICLv1.
 
 **Paper**: ["TabICL: A Tabular Foundation Model for In-Context Learning on Large Data"](https://arxiv.org/abs/2502.05564)  
+**Paper (v2)**: ["TabICLv2: A better, faster, scalable, and open tabular foundation model"](https://arxiv.org/abs/2602.11139)  
 **Authors**: Jingang Qu, David Holzmüller, Gaël Varoquaux, Marine Le Morvan  
 **GitHub**: https://github.com/soda-inria/tabicl
 
@@ -206,13 +245,15 @@ tabicl_predictor.leaderboard(wine_test_data)
 
 ## 3. TabPFNv2: Prior-Fitted Networks
 
-**TabPFNv2** ("**Tab**ular **P**rior-**F**itted **N**etworks **v2**") is designed for accurate predictions on small tabular datasets by using prior-fitted network architectures.
+**TabPFNv2** ("**Tab**ular **P**rior-**F**itted **N**etworks **v2**") is designed for accurate predictions on small tabular datasets by using prior-fitted network architectures. Its AutoGluon model key is `REALTABPFN-V2`, named for the default checkpoints trained on real-world data.
 
 **Paper**: ["Accurate predictions on small data with a tabular foundation model"](https://www.nature.com/articles/s41586-024-08328-6)  
 **Authors**: Noah Hollmann, Samuel Müller, Lennart Purucker, Arjun Krishnakumar, Max Körfer, Shi Bin Hoo, Robin Tibor Schirrmeister & Frank Hutter  
 **GitHub**: https://github.com/PriorLabs/TabPFN
 
 TabPFNv2 excels on small datasets (< 10,000 samples) by leveraging prior knowledge encoded in the network architecture.
+
+**Newer TabPFN versions**: TabPFN-2.6 (`TABPFN-2.6`) and TabPFN-3 (`TABPFN-3`) install from the same `[tabpfn]` extra and are much stronger than TabPFNv2. Neither is free for commercial use: both require a license or API agreement from Prior Labs ([license FAQ](https://docs.priorlabs.ai/models#tabpfn-model-license)). `REALTABPFN-V2` is the option that is free to use commercially. The `noncommercial` preset fits TabPFN-3 as part of a portfolio.
 
 
 ```python
@@ -225,7 +266,7 @@ tabpfnv2_predictor = TabularPredictor(
 tabpfnv2_predictor.fit(
     wine_train_data,
     hyperparameters={
-        'TABPFNV2': {
+        'REALTABPFN-V2': {
             # TabPFNv2 works best with default parameters on small datasets
         },
     },
@@ -251,7 +292,7 @@ multi_foundation_config = {
         'fine_tune': True,
         'fine_tune_steps': 10
     },
-    'TABPFNV2': {},
+    'REALTABPFN-V2': {},
     'TABICL': {},
 }
 

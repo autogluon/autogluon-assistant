@@ -1,52 +1,66 @@
 # Condensed: ```
 
-Summary: This tutorial demonstrates how to download and extract the COCO2017 dataset for object detection using either AutoGluon CLI commands or a bash script. It covers implementation techniques for dataset acquisition with customizable output paths, explains the resulting dataset structure, and emphasizes the importance of using COCO format (JSON) for object detection in AutoGluon MultiModalPredictor. The tutorial helps with dataset preparation tasks for computer vision projects and points to additional resources for format conversion and customization, making it valuable for developers implementing object detection systems.
+Summary: This tutorial covers downloading and setting up the COCO2017 dataset for object detection tasks using AutoGluon. It demonstrates two download methods: AutoGluon's CLI tool (`prepare_detection_dataset`) with customizable output paths, and bash scripts for automated downloads. The tutorial helps with dataset preparation tasks including understanding COCO dataset structure (annotations, train/val/test splits totaling ~44GB), working with COCO JSON format for object detection, and converting other formats (like VOC) to COCO format. Key features include CLI command shortcuts, path configuration options, and best practices for using COCO format with AutoGluon MultiModalPredictor for object detection workflows.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-# Downloading COCO Dataset for Object Detection
+# COCO Dataset Download and Setup
 
-## Using AutoGluon CLI
+## Download Methods
 
-Download and extract the COCO2017 dataset:
-
-```python
-# Basic usage (extracts to current directory)
+### Using AutoGluon CLI
+Extract to default `coco17` folder:
+```bash
 python3 -m autogluon.multimodal.cli.prepare_detection_dataset --dataset_name coco2017
+```
 
-# Specify output path
+Extract to custom path:
+```bash
 python3 -m autogluon.multimodal.cli.prepare_detection_dataset --dataset_name coco2017 --output_path ~/data
-
-# Short form
+# Short form:
 python3 -m autogluon.multimodal.cli.prepare_detection_dataset -d coco17 -o ~/data
 ```
 
-## Using Bash Script
-
+### Using Bash Script
+Default location:
 ```bash
-# Extract to current directory
 bash download_coco17.sh
+```
 
-# Extract to specific path
+Custom path:
+```bash
 bash download_coco17.sh ~/data
 ```
 
-The download will show progress bars and extract the dataset into the following structure:
+## Dataset Structure
+After download completes, the `coco17` folder contains:
 ```
-coco17/
-├── annotations
-├── test2017
-├── train2017
-├── unlabeled2017
-└── val2017
+annotations  test2017  train2017  unlabeled2017  val2017
 ```
+
+**Dataset sizes:**
+- train2017: ~18GB
+- val2017: ~778MB  
+- test2017: ~6.2GB
+- unlabeled2017: ~19GB
 
 ## COCO Format
 
-AutoGluon MultiModalPredictor strongly recommends using the COCO format (JSON) for object detection datasets. For conversion instructions:
-- See "Convert Data to COCO Format" notebook
-- See "AutoMM Detection - Convert VOC Format Dataset to COCO Format" notebook
+**Best Practice:** AutoGluon MultiModalPredictor strongly recommends using COCO format (`.json`) for object detection tasks.
+
+**Format Conversion Resources:**
+- [Convert Data to COCO Format](convert_data_to_coco_format.ipynb)
+- [Convert VOC Format to COCO Format](voc_to_coco.ipynb)
 
 ## Additional Resources
-- More examples available in the [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm) repository
-- For customization, refer to the "Customize AutoMM" documentation
+- [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm)
+- [Customize AutoMM](../../advanced_topics/customization.ipynb)
+
+## Citation
+```bibtex
+@misc{https://doi.org/10.48550/arxiv.1405.0312,
+  title = {Microsoft COCO: Common Objects in Context},
+  author = {Lin, Tsung-Yi and Maire, Michael and Belongie, Serge and others},
+  year = {2014}
+}
+```

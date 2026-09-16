@@ -1,94 +1,58 @@
 # Condensed: ```python
 
-Summary: This tutorial demonstrates zero-shot image classification using CLIP via AutoGluon's MultiModalPredictor. It covers implementation of image classification without prior training by comparing images against arbitrary text descriptions. Key functionalities include initializing the predictor, performing predictions with image-text pairs, and understanding CLIP's capabilities and limitations (particularly typographic attacks). The code shows how to classify dog breeds and uncommon objects, making it useful for developers implementing flexible image classification systems without labeled training data for specific categories.
+Summary: This tutorial demonstrates implementing zero-shot image classification using AutoGluon's MultiModalPredictor with CLIP, enabling image classification without training data by matching images against text descriptions. It covers installing autogluon.multimodal, initializing a predictor with problem_type="zero_shot_image_classification", and using predict_proba() with image-text pairs to get classification probabilities. Key techniques include leveraging CLIP's contrastive learning on 400M image-text pairs for arbitrary visual classification tasks, handling uncommon object classes, and rapid prototyping. The tutorial highlights critical limitations like vulnerability to typographic attacks where overlaid text can manipulate predictions, and provides best practices for effective zero-shot classification scenarios without fine-tuning requirements.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
 # Zero-Shot Image Classification with CLIP
 
-## Setup and Basic Usage
+## Installation & Setup
 
 ```python
 !pip install autogluon.multimodal
-
-from IPython.display import Image, display
-from autogluon.multimodal.utils import download
-from autogluon.multimodal import MultiModalPredictor
-
-# Load a dog image
-url = "https://farm4.staticflickr.com/3445/3262471985_ed886bf61a_z.jpg"
-dog_image = download(url)
-display(Image(filename=dog_image))
 ```
 
-## Zero-Shot Classification Implementation
+## Basic Usage
 
-CLIP allows for zero-shot classification without training on specific datasets:
+**Key Concept**: CLIP (Contrastive Language-Image Pre-training) performs zero-shot classification without training data—just provide potential visual categories as text.
 
 ```python
-# Initialize the predictor for zero-shot classification
+from autogluon.multimodal import MultiModalPredictor
+
+# Initialize predictor
 predictor = MultiModalPredictor(problem_type="zero_shot_image_classification")
 
-# Predict dog breed
+# Predict with image and text candidates
 prob = predictor.predict_proba(
     {"image": [dog_image]}, 
     {"text": ['This is a Husky', 'This is a Golden Retriever', 
               'This is a German Sheperd', 'This is a Samoyed.']}
 )
-print("Label probs:", prob)
-```
-
-## Additional Example - Uncommon Object
-
-```python
-# Segway example
-url = "https://live.staticflickr.com/7236/7114602897_9cf00b2820_b.jpg"
-segway_image = download(url)
-display(Image(filename=segway_image))
-
-prob = predictor.predict_proba(
-    {"image": [segway_image]}, 
-    {"text": ['segway', 'bicycle', 'wheel', 'car']}
-)
-print("Label probs:", prob)
 ```
 
 ## How CLIP Works
 
-CLIP (Contrastive Language-Image Pre-training) was trained on 400M image-text pairs using a contrastive learning approach. It predicts which text is paired with a given image, enabling application to arbitrary visual classification tasks.
+- **Training**: Pre-trained on 400M image-text pairs using contrastive learning
+- **Objective**: Predicts which text snippet is paired with a given image
+- **Advantage**: Applies to arbitrary visual classification tasks without fine-tuning
 
-## CLIP Limitations - Typographic Attacks
+## Critical Limitations
 
-CLIP is vulnerable to text in images affecting predictions:
+⚠️ **Typographic Attacks**: CLIP is vulnerable to text overlaid on images
+
+**Example**: An apple image correctly classified as "Granny Smith" (99%+ confidence) is misclassified as "iPod" when "iPod" text is added to the image.
 
 ```python
-# Apple example
-url = "https://cdn.openai.com/multimodal-neurons/assets/apple/apple-blank.jpg"
-image_path = download(url)
-display(Image(filename=image_path))
-
-# Normal classification
+# Same classification code, different results based on text in image
 prob = predictor.predict_proba(
-    {"image": [image_path]}, 
+    {"image": [image_with_text]}, 
     {"text": ['Granny Smith', 'iPod', 'library', 'pizza', 'toaster', 'dough']}
 )
-print("Label probs:", prob)
-
-# Apple with "iPod" text
-url = "https://cdn.openai.com/multimodal-neurons/assets/apple/apple-ipod.jpg"
-image_path = download(url)
-display(Image(filename=image_path))
-
-# Classification affected by text
-prob = predictor.predict_proba(
-    {"image": [image_path]}, 
-    {"text": ['Granny Smith', 'iPod', 'library', 'pizza', 'toaster', 'dough']}
-)
-print("Label probs:", prob)
 ```
 
-For more details on CLIP's limitations, refer to the [CLIP paper](https://arxiv.org/abs/2103.00020).
+## Best Practices
 
-## Additional Resources
-- [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm)
-- [Customize AutoMM](../advanced_topics/customization.ipynb)
+- Works well for uncommon object classes not in standard datasets
+- Effective for quick prototyping without training data
+- See [CLIP paper](https://arxiv.org/abs/2103.00020) for additional limitations
+- For customization: refer to [Customize AutoMM](../advanced_topics/customization.ipynb)

@@ -1,62 +1,93 @@
 # Condensed: ```
 
-Summary: This tutorial explains AutoGluon's automatic feature engineering capabilities for tabular data. It covers type-specific processing: numerical columns remain unchanged, categorical columns are integer-encoded, datetime columns are converted to numerical values with extracted temporal features (year, month, day, weekday), and text columns use either n-gram encoding or Transformer networks with MultiModal. The tutorial demonstrates how to implement custom feature generation pipelines using PipelineFeatureGenerator, CategoryFeatureGenerator, and IdentityFeatureGenerator classes, with examples of limiting categorical values and handling specific data types. It also addresses missing value handling and provides tips for customizing the feature engineering process.
+Summary: This tutorial covers AutoGluon's automatic feature engineering pipeline for tabular data preprocessing. It demonstrates how to use `AutoMLPipelineFeatureGenerator` to transform different data types: categorical columns to integers, datetime columns to numerical values plus extracted features (year/month/day/dayofweek), and text columns to n-gram and statistical features. Key implementations include explicit categorical marking with `.astype("category")`, handling missing values (NaNs retained for most types, mean-imputed for datetime), and custom pipeline creation using `PipelineFeatureGenerator` with configurable generators like `CategoryFeatureGenerator(maximum_num_cat=10)` and `TextNgramFeatureGenerator`. Useful for building ML preprocessing pipelines, handling mixed data types, and customizing feature transformation strategies in AutoGluon tabular workflows.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-# Automatic Feature Engineering in AutoGluon
+# Automatic Feature Engineering
 
-## Feature Processing by Data Type
+## Feature Type Processing
 
 ### Numerical Columns
-- No automated feature engineering for integer and floating point columns
+No automated feature engineering applied to integer or floating point columns.
 
 ### Categorical Columns
-- Mapped to monotonically increasing integers for model compatibility
+Mapped to monotonically increasing integers for model compatibility.
 
 ### Datetime Columns
-- Converted to numerical Pandas datetime values
-- Extracted features: `[year, month, day, dayofweek]` by default
-- Missing/invalid values replaced with mean
-- Note: Pandas datetime has min/max limits that may affect extreme dates
+Converted into:
+- Numerical Pandas datetime (constrained by `pandas.Timestamp.min/max`)
+- Extracted columns: `[year, month, day, dayofweek]` (default, configurable via `DatetimeFeatureGenerator`)
+
+**Note:** Missing, invalid, or out-of-range values converted to mean of valid rows.
 
 ### Text Columns
-- With MultiModal option: processed using Transformer neural networks
-- Without MultiModal:
-  - N-gram feature generation (creates "n-hot" encoded columns)
-  - Special features (word counts, character counts, etc.)
+Two processing modes:
+1. **MultiModal enabled:** Full Transformer neural network with pretrained NLP models
+2. **Default processing:**
+   - **N-gram features:** Extracts n-grams (default: individual words), creates n-hot encoded columns (configurable via `TextNgramFeatureGenerator`)
+   - **Numerical features:** Word counts, character counts, uppercase proportion, etc. (configurable via `TextSpecialFeatureGenerator`)
 
-## Additional Processing
-- Single-value columns are dropped
-- Duplicate columns are removed
+### Additional Processing
+- Single-value columns dropped
+- Duplicate columns removed
 
 ## Implementation Example
 
 ```python
-# Basic usage
-predictor = TabularPredictor(label='class', problem_type='multiclass').fit(train_data)
+from autogluon.features.generators import AutoMLPipelineFeatureGenerator
+import pandas as pd
 
-# Custom feature generator
+# Create sample data with multiple types
+dfx['B'] = dfx['B'].astype(int)  # Integer
+dfx['C'] = datetime(2000,1,1) + pd.to_timedelta(dfx['C'].astype(int), unit='D')  # Datetime
+dfx['D'] = pd.cut(dfx['D'] * 10, [-np.inf,-5,0,5,np.inf], labels=['v','w','x','y'])  # Categorical
+dfx['E'] = pd.Series([...])  # Text
+
+# Apply default feature generation
+auto_ml_pipeline_feature_generator = AutoMLPipelineFeatureGenerator()
+auto_ml_pipeline_feature_generator.fit_transform(X=dfx)
+```
+
+**Results:**
+- Float/int columns unchanged
+- Datetime → raw value (nanoseconds) + year, month, day, dayofweek
+- Categorical strings → integers
+- Text → summary features (char_count, etc.) + n-hot word matrix
+
+### Explicit Categorical Marking
+
+```python
+# Mark integer column as categorical
+dfx["B"] = dfx["B"].astype("category")
+```
+
+## Missing Value Handling
+
+```python
+dfx.iloc[0] = np.nan  # Set first row to NaN
+auto_ml_pipeline_feature_generator.fit_transform(X=dfx)
+```
+
+**Behavior:**
+- Float, int, categorical, text: NaNs retained
+- Datetime: NaNs replaced with mean of non-NaN values
+
+## Custom Feature Engineering
+
+Use `PipelineFeatureGenerator` with custom parameters:
+
+```python
 from autogluon.features.generators import PipelineFeatureGenerator, CategoryFeatureGenerator, IdentityFeatureGenerator
 from autogluon.common.features.types import R_INT, R_FLOAT
 
 mypipeline = PipelineFeatureGenerator(
     generators = [[        
-        CategoryFeatureGenerator(maximum_num_cat=10),  # Limit categorical values
+        CategoryFeatureGenerator(maximum_num_cat=10),  # Limit categories, rare → NaN
         IdentityFeatureGenerator(infer_features_in_args=dict(valid_raw_types=[R_INT, R_FLOAT])),
     ]]
 )
-
-# Use custom feature generator with predictor
-predictor = TabularPredictor(label='label')
-predictor.fit(df, hyperparameters={'GBM': {}}, feature_generator=mypipeline)
+mypipeline.fit_transform(X=dfx)
 ```
 
-## Missing Value Handling
-- Datetime columns: missing values replaced with mean
-- Other columns: NaN values preserved
-
-## Customization Tips
-- Use `PipelineFeatureGenerator` for custom pipelines
-- Configure individual generators with parameters like `maximum_num_cat`
-- For categorical recognition, explicitly set column type: `df["col"] = df["col"].astype("category")`
+**See:** `examples/tabular/example_custom_feature_generator.py` for advanced customization.

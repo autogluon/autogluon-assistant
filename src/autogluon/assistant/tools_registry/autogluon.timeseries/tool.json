@@ -1,6 +1,6 @@
 {
   "name": "autogluon.timeseries",
-  "version": "1.4.1.dev",
+  "version": "1.6.1",
   "description": "AutoGluon TimeSeries automates forecasting model training for time series data, supporting both univariate and multivariate predictions.",
   "requirements": [],
   "prompt_template": [

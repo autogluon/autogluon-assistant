@@ -25,11 +25,13 @@ def main():
         help="Maximum number of iterations for code generation",
     )
     parser.add_argument(
+        "--enable_per_iteration_instruction",
         "--need_user_input",
+        dest="enable_per_iteration_instruction",
         action="store_true",
-        help="Enable user input between iterations",
+        help="Prompt for a user instruction between iterations",
     )
-    parser.add_argument("-u", "--initial_user_input", default=None, help="Initial user input (Optional)")
+    parser.add_argument("-t", "--initial_user_input", default=None, help="Initial user instruction (optional)")
 
     args = parser.parse_args()
 
@@ -39,7 +41,7 @@ def main():
         output_folder=args.output_dir,
         config_path=args.config_path,
         max_iterations=args.max_iterations,
-        need_user_input=args.need_user_input,
+        enable_per_iteration_instruction=args.enable_per_iteration_instruction,
         initial_user_input=args.initial_user_input,
         extract_archives_to=args.extract_archives_to,
     )

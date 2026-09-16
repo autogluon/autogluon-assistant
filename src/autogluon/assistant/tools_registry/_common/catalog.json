@@ -22,17 +22,17 @@
     },
     "autogluon.tabular": {
       "path": "autogluon.tabular",
-      "version": "1.4.0.dev",
+      "version": "1.6.1",
       "description": "AutoGluon Tabular automates ML model training for tabular data, excelling at numerical and categorical data processing. It doesn't support NLP or image-based tasks."
     },
     "autogluon.multimodal": {
       "path": "autogluon.multimodal",
-      "version": "1.4.0.dev",
+      "version": "1.6.1",
       "description": "AutoGluon Multimodal excels at multimodal classification, regression, document classification, and semantic segmentation tasks. The framework is not optimized for pure tabular data processing and DOES NOT support generative tasks (image generation, text generation, etc.) or audio-related tasks. It also doesn't handle object detection."
     },
     "autogluon.timeseries": {
       "path": "autogluon.timeseries",
-      "version": "1.4.0.dev",
+      "version": "1.6.1",
       "description": "AutoGluon TimeSeries automates forecasting model training for time series data, supporting both univariate and multivariate predictions."
     }
   }

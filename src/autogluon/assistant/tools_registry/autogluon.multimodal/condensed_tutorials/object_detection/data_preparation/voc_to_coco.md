@@ -1,46 +1,47 @@
 # Condensed: ```
 
-Summary: This tutorial demonstrates how to convert Pascal VOC object detection datasets to COCO format using Python code that helps with data format conversion and custom data splitting for object detection tasks. The tutorial covers: 1) converting pre-defined VOC data splits to COCO format using Python scripts, 2) creating custom data splits with specific train/val/test ratios, and 3) generating COCO-format JSON files from VOC annotations. The tutorial helps with dataset preparation for object detection models by providing Python scripts for format conversion and data splitting with customizable train/val/test ratios.
+Summary: This tutorial covers converting Pascal VOC format object detection datasets to COCO format using AutoGluon's CLI tool. It demonstrates two key implementations: (1) converting pre-existing VOC dataset splits (train/val/test.txt) to COCO JSON format using the `voc2coco` command with `--root_dir` parameter, and (2) creating custom dataset splits with specified ratios using `--train_ratio` and `--val_ratio` parameters. The tutorial helps with dataset preprocessing tasks for computer vision projects, specifically format conversion between VOC (XML annotations) and COCO (JSON) formats. Key functionality includes automated batch conversion that outputs standardized `*_cocoformat.json` files in the Annotations directory, enabling compatibility with COCO-based training pipelines.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
 # VOC to COCO Format Conversion
 
-## Converting Pre-defined Splits
-
-VOC datasets typically have this structure:
+## Standard VOC Dataset Structure
 ```
 Annotations  ImageSets  JPEGImages
 ```
 
-With split files under `ImageSets/Main/`:
+Pre-defined splits in `ImageSets/Main/`:
 ```
 train.txt
 val.txt
 test.txt
 ```
 
-Convert these splits to COCO format:
-```python
+## Convert Pre-defined Splits
+
+Convert existing VOC splits to COCO format:
+
+```bash
 python3 -m autogluon.multimodal.cli.voc2coco --root_dir ./VOCdevkit/VOC2007
 ```
 
-This generates COCO format files in the `Annotations` folder:
+**Output:** Generates COCO format files in `Annotations/`:
 ```
 train_cocoformat.json
 val_cocoformat.json
 test_cocoformat.json
 ```
 
-## Custom Data Splitting
+## Custom Split Ratios
 
-Create custom splits with specific ratios without requiring pre-existing split files:
+Create custom train/val/test splits (e.g., 0.6/0.2/0.2) without pre-existing split files:
 
-```python
+```bash
 python3 -m autogluon.multimodal.cli.voc2coco --root_dir ./VOCdevkit/VOC2007 --train_ratio 0.6 --val_ratio 0.2
 ```
 
-This generates:
+**Output:** Generates custom splits in `Annotations/`:
 ```
 usersplit_train_cocoformat.json
 usersplit_val_cocoformat.json
@@ -48,5 +49,5 @@ usersplit_test_cocoformat.json
 ```
 
 ## Additional Resources
-- See [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm) for more examples
-- For customization, refer to [Customize AutoMM](../../advanced_topics/customization.ipynb)
+- [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm)
+- [Customize AutoMM](../../advanced_topics/customization.ipynb)

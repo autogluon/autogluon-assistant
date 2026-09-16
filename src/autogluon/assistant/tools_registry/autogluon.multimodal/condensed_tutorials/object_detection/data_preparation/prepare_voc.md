@@ -1,60 +1,64 @@
 # Condensed: ```
 
-Summary: This tutorial demonstrates how to download and use the VOC dataset for object detection tasks with AutoGluon. It covers multiple download methods: using AutoGluon CLI commands to get the full VOC0712 dataset or individual VOC2007/2012 datasets, and using bash scripts. The tutorial explains the resulting dataset structure with folders like Annotations, ImageSets, and JPEGImages. It emphasizes that AutoGluon MultiModalPredictor recommends using COCO format instead of VOC format for better compatibility, though limited VOC format support exists for testing. The guide includes the necessary folder structure requirements when using VOC format and points to additional resources for examples and customization.
+Summary: This tutorial covers downloading and preparing the Pascal VOC dataset (VOC2007/VOC2012) for object detection tasks using AutoGluon's MultiModalPredictor. It demonstrates two download methods: AutoGluon CLI commands with dataset name parameters (`-d voc0712`) and optional output paths (`-o ~/data`), plus bash script alternatives. The tutorial explains the expected dataset structure (VOCdevkit containing Annotations, ImageSets, JPEGImages folders) and VOC's XML-based annotation format. Critically, it warns that while VOC format has limited support, COCO format is strongly recommended for better compatibility with AutoGluon. This helps with tasks involving dataset preparation, understanding object detection data formats, and setting up training pipelines for computer vision models.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-# Downloading and Using VOC Dataset for Object Detection
+# VOC Dataset Preparation - Condensed
 
-## Download Using AutoGluon CLI
+## Download Methods
 
-```python
-# Download full VOC0712 dataset to current directory
+### Using AutoGluon CLI
+
+**Basic command:**
+```bash
 python3 -m autogluon.multimodal.cli.prepare_detection_dataset --dataset_name voc0712
+```
 
-# Download to specific path
+**With custom output path:**
+```bash
 python3 -m autogluon.multimodal.cli.prepare_detection_dataset --dataset_name voc0712 --output_path ~/data
-
-# Short form
+# Short form:
 python3 -m autogluon.multimodal.cli.prepare_detection_dataset -d voc -o ~/data
+```
 
-# Download VOC2007 and VOC2012 separately
+**Separate downloads:**
+```bash
 python3 -m autogluon.multimodal.cli.prepare_detection_dataset -d voc07 -o ~/data
 python3 -m autogluon.multimodal.cli.prepare_detection_dataset -d voc12 -o ~/data
 ```
 
-## Download Using Bash Script
+### Using Bash Script
 
 ```bash
-# Extract to current directory
-bash download_voc0712.sh
-
-# Extract to specific path
-bash download_voc0712.sh ~/data
+bash download_voc0712.sh          # Current directory
+bash download_voc0712.sh ~/data   # Custom path
 ```
 
 ## Dataset Structure
 
-After downloading, the VOC dataset will be extracted to a `VOCdevkit` folder containing:
+After extraction, `VOCdevkit` folder contains:
 ```
-VOC2007/  VOC2012/
-```
-
-Each containing:
-```
-Annotations/  ImageSets/  JPEGImages/  SegmentationClass/  SegmentationObject/
+VOC2007  VOC2012
 ```
 
-## Important Note on Format
-
-**Warning: AutoGluon MultiModalPredictor strongly recommends using COCO format instead of VOC format.** 
-See "AutoMM Detection - Prepare COCO2017 Dataset" and "Convert Data to COCO Format" tutorials for more information.
-
-For testing purposes, limited VOC format support is available. When using VOC format, the input path must contain at least:
+Each contains:
 ```
-Annotations/  ImageSets/  JPEGImages/
+Annotations  ImageSets  JPEGImages  SegmentationClass  SegmentationObject
 ```
 
-## Additional Resources
-- For more examples, see [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm)
-- For customization, refer to [Customize AutoMM](../../advanced_topics/customization.ipynb)
+## VOC Format
+
+⚠️ **Important:** VOC format uses `.xml` files. **AutoGluon strongly recommends using COCO format instead** for better compatibility.
+
+For VOC format usage, the input path must contain minimum:
+```
+Annotations  ImageSets  JPEGImages
+```
+
+**See:** [Prepare COCO2017 Dataset](prepare_coco17.ipynb) and [Convert Data to COCO Format](convert_data_to_coco_format.ipynb)
+
+## References
+
+- [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm)
+- [Customize AutoMM](../../advanced_topics/customization.ipynb)

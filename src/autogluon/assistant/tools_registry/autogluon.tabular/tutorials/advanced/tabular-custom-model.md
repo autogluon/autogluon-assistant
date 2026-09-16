@@ -1,4 +1,4 @@
-Summary: This tutorial demonstrates how to implement custom models in AutoGluon by extending the AbstractModel class, specifically creating a custom RandomForest implementation. It covers preprocessing with label encoding, dynamic model selection based on problem type, and proper integration with AutoGluon's ecosystem. Key functionalities include custom model training, feature preprocessing, model saving/loading, bagged ensembles for improved performance, and hyperparameter tuning using search spaces. The tutorial helps with tasks like implementing custom ML algorithms within AutoGluon, integrating models with TabularPredictor, and optimizing model performance through bagging and hyperparameter optimization.
+Summary: This tutorial teaches how to create custom machine learning models in AutoGluon by inheriting from AbstractModel and implementing four key methods: `_preprocess` (data transformation with LabelEncoderFeatureGenerator), `_fit` (model training with problem-type detection), `_set_default_params` (hyperparameter defaults), and `_get_default_auxiliary_params` (supported data types). It covers the complete workflow from standalone model training with manual label/feature cleaning using LabelCleaner and AutoMLPipelineFeatureGenerator, to integration with TabularPredictor for automated preprocessing, bagging ensembles with BaggedEnsembleModel for performance improvement, hyperparameter tuning using search spaces (space.Int, space.Real, space.Categorical), and combining custom models with AutoGluon's default models using get_hyperparameter_config. Key techniques include importing dependencies within methods for modularity, handling categorical features and missing values, model persistence, and creating multi-layer stack ensembles with the 'best_quality' preset.
 
 ```python
 !pip install autogluon.tabular[all]
@@ -62,7 +62,7 @@ class CustomRandomForestModel(AbstractModel):
 
         # Make sure to call preprocess on X near the start of `_fit`.
         # This is necessary because the data is converted via preprocess during predict, and needs to be in the same format as during fit.
-        X = self.preprocess(X, is_train=True)
+        X = self.preprocess(X, y=y, is_train=True)
         # This fetches the user-specified (and default) hyperparameters for the model.
         params = self._get_model_params()
         print(f'Hyperparameters: {params}')

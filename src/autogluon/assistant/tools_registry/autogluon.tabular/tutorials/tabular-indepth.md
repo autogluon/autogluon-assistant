@@ -1,4 +1,4 @@
-Summary: This tutorial demonstrates AutoGluon TabularPredictor for machine learning tasks, covering hyperparameter tuning with search spaces for neural networks and gradient boosting models, model ensembling through stacking/bagging, and decision threshold calibration for binary classification. It explains inference optimization techniques including model persistence, inference speed constraints, ensemble reduction, and model distillation. The tutorial provides practical code examples for accelerating predictions (up to 160x speedup), managing memory usage, and evaluating model performance. Key functionalities include feature importance analysis, loading/saving predictors, making batch and single-instance predictions, and optimizing deployment with techniques like refit_full, persist, and infer_limit parameters.
+Summary: This tutorial covers advanced AutoGluon Tabular techniques for production ML systems, including model ensembling (bagging with `num_bag_folds`, stacking with `num_stack_levels`), binary classification decision threshold calibration for metric optimization, comprehensive model evaluation via leaderboards with custom metrics, and feature importance analysis. It provides detailed inference acceleration strategies prioritized as: `refit_full()` for collapsing bagged ensembles (8x speedup), `persist()` for keeping models in memory (10x speedup in online inference), and `infer_limit` constraints during training (50x+ speedup). Additional optimization techniques include Pareto-optimal weighted ensembles, model distillation, preprocessing caching, and memory/disk management strategies. The tutorial helps with tasks like deploying fast prediction systems, optimizing model accuracy-latency tradeoffs, reducing resource usage, cross-machine model deployment, and implementing interpretable ML solutions with proper metric calibration.
 
 ```python
 !pip install autogluon.tabular[all]
@@ -9,125 +9,36 @@ Summary: This tutorial demonstrates AutoGluon TabularPredictor for machine learn
 ```python
 from autogluon.tabular import TabularDataset, TabularPredictor
 
-import numpy as np
-
 train_data = TabularDataset('https://autogluon.s3.amazonaws.com/datasets/Inc/train.csv')
 subsample_size = 1000  # subsample subset of data for faster demo, try setting this to much larger values
 train_data = train_data.sample(n=subsample_size, random_state=0)
-print(train_data.head())
-
-label = 'occupation'
-print("Summary of occupation column: \n", train_data['occupation'].describe())
-
 test_data = TabularDataset('https://autogluon.s3.amazonaws.com/datasets/Inc/test.csv')
+
+label = 'class'  # Now lets predict the "class" column (binary classification)
+metric = "balanced_accuracy"  # Specify the evaluation metric you want to optimize
+X_test = test_data.drop(columns=[label])
 y_test = test_data[label]
-test_data_nolabel = test_data.drop(columns=[label])  # delete label column
 
-metric = 'accuracy' # we specify eval-metric just for demo (unnecessary as it's the default)
+train_data.head()
 ```
-
-## Specifying hyperparameters and tuning them
-
-**Note: We don't recommend doing hyperparameter-tuning with AutoGluon in most cases**. AutoGluon achieves its best performance without hyperparameter tuning and simply specifying `presets="best_quality"`.
-
-We first demonstrate hyperparameter-tuning and how you can provide your own validation dataset that AutoGluon internally relies on to: tune hyperparameters, early-stop iterative training, and construct model ensembles. One reason you may specify validation data is when future test data will stem from a different distribution than training data (and your specified validation data is more representative of the future data that will likely be encountered).
-
- If you don't have a strong reason to provide your own validation dataset, we recommend you omit the `tuning_data` argument. This lets AutoGluon automatically select validation data from your provided training set (it uses smart strategies such as stratified sampling).  For greater control, you can specify the `holdout_frac` argument to tell AutoGluon what fraction of the provided training data to hold out for validation.
-
-**Caution:** Since AutoGluon tunes internal knobs based on this validation data, performance estimates reported on this data may be over-optimistic. For unbiased performance estimates, you should always call `predict()` on a separate dataset (that was never passed to `fit()`), as we did in the previous **Quick-Start** tutorial. We also emphasize that most options specified in this tutorial are chosen to minimize runtime for the purposes of demonstration and you should select more reasonable values in order to obtain high-quality models.
-
-`fit()` trains neural networks and various types of tree ensembles by default. You can specify various hyperparameter values for each type of model. For each hyperparameter, you can either specify a single fixed value, or a search space of values to consider during hyperparameter optimization. Hyperparameters which you do not specify are left at default settings chosen automatically by AutoGluon, which may be fixed values or search spaces.
-
-Refer to the [Search Space documentation](../../api/autogluon.common.space.rst) to learn more about AutoGluon search space.
-
-
-```python
-from autogluon.common import space
-
-nn_options = {  # specifies non-default hyperparameter values for neural network models
-    'num_epochs': 10,  # number of training epochs (controls training time of NN models)
-    'learning_rate': space.Real(1e-4, 1e-2, default=5e-4, log=True),  # learning rate used in training (real-valued hyperparameter searched on log-scale)
-    'activation': space.Categorical('relu', 'softrelu', 'tanh'),  # activation function used in NN (categorical hyperparameter, default = first entry)
-    'dropout_prob': space.Real(0.0, 0.5, default=0.1),  # dropout probability (real-valued hyperparameter)
-}
-
-gbm_options = {  # specifies non-default hyperparameter values for lightGBM gradient boosted trees
-    'num_boost_round': 100,  # number of boosting rounds (controls training time of GBM models)
-    'num_leaves': space.Int(lower=26, upper=66, default=36),  # number of leaves in trees (integer hyperparameter)
-}
-
-hyperparameters = {  # hyperparameters of each model type
-                   'GBM': gbm_options,
-                   'NN_TORCH': nn_options,  # NOTE: comment this line out if you get errors on Mac OSX
-                  }  # When these keys are missing from hyperparameters dict, no models of that type are trained
-
-time_limit = 2*60  # train various models for ~2 min
-num_trials = 5  # try at most 5 different hyperparameter configurations for each type of model
-search_strategy = 'auto'  # to tune hyperparameters using random search routine with a local scheduler
-
-hyperparameter_tune_kwargs = {  # HPO is not performed unless hyperparameter_tune_kwargs is specified
-    'num_trials': num_trials,
-    'scheduler' : 'local',
-    'searcher': search_strategy,
-}  # Refer to TabularPredictor.fit docstring for all valid values
-
-predictor = TabularPredictor(label=label, eval_metric=metric).fit(
-    train_data,
-    time_limit=time_limit,
-    hyperparameters=hyperparameters,
-    hyperparameter_tune_kwargs=hyperparameter_tune_kwargs,
-)
-```
-
-We again demonstrate how to use the trained models to predict on the test data.
-
-
-```python
-y_pred = predictor.predict(test_data_nolabel)
-print("Predictions:  ", list(y_pred)[:5])
-perf = predictor.evaluate(test_data, auxiliary_metrics=False)
-```
-
-Use the following to view a summary of what happened during `fit()`. Now this command will show details of the hyperparameter-tuning process for each type of model:
-
-
-```python
-results = predictor.fit_summary()
-```
-
-In the above example, the predictive performance may be poor because we specified very little training to ensure quick runtimes.  You can call `fit()` multiple times while modifying the above settings to better understand how these choices affect performance outcomes. For example: you can increase `subsample_size` to train using a larger dataset, increase the `num_epochs` and `num_boost_round` hyperparameters, and increase the `time_limit` (which you should do for all code in these tutorials).  To see more detailed output during the execution of `fit()`, you can also pass in the argument: `verbosity=3`.
 
 ## Model ensembling with stacking/bagging
 
-Beyond hyperparameter-tuning with a correctly-specified evaluation metric, two other methods to boost predictive performance are [bagging and stack-ensembling](https://arxiv.org/abs/2003.06505).  You'll often see performance improve if you specify `num_bag_folds` = 5-10, `num_stack_levels` = 1 in the call to `fit()`, but this will increase training times and memory/disk usage.
+Two methods to boost predictive performance are [bagging and stack-ensembling](https://arxiv.org/abs/2003.06505).  You'll often see performance improve if you specify `num_bag_folds` = 8, `num_stack_levels` = 1 in the call to `fit()`, but this will increase training times and memory/disk usage.
 
 
 ```python
-label = 'class'  # Now lets predict the "class" column (binary classification)
-test_data_nolabel = test_data.drop(columns=[label])
-y_test = test_data[label]
 save_path = 'agModels-predictClass'  # folder where to store trained models
 
-predictor = TabularPredictor(label=label, eval_metric=metric).fit(train_data,
-    num_bag_folds=5, num_bag_sets=1, num_stack_levels=1,
-    hyperparameters = {'NN_TORCH': {'num_epochs': 2}, 'GBM': {'num_boost_round': 20}},  # last  argument is just for quick demo here, omit it in real applications
-)
-```
-
-You should not provide `tuning_data` when stacking/bagging, and instead provide all your available data as `train_data` (which AutoGluon will split in more intellgent ways). `num_bag_sets` controls how many times the k-fold bagging process is repeated to further reduce variance (increasing this may further boost accuracy but will substantially increase training times, inference latency, and memory/disk usage). Rather than manually searching for good bagging/stacking values yourself, AutoGluon will automatically select good values for you if you specify `auto_stack` instead (which is used in the `best_quality` preset):
-
-
-```python
-# Lets also specify the "balanced_accuracy" metric
-predictor = TabularPredictor(label=label, eval_metric='balanced_accuracy', path=save_path).fit(
-    train_data, auto_stack=True,
+predictor = TabularPredictor(label=label, eval_metric=metric, path=save_path).fit(train_data,
     calibrate_decision_threshold=False,  # Disabling for demonstration in next section
-    hyperparameters={'FASTAI': {'num_epochs': 10}, 'GBM': {'num_boost_round': 200}}  # last 2 arguments are for quick demo, omit them in real applications
+    num_bag_folds=8, num_bag_sets=1, num_stack_levels=1,  # or simply set `auto_stack=True` or a preset such as `presets="best"`
+    time_limit=180,  # a brief 3-minute time limit for demonstration
 )
 predictor.leaderboard(test_data)
 ```
 
-Often stacking/bagging will produce superior accuracy than hyperparameter-tuning, but you may try combining both techniques (note: specifying `presets='best_quality'` in `fit()` simply sets `auto_stack=True`).
+You should not provide `tuning_data` when stacking/bagging, and instead provide all your available data as `train_data` (which AutoGluon will split in more intellgent ways). `num_bag_sets` controls how many times the k-fold bagging process is repeated to further reduce variance (increasing this may further boost accuracy but will substantially increase training times, inference latency, and memory/disk usage). Rather than manually searching for good bagging/stacking values yourself, AutoGluon will automatically select good values for you if you specify `auto_stack` instead (which is used in the `best_quality` preset):
 
 ## Decision Threshold Calibration
 
@@ -184,15 +95,14 @@ Luckily, AutoGluon will automatically apply decision threshold calibration when 
 
 Additional usage examples are below:
 
-
 ```python
 # Will use the decision_threshold specified in `predictor.decision_threshold`, can be set via `predictor.set_decision_threshold`
-# y_pred = predictor.predict(test_data)
-# y_pred_08 = predictor.predict(test_data, decision_threshold=0.8)  # Specify a specific threshold to use only for this predict
+y_pred = predictor.predict(test_data)
+y_pred_08 = predictor.predict(test_data, decision_threshold=0.8)  # Specify a specific threshold to use only for this predict
 
-# y_pred_proba = predictor.predict_proba(test_data)
-# y_pred = predictor.predict_from_proba(y_pred_proba)  # Identical output to calling .predict(test_data)
-# y_pred_08 = predictor.predict_from_proba(y_pred_proba, decision_threshold=0.8)  # Identical output to calling .predict(test_data, decision_threshold=0.8)
+y_pred_proba = predictor.predict_proba(test_data)
+y_pred = predictor.predict_from_proba(y_pred_proba)  # Identical output to calling .predict(test_data)
+y_pred_08 = predictor.predict_from_proba(y_pred_proba, decision_threshold=0.8)  # Identical output to calling .predict(test_data, decision_threshold=0.8)
 ```
 
 ## Prediction options (inference)
@@ -201,7 +111,7 @@ Even if you've started a new Python session since last calling `fit()`, you can 
 
 
 ```python
-predictor = TabularPredictor.load(save_path)  # `predictor.path` is another way to get the relative path needed to later load predictor.
+predictor = TabularPredictor.load(save_path)  # `predictor.path` is another way to get the relative path needed to later load the predictor.
 ```
 
 Above `save_path` is the same folder previously passed to `TabularPredictor`, in which all the trained models have been saved. You can train easily models on one machine and deploy them on another. Simply copy the `save_path` folder to the new machine and specify its new path in `TabularPredictor.load()`.
@@ -217,8 +127,12 @@ We can make a prediction on an individual example rather than a full dataset:
 
 
 ```python
-datapoint = test_data_nolabel.iloc[[0]]  # Note: .iloc[0] won't work because it returns pandas Series instead of DataFrame
-print(datapoint)
+datapoint = X_test.iloc[[0]]  # Note: .iloc[0] won't work because it returns pandas Series instead of DataFrame
+datapoint
+```
+
+
+```python
 predictor.predict(datapoint)
 ```
 
@@ -267,19 +181,13 @@ This is because metrics in AutoGluon are always shown in `higher_is_better` form
 This means that metrics such as `log_loss` and `root_mean_squared_error` will have their signs FLIPPED, and values will be negative.
 This is necessary to avoid the user needing to know the metric to understand if higher is better when looking at leaderboard.
 
-One additional caveat: It is possible that `log_loss` values can be `-inf` when computed via `extra_metrics`.
-This is because the models were not optimized with `log_loss` in mind during training and
-may have prediction probabilities giving a class `0` (particularly common with K-Nearest-Neighbors models).
-Because `log_loss` gives infinite error when the correct class was given `0` probability, this results in a score of `-inf`.
-It is therefore recommended that `log_loss` should not be used as a secondary metric to determine model quality.
-Either use `log_loss` as the `eval_metric` or avoid it altogether.
-
 Here's how to specify a particular model to use for prediction instead of AutoGluon's default model-choice:
 
 
 ```python
 i = 0  # index of model to use
-model_to_use = predictor.model_names()[i]
+all_models = predictor.model_names()
+model_to_use = all_models[i]
 model_pred = predictor.predict(datapoint, model=model_to_use)
 print("Prediction from %s model: %s" % (model_to_use, model_pred.iloc[0]))
 ```
@@ -288,28 +196,25 @@ We can easily access various information about the trained predictor or a partic
 
 
 ```python
-all_models = predictor.model_names()
-model_to_use = all_models[i]
-specific_model = predictor._trainer.load_model(model_to_use)
-
 # Objects defined below are dicts of various information (not printed here as they are quite large):
-model_info = specific_model.get_info()
-predictor_information = predictor.info()
+predictor_information = predictor.info()  # access info about the predictor
+model_info = predictor.model_info(model_to_use)  # access info about a model
+model_info_alternative = predictor._trainer.load_model(model_to_use).get_info()  # load the inner model and access its info directly
 ```
 
 The `predictor` also remembers what metric predictions should be evaluated with, which can be done with ground truth labels as follows:
 
 
 ```python
-y_pred_proba = predictor.predict_proba(test_data_nolabel)
-perf = predictor.evaluate_predictions(y_true=y_test, y_pred=y_pred_proba)
+y_pred_proba = predictor.predict_proba(X_test)
+predictor.evaluate_predictions(y_true=y_test, y_pred=y_pred_proba)
 ```
 
 Since the label columns remains in the `test_data` DataFrame, we can instead use the shorthand:
 
 
 ```python
-perf = predictor.evaluate(test_data)
+predictor.evaluate(test_data)
 ```
 
 ## Interpretability (feature importance)
@@ -333,52 +238,68 @@ We describe multiple ways to reduce the time it takes for AutoGluon to produce p
 Before providing code examples, it is important to understand that
 there are several ways to accelerate inference in AutoGluon. The table below lists the options in order of priority.
 
-| Optimization                      | Inference Speedup                                                                                     | Cost                              | Notes                                                                                                                                                                                  |
-|:----------------------------------|:------------------------------------------------------------------------------------------------------|:----------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| refit_full                        | At least 8x+, up to 160x (requires bagging)                                                           | -Quality, +FitTime                | Only provides speedup with bagging enabled.                                                                                                                                            |
-| persist                           | Up to 10x in online-inference                                                                         | ++MemoryUsage                     | If memory is not sufficient to persist model, speedup is not gained. Speedup is most effective in online-inference and is not relevant in batch inference.                             |
-| infer_limit                       | Configurable, ~up to 50x                                                                              | -Quality (Relative to speedup)    | If bagging is enabled, always use refit_full if using infer_limit.                                                                                                                     |
-| distill                           | ~Equals combined speedup of refit_full and infer_limit set to extreme values                          | --Quality, ++FitTime              | Not compatible with refit_full and infer_limit.                                                                                                                                        |
-| feature pruning                   | Typically at most 1.5x. More if willing to lower quality significantly.                               | -Quality?, ++FitTime              | Dependent on the existence of unimportant features in data. Call `predictor.feature_importance(test_data)` to gauge which features could be removed.                                   |
-| use faster hardware               | Usually at most 3x. Depends on hardware (ignoring GPU).                                               | +Hardware                         | As an example, an EC2 c6i.2xlarge is ~1.6x faster than an m5.2xlarge for a similar price. Laptops in particular might be slow compared to cloud instances.                             |
-| manual hyperparameters adjustment | Usually at most 2x assuming infer_limit is already specified.                                         | ---Quality?, +++UserMLExpertise   | Can be very complicated and is not recommended. Potential ways to get speedups this way is to reduce the number of trees in LightGBM, XGBoost, CatBoost, RandomForest, and ExtraTrees. |
-| manual data preprocessing         | Usually at most 1.2x assuming all other optimizations are specified and setting is online-inference.  | ++++UserMLExpertise, ++++UserCode | Only relevant for online-inference. This is not recommended as AutoGluon's default preprocessing is highly optimized.                                                                  |
+| Optimization                      | Inference Speedup                                                                                   | Cost                           | Notes                                                                                                                                                        |
+|:----------------------------------|:----------------------------------------------------------------------------------------------------|:-------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| refit_full                        | 8x (requires bagging)                                                                               | -Quality                       | Only provides speedup with bagging enabled.                                                                                                                  |
+| persist                           | Up to 10x in online-inference                                                                       | +Memory Usage                  | If memory is not sufficient to persist model, speedup is not gained. Speedup is most effective in online-inference and is not relevant in batch inference.   |
+| infer_limit                       | Up to 50x+                                                                                          | -Quality (Relative to speedup) | Best when combined with refit_full.                                                                                                                          |
+| feature pruning                   | Typically at most 1.5x. More if willing to lower quality significantly.                             | -Quality?                      | Dependent on the existence of unimportant features in data. Call `predictor.feature_importance(test_data)` to gauge which features could be removed.         |
+| use faster hardware               | Usually at most 3x. Depends on hardware (ignoring GPU).                                             | +Hardware                      | As an example, an EC2 c6i.2xlarge is ~1.6x faster than an m5.2xlarge for a similar price. Laptops in particular might be slow compared to cloud instances.   |
+| manual hyperparameters adjustment | Usually at most 2x assuming infer_limit is already specified.                                       | Manual Effort                  | Can be very complicated and is not recommended. Potential ways to get speedups this way is to reduce the number of trees in LightGBM, XGBoost, and CatBoost. |
+| manual data preprocessing         | Usually at most 1.2x.                                                                               | Manual Effort                  | Only relevant for online-inference. Not recommended as AutoGluon's default preprocessing is highly optimized.                                                |
 
-If bagging is enabled (num_bag_folds>0 or num_stack_levels>0 or using 'best_quality' preset), the order of inference optimizations should be:  
+For most scenarios, the order of inference optimizations should be:
 1. refit_full  
 2. persist  
-3. infer_limit  
-
-If bagging is not enabled (num_bag_folds=0, num_stack_levels=0), the order of inference optimizations should be:  
-1. persist  
-2. infer_limit  
+3. infer_limit
 
 If following these recommendations does not lead to a sufficiently fast model, you may consider the more advanced options in the table.
 
-### Keeping models in memory
+### persist: Keeping models in memory
 
 By default, AutoGluon loads models into memory one at a time and only when they are needed for prediction. This strategy is robust for large stacked/bagged ensembles, but leads to slower prediction times. If you plan to repeatedly make predictions (e.g. on new datapoints one at a time rather than one large test dataset), you can first specify that all models required for inference should be loaded into memory as follows:
 
 
 ```python
-predictor.persist()
+import time
+import numpy as np
 
 num_test = 20
 preds = np.array(['']*num_test, dtype='object')
+time_start = time.time()
 for i in range(num_test):
-    datapoint = test_data_nolabel.iloc[[i]]
+    datapoint = X_test.iloc[[i]]
     pred_numpy = predictor.predict(datapoint, as_pandas=False)
     preds[i] = pred_numpy[0]
+time_end = time.time()
+time_without_persist = (time_end - time_start) / num_test
+```
 
-perf = predictor.evaluate_predictions(y_test[:num_test], preds, auxiliary_metrics=True)
-print("Predictions: ", preds)
+
+```python
+predictor.persist()
+
+preds = np.array(['']*num_test, dtype='object')
+time_start = time.time()
+for i in range(num_test):
+    datapoint = X_test.iloc[[i]]
+    pred_numpy = predictor.predict(datapoint, as_pandas=False)
+    preds[i] = pred_numpy[0]
+time_end = time.time()
+time_with_persist = (time_end - time_start) / num_test
 
 predictor.unpersist()  # free memory by clearing models, future predict() calls will load models from disk
 ```
 
+
+```python
+print(f"Inference time unoptimized:  {time_without_persist:.3f}s")
+print(f"Inference time with persist: {time_with_persist:.3f}s")
+```
+
 You can alternatively specify a particular model to persist via the `models` argument of `persist()`, or simply set `models='all'` to simultaneously load every single model that was trained during `fit`.
 
-### Inference speed as a fit constraint
+### infer_limit: Inference speed as a fit constraint
 
 If you know your latency constraint prior to fitting the predictor, you can specify it explicitly as a fit argument.
 AutoGluon will then automatically train models in a fashion that attempts to satisfy the constraint.
@@ -440,7 +361,7 @@ print(f'Model uses {round(infer_time_per_row_ratio * 100, 1)}% of infer_limit ti
 print(f'Model satisfies inference constraint: {is_constraint_satisfied}')
 ```
 
-### Using smaller ensemble or faster model for prediction
+### Using smaller ensembles for prediction
 
 Without having to retrain any models, one can construct alternative ensembles that aggregate individual models' predictions with different weighting schemes. These ensembles become smaller (and hence faster for prediction) if they assign nonzero weight to less models. You can produce a wide variety of ensembles with different accuracy-speed tradeoffs like this:
 
@@ -481,12 +402,11 @@ While computationally-favorable, single individual models will usually have lowe
 
 
 ```python
-student_models = predictor.distill(time_limit=30)  # specify much longer time limit in real applications
-print(student_models)
-preds_student = predictor.predict(test_data_nolabel, model=student_models[0])
-print(f"predictions from {student_models[0]}:", list(preds_student)[:5])
+student_models = predictor.distill(time_limit=120)
 predictor.leaderboard(test_data)
 ```
+
+While distillation might produce efficient models, we recommend first focusing on `refit_full`, `infer_limit`, and `persist` to try satisfying your requirements, as distillation may come with a significant accuracy drop.
 
 ### Faster presets or hyperparameters
 
@@ -494,23 +414,12 @@ Instead of trying to speed up a cumbersome trained model at prediction time, if 
 
 One option is to specify more lightweight `presets`:
 
-
 ```python
 presets = ['good_quality', 'optimize_for_deployment']
 predictor_light = TabularPredictor(label=label, eval_metric=metric).fit(train_data, presets=presets, time_limit=30)
 ```
 
-Another option is to specify more lightweight hyperparameters:
-
-
-```python
-predictor_light = TabularPredictor(label=label, eval_metric=metric).fit(train_data, hyperparameters='very_light', time_limit=30)
-```
-
-Here you can set `hyperparameters` to either 'light', 'very_light', or 'toy' to obtain progressively smaller (but less accurate) models and predictors. Advanced users may instead try manually specifying particular models' hyperparameters in order to make them faster/smaller.
-
-Finally, you may also exclude specific unwieldy models from being trained at all. Below we exclude models that tend to be slower (K Nearest Neighbors, Neural Networks):
-
+You may also exclude specific unwieldy models from being trained at all. Below we exclude models that tend to be slower (K Nearest Neighbors, Neural Networks):
 
 ```python
 excluded_model_types = ['KNN', 'NN_TORCH']
@@ -559,17 +468,17 @@ To reduce memory usage during training, you may try each of the following strate
 
 - In `fit()`, set `excluded_model_types = ['KNN', 'XT' ,'RF']` (or some subset of these models).
 - Try different `presets` in `fit()`.
-- In `fit()`, set `hyperparameters = 'light'` or `hyperparameters = 'very_light'`.
 - Text fields in your table require substantial memory for N-gram featurization. To mitigate this in `fit()`, you can either: (1) add `'ignore_text'` to your `presets` list (to ignore text features), or (2) specify the argument:
 
-```
+```python
 from sklearn.feature_extraction.text import CountVectorizer
 from autogluon.features.generators import AutoMLPipelineFeatureGenerator
+MAX_NGRAM = 1000
 feature_generator = AutoMLPipelineFeatureGenerator(vectorizer=CountVectorizer(min_df=30, ngram_range=(1, 3), max_features=MAX_NGRAM, dtype=np.uint8))
+predictor = TabularPredictor(...).fit(..., feature_generator=feature_generator)
 ```
 
-
-for example using `MAX_NGRAM = 1000` (try various values under 10000 to reduce the number of N-gram features used to represent each text field)
+For example using `MAX_NGRAM = 1000` (try various values under 10000 to reduce the number of N-gram features used to represent each text field)
 
 In addition to reducing memory usage, many of the above strategies can also be used to reduce training times.
 

@@ -1,18 +1,15 @@
 # Condensed: AutoMM Detection - Object detection data formats
 
-Summary: Summary: 
-
-Summary: Summary: This tutorial covers object detection data formats for AutoMM's AutoMM Detection, focusing on COCO and DataFrame formats for object detection. Supports both COCO and DataFrame formats for training and evaluation. Supports conversion between formats with utilities for object detection data formats. Supports training with AutoMM's MultiModalPrediagramming formats for object detection. Supports training with AutoMM's MultiModalPredictor. Supports object detection with AutoMM's MultiModalPredictor. Supports object detection with COCO and DataFrame formats for training and evaluation. Supports object detection with AutoMM's MultiModalPredictor. Supports object detection with AutoMM's MultiModalPredictor. Supports object detection with AutoMM's MultiModalPredictor. Supports object detection with AutoMM's MultiModalPredictor.
-
-Summary: This tutorial explains AutoMM's object detection data format handling, covering: 1) Implementation of COCO and DataFrame formats for object detection tasks, 2) Utility functions for converting between these formats (from_coco and object_detection_df_to_coco), 3) Training and evaluating object detection models using MultiModalPredictor with customizable hyperparameters. The tutorial demonstrates how to properly structure bounding box data, configure model checkpoints, and set training parameters for computer vision object detection tasks.
+Summary: This tutorial covers AutoGluon's AutoMM Detection data format handling for object detection tasks. It teaches two data formats: COCO JSON format (with categories, images, and annotations including bbox coordinates in [x,y,width,height]) and pandas DataFrame format (with image paths, rois as [x1,y1,x2,y2,class_label], and label columns). Key implementations include bidirectional format conversion using `from_coco()` and `object_detection_df_to_coco()` utilities, training object detection models with MultiModalPredictor using YOLOv3/MobileNetV2 checkpoints, and model evaluation. Critical for tasks involving COCO dataset preparation, format conversion between COCO and DataFrame, configuring detection model hyperparameters (learning rates, batch sizes, GPU settings), and building end-to-end object detection pipelines with AutoGluon.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
 # AutoMM Detection - Object Detection Data Formats
 
-## Supported Data Formats
+AutoMM Detection supports two major data formats: COCO format and DataFrame format.
 
-### 1. COCO Format
+## COCO Format
+
 Requires a `.json` file with the following structure:
 
 ```python
@@ -23,22 +20,17 @@ data = {
         # ...
     ],
     "images": [
-        {
-            "file_name": "<imagename0>.<ext>",
-            "height": 427,
-            "width": 640,
-            "id": 1
-        },
+        {"file_name": "<imagename0>.<ext>", "height": 427, "width": 640, "id": 1},
         # ...
     ],
     "annotations": [
         {
             'area': 33453,
-            'iscrowd': 0,
+            'iscrowd': 0,  # 0 for single object per box
             'bbox': [181, 133, 177, 189],  # [x, y, width, height]
-            'category_id': 8,
-            'ignore': 0,
-            'segmentation': [],
+            'category_id': 8,  # use category "id", not "name"
+            'ignore': 0,  # set to 1 to ignore annotation
+            'segmentation': [],  # empty for detection
             'image_id': 1617,
             'id': 1
         },
@@ -48,69 +40,67 @@ data = {
 }
 ```
 
-### 2. DataFrame Format
-Requires a `pd.DataFrame` with 3 columns:
+## DataFrame Format
+
+Requires 3 columns:
 - `image`: path to image file
-- `rois`: list of arrays with format `[x1, y1, x2, y2, class_label]`
+- `rois`: list of arrays `[x1, y1, x2, y2, class_label]`
 - `label`: copy of `rois` column
 
-## Format Conversion Utilities
+## Format Conversion
 
-### COCO to DataFrame
+**COCO to DataFrame:**
 ```python
 from autogluon.multimodal.utils.object_detection import from_coco
 train_df = from_coco(train_path)
 ```
 
-### DataFrame to COCO
+**DataFrame to COCO:**
 ```python
 from autogluon.multimodal.utils.object_detection import object_detection_df_to_coco
-train_coco = object_detection_df_to_coco(train_df, save_path="./df_converted_to_coco.json")
+train_coco = object_detection_df_to_coco(train_df, save_path="./output.json")
 ```
 
-When loading from saved COCO file, specify the correct root path:
+**⚠️ Important:** When loading from saved `.json`, specify `root` parameter so `<root>/<file_name>` forms valid image paths:
 ```python
-train_df_from_saved_coco = from_coco("./df_converted_to_coco.json", root="./")
+train_df = from_coco("./output.json", root="./")
 ```
 
-## Training with DataFrame Format
+## Training with DataFrame
 
 ```python
 from autogluon.multimodal import MultiModalPredictor
 
-# Required dependencies
-# mim install mmcv
-# pip install "mmdet==3.1.0"
-
-checkpoint_name = "yolov3_mobilenetv2_320_300e_coco"
-num_gpus = -1  # use all GPUs
-
-predictor_df = MultiModalPredictor(
+predictor = MultiModalPredictor(
     hyperparameters={
-        "model.mmdet_image.checkpoint_name": checkpoint_name,
-        "env.num_gpus": num_gpus,
+        "model.mmdet_image.checkpoint_name": "yolov3_mobilenetv2_320_300e_coco",
+        "env.num_gpus": -1,  # use all GPUs
     },
     problem_type="object_detection",
-    sample_data_path=train_df,  # needed to determine num_classes
+    sample_data_path=train_df,  # required for num_classes
     path=model_path,
 )
 
-predictor_df.fit(
+predictor.fit(
     train_df,
     hyperparameters={
-        "optim.lr": 2e-4,  # detection head has 100x lr
+        "optim.lr": 2e-4,
         "optim.max_epochs": 30,
         "env.per_gpu_batch_size": 32,  # decrease for larger models
     },
 )
 ```
 
-## Evaluation with DataFrame Format
-```python
-test_df = from_coco(test_path)
-predictor_df.evaluate(test_df)
+**Prerequisites:**
+```bash
+pip install autogluon.multimodal
+mim install mmcv
+pip install "mmdet==3.1.0"
 ```
 
-For more examples, see [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm).
+## Evaluation
 
-For customization options, refer to [Customize AutoMM](../../advanced_topics/customization.ipynb).
+```python
+test_df = from_coco(test_path)
+predictor.evaluate(test_df)
+```

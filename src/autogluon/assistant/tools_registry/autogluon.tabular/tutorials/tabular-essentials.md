@@ -1,4 +1,4 @@
-Summary: This tutorial covers AutoGluon's TabularPredictor for automated machine learning on tabular data. It demonstrates implementation of quick model training with minimal code, automated handling of data preprocessing, and model deployment. Key functionalities include: loading tabular data, training multiple models simultaneously, making predictions, evaluating performance, and saving/loading models. The tutorial explains different performance presets (from "medium" to "extreme"), feature importance analysis, and optimization strategies for classification and regression tasks. AutoGluon automatically handles missing values, feature engineering, and model selection, making it valuable for rapid prototyping and production-quality predictive modeling with just a few lines of code.
+Summary: This tutorial covers AutoGluon's TabularPredictor for automated machine learning on tabular data, including classification and regression tasks. It demonstrates minimal 2-line training code, automatic problem type detection, feature engineering, model ensembling, and hyperparameter tuning. Key implementations include data loading with TabularDataset (CSV/Parquet support), prediction methods (predict/predict_proba), model evaluation (evaluate/leaderboard), feature importance analysis, and model persistence. Critical configurations covered: `presets` parameter ('extreme' for GPU, 'best' for CPU production), `eval_metric` specification (f1, roc_auc, RMSE, custom metrics), `time_limit` for training duration, and best practices like avoiding manual preprocessing, using raw data, and not specifying hyperparameters manually. The tutorial helps with building production ML pipelines, optimizing model performance, selecting appropriate presets based on hardware/requirements, and understanding AutoGluon's automatic feature handling and ensemble strategies.
 
 ```python
 !pip install autogluon.tabular[all]
@@ -10,20 +10,20 @@ Summary: This tutorial covers AutoGluon's TabularPredictor for automated machine
 from autogluon.tabular import TabularDataset, TabularPredictor
 ```
 
-Load training data from a [CSV file](https://en.wikipedia.org/wiki/Comma-separated_values) into an AutoGluon Dataset object. This object is essentially equivalent to a [Pandas DataFrame](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html) and the same methods can be applied to both.
+Load training data from a [CSV file](https://en.wikipedia.org/wiki/Comma-separated_values) using AutoGluon's TabularDataset. TabularDataset is a convenience wrapper around a [Pandas DataFrame](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html) and the same methods can be applied to both.
 
 
 ```python
-train_data = TabularDataset('https://autogluon.s3.amazonaws.com/datasets/Inc/train.csv')
-subsample_size = 500  # subsample subset of data for faster demo, try setting this to much larger values
+train_data = TabularDataset('https://autogluon.s3.amazonaws.com/datasets/Inc/train.csv')  # returns a pandas DataFrame, also works with parquet files
+subsample_size = 1000  # subsample data for a faster demo
 train_data = train_data.sample(n=subsample_size, random_state=0)
 train_data.head()
 ```
 
-Note that we loaded data from a CSV file stored in the cloud. You can also specify a local file-path instead if you have already downloaded the CSV file to your own machine (e.g., using [wget](https://www.gnu.org/software/wget/)).
+Note that we loaded data from a CSV file stored in the cloud. You can also specify a local file instead to try AutoGluon on your own data.
 Each row in the table `train_data` corresponds to a single training example. In this particular dataset, each row corresponds to an individual person, and the columns contain various characteristics reported during a census.
 
-Let's first use these features to predict whether the person's income exceeds $50,000 or not, which is recorded in the `class` column of this table.
+Let's use these features to predict whether a person's income exceeds $50,000 or not, indicated by the `class` column.
 
 
 ```python
@@ -46,7 +46,7 @@ That's it! We now have a TabularPredictor that is able to make predictions on ne
 
 ### Prediction
 
-Next, load separate test data to demonstrate how to make predictions on new examples at inference time:
+Next, load test data to make predictions on new examples:
 
 
 ```python
@@ -107,13 +107,12 @@ predictor = TabularPredictor.load(predictor.path)
 ```
 
 Now you're ready to try AutoGluon on your own tabular datasets!
-As long as they're stored in a popular format like CSV, you should be able to achieve strong predictive performance with just 2 lines of code:
+Achieve strong predictive performance with just 2 lines of code:
 
-```
+```python
 from autogluon.tabular import TabularPredictor
-predictor = TabularPredictor(label=<variable-name>).fit(train_data=<file-name>)
+predictor = TabularPredictor(label="your_label_name").fit(train_data="train_data.csv")
 ```
-
 
 **Note:** This simple call to [TabularPredictor.fit()](../../api/autogluon.tabular.TabularPredictor.fit.rst) is intended for your first prototype model. In a subsequent section, we'll demonstrate how to maximize predictive performance by additionally specifying the `presets` parameter to `fit()` and the `eval_metric` parameter to `TabularPredictor()`.
 
@@ -169,7 +168,7 @@ predictor.model_best
 
 We can instead specify which model to use for predictions like this:
 
-```
+```python
 predictor.predict(test_data, model='LightGBM')
 ```
 
@@ -188,18 +187,18 @@ AutoGluon comes with a variety of presets that can be specified in the call to `
 
 | Preset  | Model Quality                                               | Use Cases                                                                                                                                                                                          | Fit Time (Ideal) | Inference Time (Relative to medium_quality) | Disk Usage |
 |:--------|:------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------| :------------------------------------------ |:-----------|
-| extreme | **Far better** than best on datasets <30000 samples | (New in v1.4) The absolute cutting edge. Incorporates very recent tabular foundation models TabPFNv2, TabICL, and Mitra, along with the deep learning model TabM. Requires a GPU for best results. | 4x+              | 32x+                                        | 8x+        |
+| extreme | **Far better** than best on datasets <100000 samples | (New in v1.6) The absolute cutting edge. Incorporates recent tabular foundation models Nori, TabICLv2, and TabDPT-Turbo. Every model is free for commercial use. Requires a GPU for best results. | 1x               | 8x                                          | 2x         |
+| noncommercial | **Far better** than best on datasets <100000 samples | (New in v1.6) `extreme` plus TabPFN-3, a frontier tabular foundation model created by Prior Labs. Commercial use of TabPFN-3 requires a license from Prior Labs ([license FAQ](https://docs.priorlabs.ai/models#tabpfn-model-license)). Requires a GPU for best results. | 1x               | 8x                                          | 2x         |
 | best    | State-of-the-art (SOTA), much better than high      | When accuracy is what matters.  This should be considered the preferred setting for serious usage. Has been used to win numerous Kaggle competitions.                                              | 16x+             | 32x+                                        | 16x+       |
 | high    | Better than good                                    | When a very powerful, portable solution with fast inference is required: Large-scale batch inference                                                                                               | 16x+             | 4x                                          | 2x         |
 | good    | Stronger than any other AutoML Framework                    | When a powerful, highly portable solution with very fast inference is required: Billion-scale batch inference, sub-100ms online-inference, edge-devices                                            | 16x              | 2x                                          | 0.1x       |
 | medium  | Competitive with other top AutoML Frameworks                | Initial prototyping, establishing a performance baseline                                                                                                                                           | 1x               | 1x                                          | 1x         |
 
-We recommend users to start with `medium` to get a sense of the problem and identify any data related issues. If `medium` is taking too long to train, consider subsampling the training data during this prototyping phase.  
-Once you are comfortable, next try `best`. Make sure to specify at least 16x the `time_limit` value as used in `medium`. Once finished, you should have a very powerful solution that is often stronger than `medium`.  
+**If you have a GPU, start with `extreme`.** It is meta-learned from TabArena (https://tabarena.ai) and is far better than `best` on datasets below 100000 samples, while training faster and producing a smaller predictor. Install its dependencies with `pip install autogluon[tabarena]`. `noncommercial` adds TabPFN-3 on top of the same portfolio and is stronger again; it is free for research and internal experimentation, and commercial use requires a license from Prior Labs ([license FAQ](https://docs.priorlabs.ai/models#tabpfn-model-license)). Every model in `extreme` itself is free for commercial use.
+
+**Without a GPU, start with `best`** to get a strong performance baseline. If `best` is taking too long to train, consider running `medium` or subsampling the training data during this prototyping phase.
 Make sure to consider holding out test data that AutoGluon never sees during training to ensure that the models are performing as expected in terms of performance.  
 Once you evaluate both `best` and `medium`, check if either satisfies your needs. If neither do, consider trying `high` and/or `good`.  
-
-If you have a GPU, we recommend trying the new `extreme` preset, which is meta-learned from TabArena: https://tabarena.ai and demonstrates the absolute cutting edge performance, dramatically improving over `best` on small datasets. Ensure you have installed the required dependencies via `pip install autogluon[tabarena]`.
 
 If none of the presets satisfy requirements, refer to [Predicting Columns in a Table - In Depth](tabular-indepth.ipynb) for more advanced AutoGluon options.
 
@@ -236,34 +235,20 @@ This command implements the following strategy to maximize accuracy:
 
 ## Regression (predicting numeric table columns):
 
-To demonstrate that `fit()` can also automatically handle regression tasks, we now try to predict the numeric `age` variable in the same table based on the other features:
+To demonstrate that `fit()` can also automatically handle regression tasks, we now train to predict the numeric `age` variable in the same table based on the other features:
 
 
 ```python
 age_column = 'age'
-train_data[age_column].head()
+predictor_age = TabularPredictor(label=age_column, path="agModels-predictAge").fit(train_data, time_limit=30)
 ```
-
-We again call `fit()`, imposing a time-limit this time (in seconds), and also demonstrate a shorthand method to evaluate the resulting model on the test data (which contain labels):
-
-
-```python
-predictor_age = TabularPredictor(label=age_column, path="agModels-predictAge").fit(train_data, time_limit=60)
-```
-
-
-```python
-predictor_age.evaluate(test_data)
-```
-
-Note that we didn't need to tell AutoGluon this is a regression problem, it automatically inferred this from the data and reported the appropriate performance metric (RMSE by default). To specify a particular evaluation metric other than the default, set the `eval_metric` parameter of [TabularPredictor()](../../api/autogluon.tabular.TabularPredictor.rst) and AutoGluon will tailor its models to optimize your metric (e.g. `eval_metric = 'mean_absolute_error'`). For evaluation metrics where higher values are worse (like RMSE), AutoGluon will flip their sign and print them as negative values during training (as it internally assumes higher values are better). You can even specify a custom metric by following the [Custom Metric Tutorial](advanced/tabular-custom-metric.ipynb).
-
-We can call leaderboard to see the per-model performance:
 
 
 ```python
 predictor_age.leaderboard(test_data)
 ```
+
+Note that we didn't need to tell AutoGluon this is a regression problem, it automatically inferred this from the data and used an appropriate evaluation metric (RMSE by default). To specify a particular evaluation metric other than the default, set the `eval_metric` parameter of [TabularPredictor()](../../api/autogluon.tabular.TabularPredictor.rst) and AutoGluon will tailor its models to optimize your metric (e.g. `eval_metric = 'mean_absolute_error'`). For evaluation metrics where higher values are worse (like RMSE), AutoGluon will flip their sign and print them as negative values during training (as it internally assumes higher values are better). You can even specify a custom metric by following the [Custom Metric Tutorial](advanced/tabular-custom-metric.ipynb).
 
 **Data Formats:** AutoGluon can currently operate on data tables already loaded into Python as pandas DataFrames, or those stored in files of [CSV format](https://en.wikipedia.org/wiki/Comma-separated_values) or [Parquet format](https://databricks.com/glossary/what-is-parquet). If your data lives in multiple tables, you will first need to join them into a single table whose rows correspond to statistically independent observations (datapoints) and columns correspond to different features (aka. variables/covariates).
 

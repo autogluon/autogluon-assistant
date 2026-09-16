@@ -1,36 +1,45 @@
 # Condensed: ```python
 
-Summary: This tutorial demonstrates implementing semantic segmentation using Meta's Segment Anything Model (SAM) with AutoGluon. It covers zero-shot inference and fine-tuning SAM for domain-specific tasks using LoRA (Low-Rank Adaptation). Key functionalities include data preparation for segmentation tasks, model initialization with pre-trained SAM checkpoints, efficient fine-tuning techniques, evaluation using IoU metrics, and visualization of segmentation masks. The tutorial helps with implementing image segmentation tasks that require minimal labeled data by leveraging transfer learning from foundation models, particularly useful for specialized domains like disease detection in plant leaves.
+Summary: This tutorial demonstrates fine-tuning Meta's Segment Anything Model (SAM) for semantic segmentation using AutoGluon's MultiModalPredictor. It covers essential techniques including: data preparation with path expansion for image/mask pairs in pandas DataFrames, zero-shot inference with pretrained SAM models, and efficient fine-tuning using LoRA. Key implementations include configuring the predictor with `problem_type="semantic_segmentation"`, specifying SAM checkpoints (facebook/sam-vit-base), training with time limits, and evaluating with IoU metrics. The tutorial helps with tasks like custom segmentation model development, transfer learning workflows, and model persistence (save/load). Critical features include automatic LoRA-based fine-tuning, support for validation data during training, and direct prediction/evaluation methods for segmentation masks.
 
 *This is a condensed version that preserves essential implementation details and context.*
 
-# Semantic Segmentation with SAM (Segment Anything Model)
+# Fine-tuning SAM for Semantic Segmentation with AutoGluon
 
-## Setup and Data Preparation
+## Installation & Setup
 
 ```python
 !pip install autogluon.multimodal
+```
 
-# Download and extract dataset
-download_dir = './ag_automm_tutorial'
-zip_file = 'https://automl-mm-bench.s3.amazonaws.com/semantic_segmentation/leaf_disease_segmentation.zip'
+## Data Preparation
+
+Download and load the dataset:
+
+```python
 from autogluon.core.utils.loaders import load_zip
-load_zip.unzip(zip_file, unzip_dir=download_dir)
-
-# Load data
 import pandas as pd
 import os
+
+download_dir = './ag_automm_tutorial'
+zip_file = 'https://automl-mm-bench.s3.amazonaws.com/semantic_segmentation/leaf_disease_segmentation.zip'
+load_zip.unzip(zip_file, unzip_dir=download_dir)
+
 dataset_path = os.path.join(download_dir, 'leaf_disease_segmentation')
 train_data = pd.read_csv(f'{dataset_path}/train.csv', index_col=0)
 val_data = pd.read_csv(f'{dataset_path}/val.csv', index_col=0)
 test_data = pd.read_csv(f'{dataset_path}/test.csv', index_col=0)
-image_col = 'image'
-label_col = 'label'
+```
 
-# Expand relative paths to absolute paths
+**Critical**: Expand relative paths to absolute paths for correct data loading:
+
+```python
 def path_expander(path, base_folder):
     path_l = path.split(';')
     return ';'.join([os.path.abspath(os.path.join(base_folder, path)) for path in path_l])
+
+image_col = 'image'
+label_col = 'label'
 
 for per_col in [image_col, label_col]:
     train_data[per_col] = train_data[per_col].apply(lambda ele: path_expander(ele, base_folder=dataset_path))
@@ -40,40 +49,35 @@ for per_col in [image_col, label_col]:
 
 ## Zero-Shot Evaluation
 
+Initialize predictor for zero-shot inference:
+
 ```python
 from autogluon.multimodal import MultiModalPredictor
-from autogluon.multimodal.utils import SemanticSegmentationVisualizer
 
-# Initialize visualizer
-visualizer = SemanticSegmentationVisualizer()
-
-# Initialize zero-shot predictor with SAM base model
 predictor_zero_shot = MultiModalPredictor(
     problem_type="semantic_segmentation", 
     label=label_col,
     hyperparameters={
         "model.sam.checkpoint_name": "facebook/sam-vit-base",
     },
-    num_classes=1  # foreground-background segmentation
+    num_classes=1,  # foreground-background segmentation
 )
 
-# Perform inference
+# Direct inference without training
 pred_zero_shot = predictor_zero_shot.predict({'image': [test_data.iloc[0]['image']]})
-
-# Evaluate on test data
 scores = predictor_zero_shot.evaluate(test_data, metrics=["iou"])
-print(scores)
 ```
 
-**Note:** SAM without prompts outputs a rough leaf mask instead of disease masks due to lack of context about the domain task.
+**Note**: Zero-shot SAM outputs rough masks without domain context. Performance is relatively low without fine-tuning.
 
 ## Fine-tuning SAM
 
+Initialize and train predictor:
+
 ```python
 import uuid
-save_path = f"./tmp/{uuid.uuid4().hex}-automm_semantic_seg"
 
-# Initialize predictor for fine-tuning
+save_path = f"./tmp/{uuid.uuid4().hex}-automm_semantic_seg"
 predictor = MultiModalPredictor(
     problem_type="semantic_segmentation", 
     label="label",
@@ -83,38 +87,34 @@ predictor = MultiModalPredictor(
     path=save_path,
 )
 
-# Fine-tune using LoRA (Low-Rank Adaptation)
 predictor.fit(
     train_data=train_data,
     tuning_data=val_data,
     time_limit=180,  # seconds
 )
+```
 
-# Evaluate fine-tuned model
+**Key Implementation Detail**: Uses [LoRA](https://arxiv.org/abs/2106.09685) for efficient fine-tuning under the hood. Default model is SAM-huge without customization.
+
+Evaluate fine-tuned model:
+
+```python
 scores = predictor.evaluate(test_data, metrics=["iou"])
-print(scores)
-
-# Visualize prediction
 pred = predictor.predict({'image': [test_data.iloc[0]['image']]})
-visualizer.plot_mask(pred)
 ```
 
 ## Save and Load
 
+Model auto-saves after `fit()`:
+
 ```python
-# The model is automatically saved during fit()
-# To load:
 loaded_predictor = MultiModalPredictor.load(save_path)
 scores = loaded_predictor.evaluate(test_data, metrics=["iou"])
-print(scores)
 ```
 
-**Warning:** `MultiModalPredictor.load()` uses the `pickle` module, which can execute arbitrary code during unpickling. Only load data from trusted sources.
+**⚠️ Security Warning**: `MultiModalPredictor.load()` uses `pickle` module, which is insecure. Malicious pickle data can execute arbitrary code during unpickling. **Only load data from trusted sources.**
 
-## Implementation Details
+## Additional Resources
 
-- Uses LoRA for efficient fine-tuning of the large SAM model
-- Fine-tuning significantly improves performance for domain-specific segmentation tasks
-- The base SAM model is used as default without hyperparameter customization
-- For more examples, see [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm)
-- For customization options, refer to [Customize AutoMM](../advanced_topics/customization.ipynb)
+- [AutoMM Examples](https://github.com/autogluon/autogluon/tree/master/examples/automm)
+- [Customize AutoMM](../advanced_topics/customization.ipynb)

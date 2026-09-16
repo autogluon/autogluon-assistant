@@ -81,6 +81,29 @@ def main(
         "--extract-to",
         help="Copy input data to specified directory and automatically extract all .zip archives. ",
     ),
+    provided_conda_env: str | None = typer.Option(
+        None,
+        "--conda-env",
+        help=(
+            "Path (or name) of a pre-built conda env to reuse for every MCTS node instead of "
+            "creating a fresh one per node. Intended for a Claude Code skill that builds/reuses "
+            "the env and hands it to mlzero."
+        ),
+    ),
+    eval_script: str | None = typer.Option(
+        None, "--eval-script", help="Path to a fixed scorer script; its score becomes each node's MCTS reward."
+    ),
+    eval_ground_truth: str | None = typer.Option(
+        None, "--eval-ground-truth", help="Ground-truth labels file for the validation set (passed to the scorer)."
+    ),
+    eval_validation_features: str | None = typer.Option(
+        None,
+        "--eval-validation-features",
+        help="Validation features file (target removed) each node must predict on for scoring.",
+    ),
+    eval_metric: str | None = typer.Option(
+        None, "--eval-metric", help="Metric name passed to the scorer (e.g. rmse, mae, mase, f1)."
+    ),
     # === Logging parameters ===
     verbosity: int = typer.Option(
         1,
@@ -131,6 +154,11 @@ def main(
         enable_meta_prompting=enable_meta_prompting,
         initial_user_input=initial_user_input,
         extract_archives_to=extract_archives_to,
+        provided_conda_env=provided_conda_env,
+        eval_script=eval_script,
+        eval_ground_truth=eval_ground_truth,
+        eval_validation_features=eval_validation_features,
+        eval_metric=eval_metric,
         verbosity=verbosity,
     )
 
