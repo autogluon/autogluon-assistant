@@ -27,6 +27,5 @@ def test_minimax_regional_endpoints():
 def test_minimax_models_include_current_releases():
     from autogluon.assistant.llm.minimax_chat import DEFAULT_MINIMAX_MODEL, MINIMAX_MODELS
 
-    assert DEFAULT_MINIMAX_MODEL == "MiniMax-M3"
-    assert "MiniMax-M3" in MINIMAX_MODELS
-    assert "MiniMax-M2.7" in MINIMAX_MODELS
+    assert DEFAULT_MINIMAX_MODEL == "MiniMax-M3.1-Flash"
+    assert MINIMAX_MODELS == ["MiniMax-M3.1-Flash", "MiniMax-M3"]

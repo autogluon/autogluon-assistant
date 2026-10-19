@@ -1,4 +1,7 @@
 # MiniMax Configuration
+# Models: https://platform.minimax.io/docs/guides/models-intro.md
+# API: https://platform.minimax.io/docs/api-reference/text-chat-openai.md
+# API: https://platform.minimax.io/docs/api-reference/text-chat-anthropic.md
 
 per_execution_timeout: 86400
 
@@ -22,7 +25,14 @@ enable_meta_prompting: False
 
 llm: &default_llm
   provider: minimax
-  model: MiniMax-M3
+  model: MiniMax-M3.1-Flash
+  # Current direct text choices: MiniMax-M3.1-Flash (preferred), MiniMax-M3.
+  # Saved/custom IDs remain accepted. Both current models: 1M context, 524288 max output.
+  # Flash always uses adaptive thinking; low/medium/high/xhigh/max (default max).
+  reasoning_effort: max
+  # M3 ignores effort; defaults: adaptive on OpenAI, disabled on Anthropic.
+  # M3 accepts thinking: {type: adaptive} or {type: disabled}, and service_tier: priority.
+  # Flash strips disabled thinking, reasoning_split and service_tier at request time.
   # Regional route: global_en (api.minimax.io) or cn_zh (api.minimaxi.com)
   region: global_en
   # Compatibility route: openai or anthropic
