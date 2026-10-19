@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Union
 
 from langchain_anthropic import ChatAnthropic
 from langchain_openai import ChatOpenAI
-from openai import OpenAI
 
 from .base_chat import BaseAssistantChat
 
@@ -29,9 +28,46 @@ DEFAULT_MINIMAX_REGION = "global_en"
 MINIMAX_APIS = ("openai", "anthropic")
 DEFAULT_MINIMAX_API = "openai"
 
-# Current MiniMax chat models, used as a fallback when live discovery is unavailable.
-MINIMAX_MODELS = ["MiniMax-M3", "MiniMax-M2.7"]
-DEFAULT_MINIMAX_MODEL = "MiniMax-M3"
+# Current direct text choices. Explicit saved/custom model IDs remain usable.
+MINIMAX_MODELS = ["MiniMax-M3.1-Flash", "MiniMax-M3"]
+DEFAULT_MINIMAX_MODEL = "MiniMax-M3.1-Flash"
+
+
+def _minimax_request_payload(payload: Dict[str, Any], api: str) -> Dict[str, Any]:
+    """Normalize current model options after LangChain merges invocation overrides."""
+    payload = dict(payload)
+    extra = dict(payload.get("extra_body") or {})
+    model = extra.get("model", payload.get("model"))
+    if model not in MINIMAX_MODELS:
+        return payload
+
+    if model == "MiniMax-M3.1-Flash":
+        if api == "openai":
+            effort = extra.pop("reasoning_effort", payload.get("reasoning_effort", "max"))
+            payload["reasoning_effort"] = effort if effort in ("low", "medium", "high", "xhigh", "max") else "max"
+        else:
+            output_config = dict(payload.pop("output_config", None) or {})
+            output_config.update(extra.get("output_config") or {})
+            if output_config.get("effort") not in ("low", "medium", "high", "xhigh", "max"):
+                output_config["effort"] = "max"
+            extra["output_config"] = output_config
+        payload.pop("thinking", None)
+        extra["thinking"] = {"type": "adaptive"}
+        for options in (payload, extra):
+            options.pop("service_tier", None)
+            options.pop("reasoning_split", None)
+    else:
+        thinking = extra.get("thinking", payload.get("thinking"))
+        if isinstance(thinking, dict):
+            kind = thinking.get("type")
+            if kind is None and "enabled" in thinking:
+                kind = "adaptive" if thinking["enabled"] else "disabled"
+            if kind in ("enabled", "adaptive", "disabled"):
+                payload.pop("thinking", None)
+                extra["thinking"] = {"type": "disabled" if kind == "disabled" else "adaptive"}
+    if extra or "extra_body" in payload:
+        payload["extra_body"] = extra
+    return payload
 
 
 class AssistantChatMiniMax(ChatOpenAI, BaseAssistantChat):
@@ -40,6 +76,9 @@ class AssistantChatMiniMax(ChatOpenAI, BaseAssistantChat):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.initialize_conversation(self)
+
+    def _get_request_payload(self, input_, *, stop=None, **kwargs) -> Dict[str, Any]:
+        return _minimax_request_payload(super()._get_request_payload(input_, stop=stop, **kwargs), "openai")
 
     def describe(self) -> Dict[str, Any]:
         base_desc = super().describe()
@@ -53,6 +92,9 @@ class AssistantChatMiniMaxAnthropic(ChatAnthropic, BaseAssistantChat):
         super().__init__(**kwargs)
         self.initialize_conversation(self)
 
+    def _get_request_payload(self, input_, *, stop=None, **kwargs) -> Dict[str, Any]:
+        return _minimax_request_payload(super()._get_request_payload(input_, stop=stop, **kwargs), "anthropic")
+
     def describe(self) -> Dict[str, Any]:
         base_desc = super().describe()
         return {**base_desc, "model": self.model}
@@ -65,16 +107,8 @@ def _resolve_region(region: str) -> Dict[str, str]:
 
 
 def get_minimax_models(region: str = DEFAULT_MINIMAX_REGION) -> List[str]:
-    """Get available MiniMax models via the OpenAI-compatible route with a static fallback."""
-    endpoints = _resolve_region(region)
-    try:
-        client = OpenAI(api_key=os.environ.get("MINIMAX_API_KEY"), base_url=endpoints["openai_base_url"])
-        models = client.models.list()
-        discovered = [model.id for model in models.data if model.id.startswith("MiniMax")]
-        if discovered:
-            return discovered
-    except Exception as e:
-        logger.warning(f"Failed to fetch MiniMax models: {e}")
+    """Return current direct text choices, independent of legacy discovery entries."""
+    _resolve_region(region)
     return list(MINIMAX_MODELS)
 
 
@@ -95,6 +129,17 @@ def create_minimax_chat(config, session_name: str) -> Union[AssistantChatMiniMax
     api_key = os.environ["MINIMAX_API_KEY"]
     logger.info(f"Using MiniMax model: {model} ({api} route, region {region}) for session: {session_name}")
 
+    request_options = {}
+    if getattr(config, "thinking", None) is not None:
+        request_options["thinking"] = dict(config.thinking)
+    if getattr(config, "reasoning_effort", None) is not None:
+        if api == "openai":
+            request_options["reasoning_effort"] = config.reasoning_effort
+        else:
+            request_options["output_config"] = {"effort": config.reasoning_effort}
+    if getattr(config, "service_tier", None) is not None:
+        request_options["service_tier"] = config.service_tier
+
     if api == "anthropic":
         kwargs = {
             "model": model,
@@ -110,9 +155,9 @@ def create_minimax_chat(config, session_name: str) -> Union[AssistantChatMiniMax
         if hasattr(config, "verbose"):
             kwargs["verbose"] = config.verbose
 
-        if hasattr(config, "thinking") and hasattr(config.thinking, "enabled"):
-            kwargs["thinking"] = config.thinking
-
+        if "thinking" in request_options:
+            kwargs["thinking"] = request_options.pop("thinking")
+        kwargs["model_kwargs"] = request_options
         return AssistantChatMiniMaxAnthropic(**kwargs)
 
     kwargs = {
@@ -129,4 +174,7 @@ def create_minimax_chat(config, session_name: str) -> Union[AssistantChatMiniMax
     if hasattr(config, "verbose"):
         kwargs["verbose"] = config.verbose
 
+    if "thinking" in request_options:
+        kwargs["extra_body"] = {"thinking": request_options.pop("thinking")}
+    kwargs.update(request_options)
     return AssistantChatMiniMax(**kwargs)
